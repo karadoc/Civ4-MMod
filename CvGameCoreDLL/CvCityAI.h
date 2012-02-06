@@ -217,6 +217,8 @@ protected:
 	bool AI_removeWorstCitizen(SpecialistTypes eIgnoreSpecialist = NO_SPECIALIST);
 	void AI_juggleCitizens();
 
+	int AI_citizenLossCost(int iCitDelta, int iAnger); // K-Mod
+
 	bool AI_potentialPlot(short* piYields) const;
 	bool AI_foodAvailable(int iExtra = 0) const;
 	int AI_yieldValue(short* piYields, short* piCommerceYields, bool bAvoidGrowth, bool bRemove, bool bIgnoreFood = false, bool bIgnoreGrowth = false, bool bIgnoreStarvation = false, bool bWorkerOptimization = false) const;
@@ -228,6 +230,7 @@ protected:
 	void AI_bestPlotBuild(CvPlot* pPlot, int* piBestValue, BuildTypes* peBestBuild, int iFoodPriority, int iProductionPriority, int iCommercePriority, bool bChop, int iHappyAdjust, int iHealthAdjust, int iFoodChange);
 
 	void AI_buildGovernorChooseProduction();
+	void AI_barbChooseProduction(); // K-Mod
 	
 	int AI_getYieldMagicValue(const int* piYieldsTimes100, bool bHealthy) const;
 	int AI_getPlotMagicValue(CvPlot* pPlot, bool bHealthy, bool bWorkerOptimization = false) const;

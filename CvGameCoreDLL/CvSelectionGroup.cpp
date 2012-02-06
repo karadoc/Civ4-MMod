@@ -474,7 +474,8 @@ void CvSelectionGroup::pushMission(MissionTypes eMission, int iData1, int iData2
 	if (canAllMove()) // K-Mod. Do not set the AI mission type if this is just a "follow" command!
 		AI_setMissionAI(eMissionAI, pMissionAIPlot, pMissionAIUnit);
 
-	insertAtEndMissionQueue(mission, !bAppend);
+	//insertAtEndMissionQueue(mission, !bAppend);
+	insertAtEndMissionQueue(mission, !bAppend || AI_isControlled()); // K-Mod (AI commands should execute immediately)
 
 	if (bManual)
 	{
@@ -4063,7 +4064,8 @@ bool CvSelectionGroup::readyToMove(bool bAny)
 
 bool CvSelectionGroup::readyToAuto()
 {
-	return (canAllMove() && (headMissionQueueNode() != NULL));
+	//return (canAllMove() && (headMissionQueueNode() != NULL));
+	return canAllMove() && (headMissionQueueNode() != NULL || (getActivityType() == ACTIVITY_AWAKE && isAutomated()));
 }
 
 
@@ -5071,8 +5073,7 @@ void CvSelectionGroup::insertAtEndMissionQueue(MissionData mission, bool bStart)
 
 	m_missionQueue.insertAtEnd(mission);
 
-	//if ((getLengthMissionQueue() == 1) && bStart)
-	if (getLengthMissionQueue() == 1 && !isAutomated() && (bStart || !isHuman())) // K-Mod (testing.)
+	if ((getLengthMissionQueue() == 1) && bStart)
 	{
 		activateHeadMission();
 	}

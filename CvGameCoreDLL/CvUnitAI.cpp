@@ -1992,10 +1992,10 @@ void CvUnitAI::AI_workerMove()
 		}
 	}
 
-	if (AI_retreatToCity(false, true))
+	/*if (AI_retreatToCity(false, true))
 	{
 		return;
-	}
+	}*/ // disabled by K-Mod (redundant)
 
 	if (AI_retreatToCity())
 	{
@@ -20542,7 +20542,7 @@ bool CvUnitAI::AI_retreatToCity(bool bPrimary, bool bAirlift, int iMaxPath)
 								continue;
 							}
 
-							if (!atPlot(pLoopCity->plot()) && generatePath(pLoopCity->plot(), (iPass >= 3 ? MOVE_IGNORE_DANGER : 0), true, &iPathTurns, iMaxPath))
+							if (!atPlot(pLoopCity->plot()) && generatePath(pLoopCity->plot(), (iPass >= 2 ? MOVE_IGNORE_DANGER : 0), true, &iPathTurns, iMaxPath)) // was iPass >= 3
 							{
 								if (iPathTurns <= iMaxPath)
 								{
@@ -20632,7 +20632,7 @@ bool CvUnitAI::AI_retreatToCity(bool bPrimary, bool bAirlift, int iMaxPath)
 	if (pBestPlot != NULL)
 	{
 		FAssert(!atPlot(pBestPlot));
-		getGroup()->pushMission(MISSION_MOVE_TO, pBestPlot->getX_INLINE(), pBestPlot->getY_INLINE(), iPass >= 3 ? MOVE_IGNORE_DANGER : 0, false, false, MISSIONAI_RETREAT);
+		getGroup()->pushMission(MISSION_MOVE_TO, pBestPlot->getX_INLINE(), pBestPlot->getY_INLINE(), iPass >= 2 ? MOVE_IGNORE_DANGER : 0, false, false, MISSIONAI_RETREAT); // was iPass >= 3
 		return true;
 	}
 
@@ -22808,28 +22808,24 @@ int CvUnitAI::AI_tradeMissionValue(CvPlot*& pBestPlot, int iThreshold)
 		{
 			for (CvCity* pLoopCity = GET_PLAYER((PlayerTypes)iI).firstCity(&iLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER((PlayerTypes)iI).nextCity(&iLoop))
 			{
-				if (AI_plotValid(pLoopCity->plot()))
+				if (AI_plotValid(pLoopCity->plot()) && !pLoopCity->plot()->isVisibleEnemyUnit(this))
 				{
-                    int iValue = getTradeGold(pLoopCity->plot());
+					int iValue = getTradeGold(pLoopCity->plot());
 					int iPathTurns;
 
-                    if ((iValue >= iThreshold) && canTrade(pLoopCity->plot(), true))
-                    {
-                        if (!(pLoopCity->plot()->isVisibleEnemyUnit(this)))
-                        {
-                            if (generatePath(pLoopCity->plot(), MOVE_NO_ENEMY_TERRITORY, true, &iPathTurns))
-                            {
-                                if (iValue / (4 + iPathTurns) > iBestValue / (4 + iBestPathTurns))
-                                {
-                                    iBestValue = iValue;
-									iBestPathTurns = iPathTurns;
-                                    pBestPlot = getPathEndTurnPlot();
-									iThreshold = std::max(iThreshold, iBestValue * 4 / (4 + iBestPathTurns));
-                                }
-                            }
-
-                        }
-                    }
+					if (iValue >= iThreshold && canTrade(pLoopCity->plot()))
+					{
+						if (generatePath(pLoopCity->plot(), MOVE_NO_ENEMY_TERRITORY, true, &iPathTurns))
+						{
+							if (iValue / (4 + iPathTurns) > iBestValue / (4 + iBestPathTurns))
+							{
+								iBestValue = iValue;
+								iBestPathTurns = iPathTurns;
+								pBestPlot = getPathEndTurnPlot();
+								iThreshold = std::max(iThreshold, iBestValue * 4 / (4 + iBestPathTurns));
+							}
+						}
+					}
 				}
 			}
 		}
@@ -22845,6 +22841,7 @@ bool CvUnitAI::AI_doTrade(CvPlot* pTradePlot)
 	{
 		if (atPlot(pTradePlot))
 		{
+			FAssert(canTrade(pTradePlot));
 			if (canTrade(pTradePlot))
 			{
 				getGroup()->pushMission(MISSION_TRADE);
@@ -22976,12 +22973,12 @@ bool CvUnitAI::AI_reconSpy(int iRange)
 				int iValue = 0;
 				if (pLoopPlot->getPlotCity() != NULL)
 				{
-					iValue += GC.getGameINLINE().getSorenRandNum(4000, "AI Spy Scout City");
+					iValue += GC.getGameINLINE().getSorenRandNum(2400, "AI Spy Scout City"); // was 4000
 				}
 				
 				if (pLoopPlot->getBonusType(getTeam()) != NO_BONUS)
 				{
-					iValue += GC.getGameINLINE().getSorenRandNum(1000, "AI Spy Recon Bonus");
+					iValue += GC.getGameINLINE().getSorenRandNum(800, "AI Spy Recon Bonus"); // was 1000
 				}
 				
 				for (int iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
@@ -23001,7 +22998,9 @@ bool CvUnitAI::AI_reconSpy(int iRange)
 					}
 				}
 				// K-Mod
-				if (isPotentialEnemy(pLoopPlot->getTeam(), pLoopPlot))
+				if (pLoopPlot->getTeam() == getTeam())
+					iValue /= 4;
+				else if (isPotentialEnemy(pLoopPlot->getTeam(), pLoopPlot))
 					iValue *= 2;
 				// K-Mod end
 

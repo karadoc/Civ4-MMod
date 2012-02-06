@@ -1399,10 +1399,6 @@ void CvPlayerAI::AI_unitUpdate()
 	PROFILE_FUNC();
 
 	CLLNode<int>* pCurrUnitNode;
-	//CvSelectionGroup* pLoopSelectionGroup;
-	//CLinkList<int> tempGroupCycle;
-	//CLinkList<int> finalGroupCycle;
-	//int iValue;
 
 	FAssert(m_groupCycle.getLength() == m_selectionGroups.getCount());
 
@@ -1425,6 +1421,7 @@ void CvPlayerAI::AI_unitUpdate()
 			}
 		}
 
+		/* original bts code
 		if (isHuman())
 		{
 			pCurrUnitNode = headGroupCycleNode();
@@ -1440,7 +1437,8 @@ void CvPlayerAI::AI_unitUpdate()
 				}
 			}
 		}
-		else
+		else */
+		if (!isHuman()) // K-Mod - automated actions are no longer done from this function. Instead, they are done in CvGame::updateMoves
 		{
 			/* original bts code
 			tempGroupCycle.clear();
@@ -2329,6 +2327,8 @@ int CvPlayerAI::AI_yieldWeight(YieldTypes eYield, const CvCity* pCity) const // 
 
 	// K-Mod. In the past, this function was always bundled with some code to boost the value of production and food...
 	// For simplicity and consistency, I've brought the adjustments into this function.
+	PROFILE_FUNC();
+
 	int iWeight = GC.getYieldInfo(eYield).getAIWeightPercent();
 	switch (eYield)
 	{
@@ -2400,9 +2400,11 @@ int CvPlayerAI::AI_commerceWeight(CommerceTypes eCommerce, const CvCity* pCity) 
 		else if (getCommercePercent(COMMERCE_GOLD) < 25)
 		{
 			//put more money towards other commerce types
-			if (getGoldPerTurn() > -getGold()/40)
+			int iGoldPerTurn = getGoldPerTurn(); // K-Mod
+			if (iGoldPerTurn > -getGold()/40)
 			{
 				iWeight -= 25 - getCommercePercent(COMMERCE_GOLD);
+				iWeight -= (iGoldPerTurn > 0 && getCommercePercent(COMMERCE_GOLD) == 0) ? 10 : 0; // K-Mod. just a bit extra. (I'd like to compare getGold to AI_goldTarget; but it's too expensive.)
 			}
 		}
 		// K-Mod.
@@ -17456,7 +17458,8 @@ int CvPlayerAI::AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTrig
 	int iValue = GC.getGameINLINE().getSorenRandNum(kEvent.getAIValue(), "AI Event choice");
 	iValue += (getEventCost(eEvent, kTriggeredData.m_eOtherPlayer, false) + getEventCost(eEvent, kTriggeredData.m_eOtherPlayer, true)) / 2;
 
-	iValue += kEvent.getEspionagePoints();
+	//iValue += kEvent.getEspionagePoints();
+	iValue += kEvent.getEspionagePoints() * AI_commerceWeight(COMMERCE_ESPIONAGE) / 100; // K-Mod
 
 	if (kEvent.getTech() != NO_TECH)
 	{
@@ -17476,10 +17479,11 @@ int CvPlayerAI::AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTrig
 			}
 			else if (iUnitValue == -1)
 			{
-				iUnitValue = 200; //Great Person?
+				iUnitValue = 2000; //Great Person?  // (was 200)
 			}
 
 			iUnitValue *= GC.getGameSpeedInfo(GC.getGameINLINE().getGameSpeedType()).getTrainPercent();
+			iUnitValue /= 100; // K-Mod
 			iValue += kEvent.getNumUnits() * iUnitValue;
 		}
 	}
@@ -17496,10 +17500,11 @@ int CvPlayerAI::AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTrig
 			}
 			else if (iUnitValue == -1)
 			{
-				iUnitValue = 200; //Great Person?
+				iUnitValue = 2000; //Great Person?  // (was 200)
 			}
 
 			iUnitValue *= GC.getGameSpeedInfo(GC.getGameINLINE().getGameSpeedType()).getTrainPercent();
+			iUnitValue /= 100; // K-Mod
 			iValue -= iUnitValue;
 		}
 	}
@@ -17633,7 +17638,7 @@ int CvPlayerAI::AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTrig
 		
 		iCityTurnValue += aiCommerceYields[COMMERCE_RESEARCH] * 3;
 		iCityTurnValue += aiCommerceYields[COMMERCE_GOLD] * 3;
-		iCityTurnValue += aiCommerceYields[COMMERCE_CULTURE] * 1;
+		iCityTurnValue += aiCommerceYields[COMMERCE_CULTURE] * 2; // was 1
 		iCityTurnValue += aiCommerceYields[COMMERCE_ESPIONAGE] * 2;
 
 		iValue += (iCityTurnValue * 20 * iGameSpeedPercent) / 100;
@@ -17665,7 +17670,8 @@ int CvPlayerAI::AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTrig
 	int iBonusValue = 0;
 	if (NO_BONUS != kEvent.getBonus())
 	{
-		iBonusValue = AI_bonusVal((BonusTypes)kEvent.getBonus());
+		//iBonusValue = AI_bonusVal((BonusTypes)kEvent.getBonus());
+		iBonusValue = AI_bonusVal((BonusTypes)kEvent.getBonus(), 0); // K-Mod
 	}
 
 	if (NULL != pPlot)
@@ -17891,9 +17897,20 @@ int CvPlayerAI::AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTrig
 
 		if (kEvent.isDeclareWar())
 		{
+			/* original bts code
 			int iWarValue = GET_TEAM(getTeam()).getDefensivePower(GET_PLAYER(kTriggeredData.m_eOtherPlayer).getTeam())
 				- GET_TEAM(GET_PLAYER(kTriggeredData.m_eOtherPlayer).getTeam()).getPower(true);// / std::max(1, GET_TEAM(getTeam()).getDefensivePower());
-			iWarValue -= 30 * AI_getAttitudeVal(kTriggeredData.m_eOtherPlayer);
+			iWarValue -= 30 * AI_getAttitudeVal(kTriggeredData.m_eOtherPlayer); */
+
+			// K-Mod. Note: the original code doesn't touch iValue.
+			// So whatever I do here is completely new.
+			// TOOD: if I ever get around to writing code for evalutating potential war targets, I should use that here!
+			int iOurPower = GET_TEAM(getTeam()).getDefensivePower(GET_PLAYER(kTriggeredData.m_eOtherPlayer).getTeam());
+			int iTheirPower = GET_TEAM(GET_PLAYER(kTriggeredData.m_eOtherPlayer).getTeam()).getPower(true);
+			int iWarValue = 300 * (iOurPower - iTheirPower) / (iOurPower + iTheirPower) - 25;// / std::max(1, GET_TEAM(getTeam()).getDefensivePower())
+
+			iValue += iWarValue;
+			// K-Mod end
 		}
 			
 		if (kEvent.getMaxPillage() > 0)
@@ -17903,6 +17920,8 @@ int CvPlayerAI::AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTrig
 			iPillageValue *= 25 - iOtherPlayerAttitudeWeight;
 			iPillageValue *= iGameSpeedPercent;
 			iPillageValue /= 12500;
+
+			iValue += iPillageValue; // K-Mod!
 		}
 
 		iValue += (iDiploValue * iGameSpeedPercent) / 100;
@@ -22751,7 +22770,7 @@ int CvPlayerAI::AI_disbandValue(const CvUnit* pUnit, bool bMilitaryOnly) const
 	if (pUnit->hasCargo() || pUnit->isGoldenAge() || pUnit->getUnitInfo().getProductionCost() < 0 || (bMilitaryOnly && !pUnit->canFight()))
 		return MAX_INT;
 
-	if (pUnit->isMilitaryHappiness() && pUnit->plot()->isCity() && pUnit->plot()->plotCount(PUF_isMilitaryHappiness, -1, -1, getID()) > 2)
+	if (pUnit->isMilitaryHappiness() && pUnit->plot()->isCity() && pUnit->plot()->plotCount(PUF_isMissionAIType, MISSIONAI_GUARD_CITY, -1, getID()) < 2)
 		return MAX_INT;
 
 	int iValue = 1000 + GC.getGameINLINE().getSorenRandNum(200, "Disband Value");
@@ -22771,8 +22790,27 @@ int CvPlayerAI::AI_disbandValue(const CvUnit* pUnit, bool bMilitaryOnly) const
 			iValue *= 2;
 		}
 	}*/
-	if (pUnit->getGroup()->isStranded())
+
+	switch (pUnit->getGroup()->AI_getMissionAIType())
+	{
+	case MISSIONAI_GUARD_CITY:
+	case MISSIONAI_PICKUP:
+	case MISSIONAI_FOUND:
+	case MISSIONAI_SPREAD:
+		iValue *= 3; // high value
+		break;
+
+	case MISSIONAI_STRANDED:
 		iValue /= 2;
+	case MISSIONAI_RETREAT:
+	case MISSIONAI_PATROL:
+	case NO_MISSIONAI:
+		break; // low value
+
+	default:
+		iValue *= 2; // medium
+		break;
+	}
 
 	// Multiplying by higher number means unit has higher priority, less likely to be disbanded
 	switch (pUnit->AI_getUnitAIType())
@@ -22782,7 +22820,7 @@ int CvPlayerAI::AI_disbandValue(const CvUnit* pUnit, bool bMilitaryOnly) const
 		break;
 
 	case UNITAI_SETTLE:
-		iValue *= 20;
+		iValue *= 16;
 		break;
 
 	case UNITAI_WORKER:
@@ -22795,12 +22833,15 @@ int CvPlayerAI::AI_disbandValue(const CvUnit* pUnit, bool bMilitaryOnly) const
 		break;
 
 	case UNITAI_ATTACK:
+	case UNITAI_COUNTER:
+		iValue *= 4;
+		break;
+
 	case UNITAI_ATTACK_CITY:
 	case UNITAI_COLLATERAL:
 	case UNITAI_PILLAGE:
 	case UNITAI_RESERVE:
-	case UNITAI_COUNTER:
-		iValue *= 2;
+		iValue *= 3;
 		break;
 
 	case UNITAI_CITY_DEFENSE:
@@ -22844,12 +22885,13 @@ int CvPlayerAI::AI_disbandValue(const CvUnit* pUnit, bool bMilitaryOnly) const
 		break;
 
 	case UNITAI_WORKER_SEA:
-		iValue *= 18;
+		iValue *= 15;
 		break;
 
 	case UNITAI_ATTACK_SEA:
 	case UNITAI_RESERVE_SEA:
 	case UNITAI_ESCORT_SEA:
+		iValue *= 2;
 		break;
 
 	case UNITAI_EXPLORE_SEA:

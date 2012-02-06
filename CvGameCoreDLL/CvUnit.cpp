@@ -553,7 +553,8 @@ void CvUnit::kill(bool bDelay, PlayerTypes ePlayer)
 				if (GET_PLAYER((PlayerTypes)iI).isAlive())
 				{
 					szBuffer = gDLL->getText("TXT_KEY_MISC_GENERAL_KILLED", getNameKey());
-					gDLL->getInterfaceIFace()->addHumanMessage(((PlayerTypes)iI), false, GC.getEVENT_MESSAGE_TIME(), szBuffer, GC.getEraInfo(GC.getGameINLINE().getCurrentEra()).getAudioUnitDefeatScript(), MESSAGE_TYPE_MAJOR_EVENT);
+					//gDLL->getInterfaceIFace()->addHumanMessage(((PlayerTypes)iI), false, GC.getEVENT_MESSAGE_TIME(), szBuffer, GC.getEraInfo(GC.getGameINLINE().getCurrentEra()).getAudioUnitDefeatScript(), MESSAGE_TYPE_MAJOR_EVENT);
+					gDLL->getInterfaceIFace()->addHumanMessage(((PlayerTypes)iI), false, GC.getEVENT_MESSAGE_TIME(), szBuffer, "AS2D_INTERCEPTED", MESSAGE_TYPE_MAJOR_EVENT); // K-Mod (the other sound is not appropriate for most civs receiving the message.)
 				}
 			}
 		}
@@ -3101,10 +3102,10 @@ bool CvUnit::canAutomate(AutomateTypes eAutomate) const
 		return false;
 	}
 
-	if (!isGroupHead())
+	/*if (!isGroupHead())
 	{
 		return false;
-	}
+	}*/ // disabled by K-Mod
 
 	switch (eAutomate)
 	{
@@ -3173,6 +3174,10 @@ void CvUnit::automate(AutomateTypes eAutomate)
 	}
 
 	getGroup()->setAutomateType(eAutomate);
+	// K-Mod
+	FAssert(GET_PLAYER(getOwnerINLINE()).isTurnActive());
+	getGroup()->AI_update();
+	// K-Mod end
 }
 
 
@@ -6387,10 +6392,7 @@ bool CvUnit::canTrade(const CvPlot* pPlot, bool bTestVisible) const
 		return false;
 	}
 
-	if (getTradeGold(pPlot) == 0)
-	{
-		return false;
-	}
+	// K-Mod. if (getTradeGold(pPlot) == 0) use to be here. I've moved it to the bottom, for efficiency.
 
 	if (!canEnterArea(pPlot->getTeam(), pPlot->area()))
 	{
@@ -6403,6 +6405,11 @@ bool CvUnit::canTrade(const CvPlot* pPlot, bool bTestVisible) const
 		{
 			return false;
 		}
+	}
+
+	if (getTradeGold(pPlot) == 0)
+	{
+		return false;
 	}
 
 	return true;
