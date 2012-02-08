@@ -1139,7 +1139,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_MECHANIZED_INFANTRY</Type>
 			<Button>,Art/Interface/Buttons/Units/MechanizedInfantry.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,8,8</Button>
-			<fScale>0.43</fScale>
+			<fScale>0.50</fScale>
 			<fInterfaceScale>1.0</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -1316,7 +1316,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_CHARIOT</Type>
 			<Button>,Art/Interface/Buttons/Units/Chariot.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,5,7</Button>
-			<fScale>0.35</fScale>
+			<fScale>0.4</fScale>
 			<fInterfaceScale>0.9</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -1351,7 +1351,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_EGYPT_WARCHARIOT</Type>
 			<Button>,Art/Interface/Buttons/Units/Chariot_WarChariot.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,6,7</Button>
-			<fScale>0.37</fScale>
+			<fScale>0.38</fScale>
 			<fInterfaceScale>0.8</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -1546,7 +1546,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_CUIRASSIER</Type>
 			<Button>,Art/Interface/Buttons/Units/ICBM.dds,Art/Interface/Buttons/Beyond_the_Sword_Atlas.dds,3,11</Button>
-			<fScale>0.42</fScale>
+			<fScale>0.43</fScale>
 			<fInterfaceScale>1.0</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -1701,7 +1701,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_GERMAN_PANZER</Type>
 			<Button>,Art/Interface/Buttons/Units/Panzer.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,3,11</Button>
-			<fScale>0.47</fScale>
+			<fScale>0.5</fScale>
 			<fInterfaceScale>0.9</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -1736,7 +1736,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_MODERN_ARMOR</Type>
 			<Button>,Art/Interface/Buttons/Units/ModernArmor.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,1,11</Button>
-			<fScale>0.57</fScale>
+			<fScale>0.68</fScale>
 			<fInterfaceScale>0.9</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -1771,7 +1771,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_GUNSHIP</Type>
 			<Button>,Art/Interface/Buttons/Units/Gunship.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,5,10</Button>
-			<fScale>0.36</fScale>
+			<fScale>0.42</fScale>
 			<fInterfaceScale>0.7</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -1888,7 +1888,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_ARTILLERY</Type>
 			<Button>,Art/Interface/Buttons/Units/Artillery.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,2,11</Button>
-			<fScale>0.65</fScale>
+			<fScale>0.7</fScale>
 			<fInterfaceScale>1.0</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -1922,7 +1922,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_WORKBOAT</Type>
 			<Button>,Art/Interface/Buttons/Units/WorkBoat.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,4,9</Button>
-			<fScale>0.19</fScale>
+			<fScale>0.15</fScale>
 			<fInterfaceScale>1.0</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -1959,7 +1959,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_WORKBOAT_MODERN</Type>
 			<Button>,Art/Interface/Buttons/Units/WorkBoat.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,4,9</Button>
-			<fScale>0.28</fScale>
+			<fScale>0.20</fScale>
 			<fInterfaceScale>0.9</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -1996,7 +1996,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_GALLEY</Type>
 			<Button>,Art/Interface/Buttons/Units/Galley.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,3,9</Button>
-			<fScale>0.18</fScale>
+			<fScale>0.16</fScale>
 			<fInterfaceScale>0.6</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -2035,7 +2035,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_CARAVEL</Type>
 			<Button>,Art/Interface/Buttons/Units/Caravel.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,1,9</Button>
-			<fScale>0.24</fScale>
+			<fScale>0.18</fScale>
 			<fInterfaceScale>0.5</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -2074,7 +2074,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_PORTUGAL_CARRACK</Type>
 			<Button>,Art/Interface/Buttons/Units/ICBM.dds,Art/Interface/Buttons/Beyond_the_Sword_Atlas.dds,1,11</Button>
-			<fScale>0.24</fScale>
+			<fScale>0.17</fScale>
 			<fInterfaceScale>0.5</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -2113,7 +2113,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_GALLEON</Type>
 			<Button>,Art/Interface/Buttons/Units/Galleon.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,5,9</Button>
-			<fScale>0.2</fScale>
+			<fScale>0.15</fScale>
 			<fInterfaceScale>0.5</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -2152,7 +2152,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_NETHERLANDS_OOSTINDIEVAARDER</Type>
 			<Button>,Art/Interface/Buttons/Units/ICBM.dds,Art/Interface/Buttons/Beyond_the_Sword_Atlas.dds,8,10</Button>
-			<fScale>0.2</fScale>
+			<fScale>0.16</fScale>
 			<fInterfaceScale>0.5</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -2191,7 +2191,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_PRIVATEER</Type>
 			<Button>,Art/Interface/Buttons/Units/ICBM.dds,Art/Interface/Buttons/Beyond_the_Sword_Atlas.dds,8,11</Button>
-			<fScale>0.2</fScale>
+			<fScale>0.16</fScale>
 			<fInterfaceScale>0.5</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -2230,7 +2230,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_FRIGATE</Type>
 			<Button>,Art/Interface/Buttons/Units/Frigate.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,2,9</Button>
-			<fScale>0.24</fScale>
+			<fScale>0.19</fScale>
 			<fInterfaceScale>0.5</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -2269,7 +2269,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_SHIP_OF_THE_LINE</Type>
 			<Button>,Art/Interface/Buttons/Units/ICBM.dds,Art/Interface/Buttons/Beyond_the_Sword_Atlas.dds,1,12</Button>
-			<fScale>0.22</fScale>
+			<fScale>0.19</fScale>
 			<fInterfaceScale>0.5</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -2308,7 +2308,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_IRONCLAD</Type>
 			<Button>,Art/Interface/Buttons/Units/Ironclad.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,8,9</Button>
-			<fScale>0.52</fScale>
+			<fScale>0.66</fScale>
 			<fInterfaceScale>1.2</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -2347,7 +2347,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_TRANSPORT</Type>
 			<Button>,Art/Interface/Buttons/Units/Transport.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,3,10</Button>
-			<fScale>0.92</fScale>
+			<fScale>0.9</fScale>
 			<fInterfaceScale>1.3</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -2386,7 +2386,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_DESTROYER</Type>
 			<Button>,Art/Interface/Buttons/Units/Destroyer.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,7,9</Button>
-			<fScale>0.7</fScale>
+			<fScale>0.94</fScale>
 			<fInterfaceScale>1.1</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -2425,7 +2425,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_STEALTH_DESTROYER</Type>
 			<Button>,Art/Interface/Buttons/Units/ICBM.dds,Art/Interface/Buttons/Beyond_the_Sword_Atlas.dds,3,12</Button>
-			<fScale>0.6</fScale>
+			<fScale>0.82</fScale>
 			<fInterfaceScale>1.1</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -2464,7 +2464,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_BATTLESHIP</Type>
 			<Button>,Art/Interface/Buttons/Units/Battleship.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,2,10</Button>
-			<fScale>0.7</fScale>
+			<fScale>1.2</fScale>
 			<fInterfaceScale>0.9</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -2503,7 +2503,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_SUBMARINE</Type>
 			<Button>,Art/Interface/Buttons/Units/Submarine.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,6,9</Button>
-			<fScale>0.55</fScale>
+			<fScale>0.65</fScale>
 			<fInterfaceScale>1.3</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -2533,7 +2533,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_ATTACK_SUBMARINE</Type>
 			<Button>,Art/Interface/Buttons/Units/ICBM.dds,Art/Interface/Buttons/Beyond_the_Sword_Atlas.dds,4,12</Button>
-			<fScale>0.35</fScale>
+			<fScale>0.52</fScale>
 			<fInterfaceScale>1.3</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -2546,7 +2546,7 @@
 				<fShadowScale>0.001</fShadowScale>
 			</ShadowDef>
 			<iDamageStates>4</iDamageStates>
-			<fBattleDistance>0.55</fBattleDistance>
+			<fBattleDistance>0.85</fBattleDistance>
 			<fRangedDeathTime>0.31</fRangedDeathTime>
 			<bSmoothMove>1</bSmoothMove>
 			<fAngleInterpRate>720.0</fAngleInterpRate>
@@ -2563,7 +2563,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_CARRIER</Type>
 			<Button>,Art/Interface/Buttons/Units/Carrier.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,1,10</Button>
-			<fScale>0.8</fScale>
+			<fScale>1.2</fScale>
 			<fInterfaceScale>0.9</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -3533,7 +3533,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_TREBUCHET</Type>
 			<Button>,Art/Interface/Buttons/Units/Catapult.dds,Art/Interface/Buttons/Warlords_Atlas_1.dds,6,7</Button>
-			<fScale>0.40</fScale>
+			<fScale>0.45</fScale>
 			<fInterfaceScale>.7</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -3568,7 +3568,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_KOREAN_HWACHA</Type>
 			<Button>,Art/Interface/Buttons/Units/Catapult.dds,Art/Interface/Buttons/Warlords_Atlas_1.dds,4,10</Button>
-			<fScale>0.50</fScale>
+			<fScale>0.64</fScale>
 			<fInterfaceScale>1.0</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -3602,7 +3602,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_TRIREME</Type>
 			<Button>,Art/Interface/Buttons/Units/Galley.dds,Art/Interface/Buttons/Warlords_Atlas_1.dds,8,8</Button>
-			<fScale>0.14</fScale>
+			<fScale>0.13</fScale>
 			<fInterfaceScale>0.6</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -3674,7 +3674,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_MOBILE_ARTILLERY</Type>
 			<Button>,Art/Interface/Buttons/Units/ICBM.dds,Art/Interface/Buttons/Beyond_the_Sword_Atlas.dds,7,11</Button>
-			<fScale>0.57</fScale>
+			<fScale>0.62</fScale>
 			<fInterfaceScale>1.0</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -3740,7 +3740,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_MISSILE_CRUISER</Type>
 			<Button>,Art/Interface/Buttons/Units/ICBM.dds,Art/Interface/Buttons/Beyond_the_Sword_Atlas.dds,2,12</Button>
-			<fScale>0.6</fScale>
+			<fScale>0.61</fScale>
 			<fInterfaceScale>0.7</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -3923,7 +3923,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_CHARIOT_CHINESE</Type>
 			<Button>,Art/Interface/Buttons/Units/Chariot.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,5,7</Button>
-			<fScale>0.35</fScale>
+			<fScale>0.4</fScale>
 			<fInterfaceScale>0.9</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -3982,7 +3982,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_ASIAN_WAR_GALLEY</Type>
 			<Button>,Art/Interface/Buttons/Units/Caravel.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,1,9</Button>
-			<fScale>0.14</fScale>
+			<fScale>0.12</fScale>
 			<fInterfaceScale>0.6</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -4093,7 +4093,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_CHARIOT_CELTIC</Type>
 			<Button>,Art/Interface/Buttons/Units/Chariot.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,5,7</Button>
-			<fScale>0.35</fScale>
+			<fScale>0.4</fScale>
 			<fInterfaceScale>0.9</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -4197,30 +4197,7 @@
 				<AudioRunTypeEnd/>
 			</AudioRunSounds>
 		</UnitArtInfo>
-		<UnitArtInfo>
-			<Type>ART_DEF_UNIT_CARTHAGE_WAR_ELEPHANT</Type>
-			<Button>,Art/Interface/Buttons/Units/WarElephant.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,7,2</Button>
-			<fScale>0.32</fScale>
-			<fInterfaceScale>0.6</fInterfaceScale>
-			<bActAsLand>0</bActAsLand>
-			<bActAsAir>0</bActAsAir>
-			<NIF>Art/Units/WarElephant_Carthage/WarElephant_Carthage.nif</NIF>
-			<KFM>Art/Units/WarElephant_Carthage/WarElephant_Carthage.kfm</KFM>
-			<SHADERNIF>Art/Units/WarElephant_Carthage/WarElephant_Carthage_FX.nif</SHADERNIF>
-			<ShadowDef>
-				<ShadowNIF>Art/Units/01_UnitShadows/WarElephantShadow.nif</ShadowNIF>
-				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
-				<fShadowScale>1.0</fShadowScale>
-			</ShadowDef>
-			<fBattleDistance>0.45</fBattleDistance>
-			<fRangedDeathTime>0.31</fRangedDeathTime>
-			<bActAsRanged>0</bActAsRanged>
-			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
-			<AudioRunSounds>
-				<AudioRunTypeLoop/>
-				<AudioRunTypeEnd/>
-			</AudioRunSounds>
-		</UnitArtInfo>
+
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_ARCHER_ASIAN</Type>
 			<Button>,Art/Interface/Buttons/Units/Archer.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,4,1</Button>
@@ -4462,30 +4439,7 @@
 				<AudioRunTypeEnd/>
 			</AudioRunSounds>
 		</UnitArtInfo>
-		<UnitArtInfo>
-			<Type>ART_DEF_UNIT_WAR_ELEPHANT_ASIAN</Type>
-			<Button>,Art/Interface/Buttons/Units/WarElephant.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,7,2</Button>
-			<fScale>0.32</fScale>
-			<fInterfaceScale>0.6</fInterfaceScale>
-			<bActAsLand>0</bActAsLand>
-			<bActAsAir>0</bActAsAir>
-			<NIF>Art/Units/WarElephant_Asian/WarElephant_Asian.nif</NIF>
-			<KFM>Art/Units/WarElephant_Asian/WarElephant_Carthage.kfm</KFM>
-			<SHADERNIF/>
-			<ShadowDef>
-				<ShadowNIF>Art/Units/01_UnitShadows/WarElephantShadow.nif</ShadowNIF>
-				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
-				<fShadowScale>1.0</fShadowScale>
-			</ShadowDef>
-			<fBattleDistance>0.45</fBattleDistance>
-			<fRangedDeathTime>0.31</fRangedDeathTime>
-			<bActAsRanged>0</bActAsRanged>
-			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
-			<AudioRunSounds>
-				<AudioRunTypeLoop/>
-				<AudioRunTypeEnd/>
-			</AudioRunSounds>
-		</UnitArtInfo>
+
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_WARRIOR_ASIAN</Type>
 			<Button>,Art/Interface/Buttons/Units/Warrior.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,2,1</Button>
@@ -4500,30 +4454,6 @@
 				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
 				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
 				<fShadowScale>1.0</fShadowScale>
-			</ShadowDef>
-			<fBattleDistance>0.35</fBattleDistance>
-			<fRangedDeathTime>0.31</fRangedDeathTime>
-			<bActAsRanged>0</bActAsRanged>
-			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
-			<AudioRunSounds>
-				<AudioRunTypeLoop/>
-				<AudioRunTypeEnd/>
-			</AudioRunSounds>
-		</UnitArtInfo>
-		<UnitArtInfo>
-			<Type>ART_DEF_UNIT_WORKER_ASIAN</Type>
-			<Button>,Art/Interface/Buttons/Units/Worker.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,3,5</Button>
-			<fScale>0.44</fScale>
-			<fInterfaceScale>1.0</fInterfaceScale>
-			<bActAsLand>0</bActAsLand>
-			<bActAsAir>0</bActAsAir>
-			<NIF>Art/Units/Worker_Asian/Worker_Asian.nif</NIF>
-			<KFM>Art/Units/Worker_Asian/Worker.kfm</KFM>
-			<SHADERNIF>Art/Units/Worker_Asian/Worker_Asian_FX.nif</SHADERNIF>
-			<ShadowDef>
-				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
-				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
-				<fShadowScale>0.9</fShadowScale>
 			</ShadowDef>
 			<fBattleDistance>0.35</fBattleDistance>
 			<fRangedDeathTime>0.31</fRangedDeathTime>
@@ -4587,7 +4517,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_CHARIOT_EUROPEAN</Type>
 			<Button>,Art/Interface/Buttons/Units/Chariot.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,5,7</Button>
-			<fScale>0.35</fScale>
+			<fScale>0.4</fScale>
 			<fInterfaceScale>0.9</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -4887,30 +4817,6 @@
 			</AudioRunSounds>
 		</UnitArtInfo>
 		<UnitArtInfo>
-			<Type>ART_DEF_UNIT_WORKER_EUROPEAN</Type>
-			<Button>,Art/Interface/Buttons/Units/Worker.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,3,5</Button>
-			<fScale>0.44</fScale>
-			<fInterfaceScale>1.0</fInterfaceScale>
-			<bActAsLand>0</bActAsLand>
-			<bActAsAir>0</bActAsAir>
-			<NIF>Art/Units/Worker_European/Worker_European.nif</NIF>
-			<KFM>Art/Units/Worker_European/Worker.kfm</KFM>
-			<SHADERNIF>Art/Units/Worker_European/Worker_European_fx.nif</SHADERNIF>
-			<ShadowDef>
-				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
-				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
-				<fShadowScale>0.9</fShadowScale>
-			</ShadowDef>
-			<fBattleDistance>0.35</fBattleDistance>
-			<fRangedDeathTime>0.31</fRangedDeathTime>
-			<bActAsRanged>0</bActAsRanged>
-			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
-			<AudioRunSounds>
-				<AudioRunTypeLoop/>
-				<AudioRunTypeEnd/>
-			</AudioRunSounds>
-		</UnitArtInfo>
-		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_CROSSBOWMAN_GRECO_ROMAN</Type>
 			<Button>,Art/Interface/Buttons/Units/Crossbowman.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,4,8</Button>
 			<fScale>0.44</fScale>
@@ -5105,7 +5011,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_CHARIOT_MIDDLE_EAST</Type>
 			<Button>,Art/Interface/Buttons/Units/Chariot.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,5,7</Button>
-			<fScale>0.37</fScale>
+			<fScale>0.4</fScale>
 			<fInterfaceScale>0.8</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -5541,7 +5447,7 @@
 		<UnitArtInfo>
 			<Type>ART_DEF_UNIT_CHARIOT_SOUTH_AMERICA</Type>
 			<Button>,Art/Interface/Buttons/Units/Chariot.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,5,7</Button>
-			<fScale>0.35</fScale>
+			<fScale>0.4</fScale>
 			<fInterfaceScale>0.9</fInterfaceScale>
 			<bActAsLand>0</bActAsLand>
 			<bActAsAir>0</bActAsAir>
@@ -5854,30 +5760,6 @@
 				<fShadowScale>1.0</fShadowScale>
 			</ShadowDef>
 			<fBattleDistance>0.45</fBattleDistance>
-			<fRangedDeathTime>0.31</fRangedDeathTime>
-			<bActAsRanged>0</bActAsRanged>
-			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
-			<AudioRunSounds>
-				<AudioRunTypeLoop/>
-				<AudioRunTypeEnd/>
-			</AudioRunSounds>
-		</UnitArtInfo>
-		<UnitArtInfo>
-			<Type>ART_DEF_UNIT_WARRIOR_SOUTH_AMERICA</Type>
-			<Button>,Art/Interface/Buttons/Units/Warrior.dds,Art/Interface/Buttons/Unit_Resource_Atlas.dds,2,1</Button>
-			<fScale>0.44</fScale>
-			<fInterfaceScale>1.0</fInterfaceScale>
-			<bActAsLand>0</bActAsLand>
-			<bActAsAir>0</bActAsAir>
-			<NIF>Art/Units/Warrior_South_America/Warrior_South_America.nif</NIF>
-			<KFM>Art/Units/Warrior_South_America/Warrior.kfm</KFM>
-			<SHADERNIF>Art/Units/Warrior_South_America/Warrior_South_America_FX.nif</SHADERNIF>
-			<ShadowDef>
-				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
-				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
-				<fShadowScale>1.0</fShadowScale>
-			</ShadowDef>
-			<fBattleDistance>0.35</fBattleDistance>
 			<fRangedDeathTime>0.31</fRangedDeathTime>
 			<bActAsRanged>0</bActAsRanged>
 			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>

@@ -1,0 +1,501 @@
+<?xml version="1.0"?>
+<!-- edited with XMLSPY v2004 rel. 2 U (http://www.xmlspy.com) by Alex Mantzaris (Firaxis Games) -->
+<!-- Sid Meier's Civilization 4 -->
+<!-- Copyright Firaxis Games 2005 -->
+<!-- -->
+<!-- Civilization Infos -->
+<Civ4UnitArtStyleTypeInfos xmlns="x-schema:CIV4CivilizationsSchema.xml">
+	<UnitArtStyleTypeInfos>
+<!--________________________________________________________________________________________________________________________________________________-->
+<!--                                                                                                                                                -->
+<!-- VD mod BEGIN English ArtStyle                                                                                                                  -->
+<!--________________________________________________________________________________________________________________________________________________-->
+
+		<UnitArtStyleTypeInfo>
+			<Type>UNIT_ARTSTYLE_ENGLISH</Type>
+			<StyleUnits>
+
+				<StyleUnit>
+					<UnitType>UNIT_SETTLER</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_SETTLER_EUROPEAN</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_SETTLER_MODERN</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_SETTLER_EUROPEAN</MiddleArtDefineTag>
+					</UnitMeshGroup>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_HORSE_PACK</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_SETTLER_MODERN</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_HORSE_PACK</MiddleArtDefineTag>
+					</UnitMeshGroup>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_HORSE</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_SETTLER_MODERN_CHILD</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_HORSE</MiddleArtDefineTag>
+					</UnitMeshGroup>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_DOG</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_SETTLER_MODERN_FEMALE</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_DOG</MiddleArtDefineTag>
+					</UnitMeshGroup>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_SETTLER_FEMALE_EUROPEAN</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_SETTLER_MODERN_FEMALE</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_SETTLER_FEMALE_EUROPEAN</MiddleArtDefineTag>
+					</UnitMeshGroup>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_SETTLER_FEMALE_EUROPEAN</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_DOG</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_SETTLER_FEMALE_EUROPEAN</MiddleArtDefineTag>
+					</UnitMeshGroup>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_SETTLER_CHILD_EUROPEAN</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_SETTLER_MODERN_CHILD</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_SETTLER_CHILD_EUROPEAN</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_WORKER</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_WORKER_EUROPEAN</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_WORKERMODERN</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_WORKERMEDIEVAL_EU</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_SCOUT</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_SCOUT_EUROPEAN</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_SCOUT_EUROPEAN</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_SCOUT_EUROPEAN</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_EXPLORER</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_EXPLORER_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_EXPLORER_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_EXPLORER_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+				
+				<StyleUnit>
+					<UnitType>UNIT_WARRIOR</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_WARRIOR</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_WARRIOR</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_WARRIOR</MiddleArtDefineTag>
+					</UnitMeshGroup>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_WARRIOR</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_WARRIOR</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_WARRIOR</MiddleArtDefineTag>
+					</UnitMeshGroup>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_WARRIOR_DARKHAIR</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_WARRIOR_DARKHAIR</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_WARRIOR_DARKHAIR</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>				
+
+				<StyleUnit>
+					<UnitType>UNIT_SPEARMAN</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_SPEARMAN_EUROPEAN</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_SPEARMAN_EUROPEAN</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_SPEARMAN_EUROPEAN</MiddleArtDefineTag>
+					</UnitMeshGroup>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_SPEARMAN_EUROPEAN</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_SPEARMAN_EUROPEAN</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_SPEARMAN_EUROPEAN</MiddleArtDefineTag>
+					</UnitMeshGroup>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_SPEARMAN_EUROPEAN</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_SPEARMAN_EUROPEAN</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_SPEARMAN_EUROPEAN</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_PIKEMAN</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_PIKEMAN_EUROPEAN</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_PIKEMAN_EUROPEAN</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_PIKEMAN_EUROPEAN</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_AXEMAN</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_AXEMAN_1_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_AXEMAN_1_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_AXEMAN_1_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_AXEMAN_2_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_AXEMAN_2_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_AXEMAN_2_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_AXEMAN_3_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_AXEMAN_3_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_AXEMAN_3_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_SWORDSMAN</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_SWORDSMAN_EUROPEAN</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_SWORDSMAN_EUROPEAN</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_SWORDSMAN_EUROPEAN</MiddleArtDefineTag>
+					</UnitMeshGroup>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_SWORDSMAN_EUROPEAN</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_SWORDSMAN_EUROPEAN</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_SWORDSMAN_EUROPEAN</MiddleArtDefineTag>
+					</UnitMeshGroup>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_SWORDSMAN_EUROPEAN</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_SWORDSMAN_EUROPEAN</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_SWORDSMAN_EUROPEAN</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_MACEMAN</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_MACEMAN_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_MACEMAN_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_MACEMAN_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_ARCHER</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_ARCHER_3_CELTIC</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_ARCHER_3_CELTIC</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_ARCHER_3_CELTIC</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_LONGBOWMAN</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_LONGBOWMAN_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_LONGBOWMAN_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_LONGBOWMAN_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_CROSSBOWMAN</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_CROSSBOWMAN_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_CROSSBOWMAN_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_CROSSBOWMAN_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_CHARIOT</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_CHARIOT_EUROPEAN</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_CHARIOT_EUROPEAN</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_CHARIOT_EUROPEAN</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_HORSE_ARCHER</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_HORSEMAN_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_HORSEMAN_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_HORSEMAN_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_WAR_ELEPHANT</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_WAR_ELEPHANT_EUROPEAN</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_WAR_ELEPHANT_EUROPEAN</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_WAR_ELEPHANT_EUROPEAN</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_KNIGHT</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_KNIGHT_EUROPEAN</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_KNIGHT_EUROPEAN</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_KNIGHT_EUROPEAN</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_CUIRASSIER</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_CUIRASSIER_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_CUIRASSIER_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_CUIRASSIER_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_CAVALRY</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_CAVALRY_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_CAVALRY_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_CAVALRY_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_MUSKETMAN</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_ENGLISH_REDCOAT</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_ENGLISH_REDCOAT</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_ENGLISH_REDCOAT</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_ENGLISH_REDCOAT</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_COLONIAL_RIFLEMAN_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_COLONIAL_RIFLEMAN_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_COLONIAL_RIFLEMAN_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_GRENADIER</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_GRENADIER_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_GRENADIER_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_GRENADIER_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_INFANTRY</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_INFANTRY_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_INFANTRY_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_INFANTRY_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_AT_INFANTRY</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_AT_INFANTRY_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_AT_INFANTRY_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_AT_INFANTRY_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_SAM_INFANTRY</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_SAM_INFANTRY_EU</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_SAM_INFANTRY_EU</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_SAM_INFANTRY_EU</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_PARATROOPER</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_PARATROOPER_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_PARATROOPER_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_PARATROOPER_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_MARINE</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_MARINE_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_MARINE_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_MARINE_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_TANK</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_CROMWELL_TANK</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_CROMWELL_TANK</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_CROMWELL_TANK</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_MODERN_ARMOR</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_CHIEFTAN_TANK_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_CHIEFTAN_TANK_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_CHIEFTAN_TANK_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_MECHANIZED_INFANTRY</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_M2_BRADLEY_MECH_INF</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_M2_BRADLEY_MECH_INF</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_M2_BRADLEY_MECH_INF</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_MOBILE_ARTILLERY</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_M270_MRLS</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_M270_MRLS</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_M270_MRLS</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_CARAVEL</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_CARRACK_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_CARRACK_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_CARRACK_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_GALLEON</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_GALLEON_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_GALLEON_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_GALLEON_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_FRIGATE</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_FRIGATE_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_FRIGATE_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_FRIGATE_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_SHIP_OF_THE_LINE</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_SHIP_OF_THE_LINE_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_SHIP_OF_THE_LINE_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_SHIP_OF_THE_LINE_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+				
+				<StyleUnit>
+					<UnitType>UNIT_DESTROYER</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_HMS_COSSACK_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_HMS_COSSACK_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_HMS_COSSACK_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>				
+
+				<StyleUnit>
+					<UnitType>UNIT_BATTLESHIP</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_HMS_HOOD</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_HMS_HOOD</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_HMS_HOOD</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_CARRIER</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_ILLUSTRIOUS_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_ILLUSTRIOUS_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_ILLUSTRIOUS_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_ATTACK_SUBMARINE</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_ASTUTE_SUBMARINE</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_ASTUTE_SUBMARINE</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_ASTUTE_SUBMARINE</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_FIGHTER</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_SPITFIRE_FIGHTER</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_SPITFIRE_FIGHTER</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_SPITFIRE_FIGHTER</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_BOMBER</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_LANCASTER_BOMBER_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_LANCASTER_BOMBER_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_LANCASTER_BOMBER_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_JET_FIGHTER</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_TORNADO_JET_FIGHTER_ENGLISH</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_TORNADO_JET_FIGHTER_ENGLISH</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_TORNADO_JET_FIGHTER_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_GUNSHIP</UnitType>
+					<UnitMeshGroup>
+						<EarlyArtDefineTag>ART_DEF_UNIT_EUROCOPTER_TIGER_CAMO6</EarlyArtDefineTag>
+						<LateArtDefineTag>ART_DEF_UNIT_EUROCOPTER_TIGER_CAMO6</LateArtDefineTag>
+						<MiddleArtDefineTag>ART_DEF_UNIT_EUROCOPTER_TIGER_CAMO6</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_GREAT_GENERAL</UnitType>
+					<UnitMeshGroup>
+					<EarlyArtDefineTag>ART_DEF_UNIT_WARLORD_ANCIENT</EarlyArtDefineTag>
+					<LateArtDefineTag>ART_DEF_UNIT_GREAT_GENERAL_MOD_ENGLISH</LateArtDefineTag>
+					<MiddleArtDefineTag>ART_DEF_UNIT_GREAT_GENERAL_MED_ENGLISH</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+				<StyleUnit>
+					<UnitType>UNIT_GREAT_SPY</UnitType>
+					<UnitMeshGroup>
+					<EarlyArtDefineTag>ART_DEF_UNIT_ANCIENT_GREAT_SPY</EarlyArtDefineTag>
+					<LateArtDefineTag>ART_DEF_UNIT_SPY_MOD_EURO</LateArtDefineTag>
+					<MiddleArtDefineTag>ART_DEF_UNIT_ANCIENT_GREAT_SPY</MiddleArtDefineTag>
+					</UnitMeshGroup>
+				</StyleUnit>
+
+
+			</StyleUnits>
+		</UnitArtStyleTypeInfo>
+<!--________________________________________________________________________________________________________________________________________________-->
+<!--                                                                                                                                                -->
+<!-- VD mod END English ArtStyle                                                                                                                    -->
+<!--________________________________________________________________________________________________________________________________________________-->
+	</UnitArtStyleTypeInfos>
+</Civ4UnitArtStyleTypeInfos>

@@ -5325,7 +5325,7 @@
 			<LoadType>DYNAMIC_RES</LoadType>
 			<bIsCompressed>1</bIsCompressed>
 			<bInGeneric>1</bInGeneric>
-		</SoundData>
+		</SoundData>	
 		<SoundData>
 			<SoundID>SND_SPY_SURR_VOX</SoundID>
 			<Filename>Sounds/Units/SpySurrVox</Filename>
@@ -10975,20 +10975,7 @@
 			<bIsCompressed>1</bIsCompressed>
 			<bInGeneric>1</bInGeneric>
 		</SoundData>
-		<SoundData>
-			<SoundID>SND_SQUISH</SoundID>
-			<Filename>Sounds/Beep</Filename>
-			<LoadType>DYNAMIC_RES</LoadType>
-			<bIsCompressed>1</bIsCompressed>
-			<bInGeneric>1</bInGeneric>
-		</SoundData>
-		<SoundData>
-			<SoundID>SND_THEIRALLIANCE</SoundID>
-			<Filename>Sounds/TheirAlliance</Filename>
-			<LoadType>DYNAMIC_RES</LoadType>
-			<bIsCompressed>1</bIsCompressed>
-			<bInGeneric>1</bInGeneric>
-		</SoundData>
+		
 		<SoundData>
 			<SoundID>SND_FEMALE_SELECTION</SoundID>
 			<Filename>Sounds/Units/Female_Selection</Filename>
@@ -11004,19 +10991,27 @@
 			<bInGeneric>1</bInGeneric>
 		</SoundData>
 		<SoundData>
-			<SoundID>SND_FEMALE_MISSIONARY_SELECTION</SoundID>
-			<Filename>Sounds/Units/Female_Missionary_Selection</Filename>
+			<SoundID>SND_AMAZON_SELECTION</SoundID>
+			<Filename>Sounds/Units/Amazon_Selection</Filename>
 			<LoadType>DYNAMIC_RES</LoadType>
 			<bIsCompressed>1</bIsCompressed>
 			<bInGeneric>1</bInGeneric>
 		</SoundData>
 		<SoundData>
-			<SoundID>SND_FEMALE_MISSIONARY_ACTION</SoundID>
-			<Filename>Sounds/Units/Female_Missionary_Action</Filename>
+			<SoundID>SND_AMAZON_ACTION</SoundID>
+			<Filename>Sounds/Units/Amazon_Action</Filename>
 			<LoadType>DYNAMIC_RES</LoadType>
 			<bIsCompressed>1</bIsCompressed>
 			<bInGeneric>1</bInGeneric>
 		</SoundData>
+		<SoundData>
+			<SoundID>SND_FEMWARLORD_COMMAND</SoundID>
+			<Filename>Sounds/Units/FemWarlord_Command</Filename>
+			<LoadType>DYNAMIC_RES</LoadType>
+			<bIsCompressed>1</bIsCompressed>
+			<bInGeneric>1</bInGeneric>
+		</SoundData>
+	
 	</SoundDatas>
 	<ContextTypes>
 		<ContextType>Generic</ContextType>
@@ -11123,5 +11118,5 @@
 		<iNum2DStreams>10</iNum2DStreams>
 		<iNum3DStreams>0</iNum3DStreams>
 		<fPercentSamplesFor3D>0.6</fPercentSamplesFor3D>
-	</AudioSystemInit>
+	</AudioSystemInit>	
 </AudioDefines>

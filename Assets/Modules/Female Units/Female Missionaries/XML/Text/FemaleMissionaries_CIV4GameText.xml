@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Civ4GameText xmlns="http://www.firaxis.com">
+	<TEXT>
+		<Tag>TXT_KEY_UNIT_FEMALE_JEWISH_MISSIONARY</Tag>
+		<English>Female Jewish Missionary</English>
+		<French>
+			<Text>Missionnaire juif</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German><Text>Jüdische Missionarin:Jüdische Missionarin:Jüdische Missionarin:Jüdische Missionarin:Jüdische Missionarinnen:Jüdische Missionarinnen:Jüdische Missionarinnen:Jüdische Missionarinnen</Text><Gender>female:female:female:female:female:female:female:female</Gender><Plural>0:0:0:0:1:1:1:1</Plural></German>
+		<Italian>
+			<Text>Missionario Giudaico:Missionari Giudaici</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Misionero jud&#237;o:Misioneros jud&#237;os</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Spanish>
+	</TEXT>
+	<TEXT>
+		<Tag>TXT_KEY_UNIT_FEMALE_CHRISTIAN_MISSIONARY</Tag>
+		<English>Female Christian Missionary</English>
+		<French>
+			<Text>Missionnaire chr&#233;tien</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German><Text>Christliche Missionarin:Christliche Missionarin:Christliche Missionarin:Christliche Missionarin:Christliche Missionarinnen:Christliche Missionarinnen:Christliche Missionarinnen:Christliche Missionarinnen</Text><Gender>female:female:female:female:female:female:female:female</Gender><Plural>0:0:0:0:1:1:1:1</Plural></German>
+		<Italian>
+			<Text>Missionario Cristiano:Missionari Cristiani</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Misionero cristiano:Misioneros cristianos</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Spanish>
+	</TEXT>
+	<TEXT>
+		<Tag>TXT_KEY_UNIT_FEMALE_ISLAMIC_MISSIONARY</Tag>
+		<English>Female Islamic Missionary</English>
+		<French>
+			<Text>Missionnaire musulman</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German><Text>Islamische Missionarin:Islamische Missionarin:Islamische Missionarin:Islamische Missionarin:Islamische Missionarinnen:Islamische Missionarinnen:Islamische Missionarinnen:Islamische Missionarinnen</Text><Gender>female:female:female:female:female:female:female:female</Gender><Plural>0:0:0:0:1:1:1:1</Plural></German>
+		<Italian>
+			<Text>Missionario Islamico:Missionari Islamici</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Misionero isl&#225;mico:Misioneros isl&#225;micos</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Spanish>
+	</TEXT>
+	<TEXT>
+		<Tag>TXT_KEY_UNIT_FEMALE_HINDU_MISSIONARY</Tag>
+		<English>Female Hindu Missionary</English>
+		<French>
+			<Text>Missionnaire hindou</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German><Text>Hinduistische Missionarin:Hinduistische Missionarin:Hinduistische Missionarin:Hinduistische Missionarin:Hinduistische Missionarinnen:Hinduistische Missionarinnen:Hinduistische Missionarinnen:Hinduistische Missionarinnen</Text><Gender>female:female:female:female:female:female:female:female</Gender><Plural>0:0:0:0:1:1:1:1</Plural></German>
+		<Italian>
+			<Text>Missionario Ind&#249;:Missionari Ind&#249;</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Misionero hind&#250;:Misioneros hind&#250;es</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Spanish>
+	</TEXT>
+	<TEXT>
+		<Tag>TXT_KEY_UNIT_FEMALE_BUDDHIST_MISSIONARY</Tag>
+		<English>Female Buddhist Missionary</English>
+		<French>
+			<Text>Missionnaire bouddhiste</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German><Text>Buddhistische Missionarin:Buddhistische Missionarin:Buddhistische Missionarin:Buddhistische Missionarin:Buddhistische Missionarinnen:Buddhistische Missionarinnen:Buddhistische Missionarinnen:Buddhistische Missionarinnen</Text><Gender>female:female:female:female:female:female:female:female</Gender><Plural>0:0:0:0:1:1:1:1</Plural></German>
+		<Italian>
+			<Text>Missionario Buddista:Missionari Buddisti</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Misionero budista:Misioneros budistas</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Spanish>
+	</TEXT>
+	<TEXT>
+		<Tag>TXT_KEY_UNIT_FEMALE_CONFUCIAN_MISSIONARY</Tag>
+		<English>Female Confucian Missionary</English>
+		<French>
+			<Text>Missionnaire confucianiste</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German><Text>Konfuzianische Missionarin:Konfuzianische Missionarin:Konfuzianische Missionarin:Konfuzianische Missionarin:Konfuzianische Missionarinnen:Konfuzianische Missionarinnen:Konfuzianische Missionarinnen:Konfuzianische Missionarinnen</Text><Gender>female:female:female:female:female:female:female:female</Gender><Plural>0:0:0:0:1:1:1:1</Plural></German>
+		<Italian>
+			<Text>Missionario Confuciano:Missionari Confuciani</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Misionero confucionista:Misioneros confucionistas</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Spanish>
+	</TEXT>
+	<TEXT>
+		<Tag>TXT_KEY_UNIT_FEMALE_TAOIST_MISSIONARY</Tag>
+		<English>Female Taoist Missionary</English>
+		<French>
+			<Text>Missionnaire tao&#239;ste</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German><Text>Taoistische Missionarin:Taoistische Missionarin:Taoistische Missionarin:Taoistische Missionarin:Taoistische Missionarinnen:Taoistische Missionarinnen:Taoistische Missionarinnen:Taoistische Missionarinnen</Text><Gender>female:female:female:female:female:female:female:female</Gender><Plural>0:0:0:0:1:1:1:1</Plural></German>
+		<Italian>
+			<Text>Missionario Taoista:Missionari Taoisti</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Misionero tao&#237;sta:Misioneros tao&#237;stas</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Spanish>
+	</TEXT>
+	<TEXT>
+		<Tag>TXT_KEY_UNIT_FEMALE_EXECUTIVE_1</Tag>
+		<English>Female Cereal Mills Executive</English>
+		<French>
+			<Text>Directeur des Grands moulins c&#233;r&#233;aliers</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German><Text>Beauftragte der Cerealien AG:Beauftragten der Cerealien AG:Beauftragten der Cerealien AG:Beauftragten der Cerealien AG:Beauftragte der Cerealien AG:Beauftragten der Cerealien AG:Beauftragten der Cerealien AG: Beauftragten der Cerealien AG</Text><Gender>female:female:female:female:female:female:female:female</Gender><Plural>0:0:0:0:1:1:1:1</Plural></German>
+		<Italian>
+			<Text>Funzionario della Mulini Cereali:Funzionari della Mulini Cereali</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Ejecutivo de Cereal Mills:Ejecutivos de Cereal Mills</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Spanish>
+	</TEXT>
+	<TEXT>
+		<Tag>TXT_KEY_UNIT_FEMALE_EXECUTIVE_2</Tag>
+		<English>Female Sid's Sushi Executive</English>
+		<French>
+			<Text>Dirigeant de Sid's Sushi</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German><Text>Beauftragte der Sushi AG:Beauftragten der Sushi AG:Beauftragten der Sushi AG:Beauftragten der Sushi AG:Beauftragte der Sushi AG:Beauftragten der Sushi AG:Beauftragten der Sushi AG: Beauftragten der Sushi AG</Text><Gender>female:female:female:female:female:female:female:female</Gender><Plural>0:0:0:0:1:1:1:1</Plural></German>
+		<Italian>
+			<Text>Funzionario della Sid Sushi</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Ejecutivo de Sid's Sushi:Ejecutivos de Sid's Sushi</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Spanish>
+	</TEXT>
+	<TEXT>
+		<Tag>TXT_KEY_UNIT_FEMALE_EXECUTIVE_3</Tag>
+		<English>Female Std Ethanol Executive</English>
+		<French>
+			<Text>Directeur d'Ethanol Inc.</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German><Text>Beauftragte der Ecokraftstoff AG:Beauftragten der Ecokraftstoff AG:Beauftragten der Ecokraftstoff AG:Beauftragten der Ecokraftstoff AG:Beauftragte der Ecokraftstoff AG:Beauftragten der Ecokraftstoff AG:Beauftragten der Ecokraftstoff AG: Beauftragten der Ecokraftstoff AG</Text><Gender>female:female:female:female:female:female:female:female</Gender><Plural>0:0:0:0:1:1:1:1</Plural></German>
+		<Italian>
+			<Text>Funzionario della Etanolo Standard:Funzionari della Etanolo Standard</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Ejecutivo de Standard Ethanol:Ejecutivos de Standard Ethanol</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Spanish>
+	</TEXT>
+	<TEXT>
+		<Tag>TXT_KEY_UNIT_FEMALE_EXECUTIVE_4</Tag>
+		<English>Female CreateCon Executive</English>
+		<French>
+			<Text>Directeur de Constructions cr&#233;atives</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German><Text>Beauftragte der Kreativbau AG:Beauftragten der Kreativbau AG:Beauftragten der Kreativbau AG:Beauftragten der Kreativbau AG:Beauftragte der Kreativbau AG:Beauftragten der Kreativbau AG:Beauftragten der Kreativbau AG: Beauftragten der Kreativbau AG</Text><Gender>female:female:female:female:female:female:female:female</Gender><Plural>0:0:0:0:1:1:1:1</Plural></German>
+		<Italian>
+			<Text>Funzionario della Costruzioni Creative:Funzionari della Costruzioni Creative</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Ejecutivo de Creative Constructions:Ejecutivos de Creative Constructions</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Spanish>
+	</TEXT>
+	<TEXT>
+		<Tag>TXT_KEY_UNIT_FEMALE_EXECUTIVE_5</Tag>
+		<English>Female Mining Inc Executive</English>
+		<French>
+			<Text>Directeur de la Compagnie d'exploitation mini&#232;re</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German><Text>Beauftragte der Montan AG:Beauftragten der Montan AG:Beauftragten der Montan AG:Beauftragten der Montan AG:Beauftragte der Montan AG:Beauftragten der Montan AG:Beauftragten der Montan AG: Beauftragten der Montan AG</Text><Gender>female:female:female:female:female:female:female:female</Gender><Plural>0:0:0:0:1:1:1:1</Plural></German>
+		<Italian>
+			<Text>Funzionario della Estrazioni Minerarie Inc.:Funzionari della Estrazioni Minerarie Inc.</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Ejecutivo de Mining Inc.:Ejecutivos de Mining Inc.</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Spanish>
+	</TEXT>
+	<TEXT>
+		<Tag>TXT_KEY_UNIT_FEMALE_EXECUTIVE_6</Tag>
+		<English>Female AlumCo Executive</English>
+		<French>
+			<Text>Directeur d'Aluminium S.A.</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German><Text>Beauftragte der Aluminiumwerke AG:Beauftragten der Aluminiumwerke AG:Beauftragten der Aluminiumwerke AG:Beauftragten der Aluminiumwerke AG:Beauftragte der Aluminiumwerke AG:Beauftragten der Aluminiumwerke AG:Beauftragten der Aluminiumwerke AG: Beauftragten der Aluminiumwerke AG</Text><Gender>female:female:female:female:female:female:female:female</Gender><Plural>0:0:0:0:1:1:1:1</Plural></German>
+		<Italian>
+			<Text>Funzionario della Alluminio Co.:Funzionari della Alluminio Co.</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Ejecutivo de Aluminum Co.:Ejecutivos de Aluminum Co.</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Spanish>
+	</TEXT>
+	<TEXT>
+		<Tag>TXT_KEY_UNIT_FEMALE_EXECUTIVE_7</Tag>
+		<English>Female Civ Jewels Executive</English>
+		<French>
+			<Text>Directeur des Bijoutiers associ&#233;es</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German><Text>Beauftragte der Kulturjuwelen AG:Beauftragten der Kulturjuwelen AG:Beauftragten der Kulturjuwelen AG:Beauftragten der Kulturjuwelen AG:Beauftragte der Kulturjuwelen AG:Beauftragten der Kulturjuwelen AG:Beauftragten der Kulturjuwelen AG: Beauftragten der Kulturjuwelen AG</Text><Gender>female:female:female:female:female:female:female:female</Gender><Plural>0:0:0:0:1:1:1:1</Plural></German>
+		<Italian>
+			<Text>Funzionario della Gioiellieri Civilizzati:Funzionari della Gioiellieri Civilizzati</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Ejecutivo de Civilized Jewelers Inc.:Ejecutivos de Civilized Jewelers Inc.</Text>
+			<Gender>Male</Gender>
+			<Plural>0:1</Plural>
+		</Spanish>
+	</TEXT>
+</Civ4GameText>	

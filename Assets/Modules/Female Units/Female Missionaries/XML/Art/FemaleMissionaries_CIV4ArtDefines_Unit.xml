@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSPY v2004 rel. 2 U (http://www.xmlspy.com) by Firaxis Games (Firaxis Games) -->
+<!-- Sid Meier's Civilization 4 -->
+<!-- Copyright Firaxis Games 2005 -->
+<!-- Created with Notepad by strategyonly -->
+<!-- -->
+<!-- Unit art path information -->
+<Civ4ArtDefines xmlns="x-schema:FemaleMissionaries_CIV4ArtDefinesSchema.xml">
+	<UnitArtInfos>
+		<UnitArtInfo>
+			<Type>ART_DEF_UNIT_FEMALE_JEWISH_MISSIONARY</Type>
+			<Button>Modules/Female Units/Female Missionaries/Art/Interface/Buttons/Units/Female_Missionary_Jewish.dds</Button>
+			<fScale>0.44</fScale>
+			<fInterfaceScale>1.0</fInterfaceScale>
+			<bActAsLand>0</bActAsLand>
+			<bActAsAir>0</bActAsAir>
+			<NIF>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Jewish/JewishMissionary.nif</NIF>
+			<KFM>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Jewish/JewishMissionary.kfm</KFM>
+			<SHADERNIF>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Jewish/JewishMissionary_fx.nif</SHADERNIF>
+			<ShadowDef>
+				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
+				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
+				<fShadowScale>1.0</fShadowScale>
+			</ShadowDef>
+			<fBattleDistance>0.35</fBattleDistance>
+			<fRangedDeathTime>0.31</fRangedDeathTime>
+			<bActAsRanged>0</bActAsRanged>
+			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
+			<AudioRunSounds>
+				<AudioRunTypeLoop/>
+				<AudioRunTypeEnd/>
+			</AudioRunSounds>
+			<SelectionSound>AS3D_UN_FEMALE_MISSIONARY_SELECTION_VOX</SelectionSound>
+			<ActionSound>AS3D_UN_FEMALE_MISSIONARY_ACTION_VOX</ActionSound>
+		</UnitArtInfo>
+		<UnitArtInfo>
+			<Type>ART_DEF_UNIT_FEMALE_CHRISTIAN_MISSIONARY</Type>
+			<Button>Modules/Female Units/Female Missionaries/Art/Interface/Buttons/Units/Female_Missionary_Christian.dds</Button>
+			<fScale>0.44</fScale>
+			<fInterfaceScale>1.0</fInterfaceScale>
+			<bActAsLand>0</bActAsLand>
+			<bActAsAir>0</bActAsAir>
+			<NIF>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Christian/ChristianMissionary.nif</NIF>
+			<KFM>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Christian/ChristianMissionary.kfm</KFM>
+			<SHADERNIF>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Christian/ChristianMissionary_fx.nif</SHADERNIF>
+			<ShadowDef>
+				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
+				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
+				<fShadowScale>1.0</fShadowScale>
+			</ShadowDef>
+			<fBattleDistance>0.35</fBattleDistance>
+			<fRangedDeathTime>0.31</fRangedDeathTime>
+			<bActAsRanged>0</bActAsRanged>
+			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
+			<AudioRunSounds>
+				<AudioRunTypeLoop/>
+				<AudioRunTypeEnd/>
+			</AudioRunSounds>
+			<SelectionSound>AS3D_UN_FEMALE_MISSIONARY_SELECTION_VOX</SelectionSound>
+			<ActionSound>AS3D_UN_FEMALE_MISSIONARY_ACTION_VOX</ActionSound>
+		</UnitArtInfo>
+		<UnitArtInfo>
+			<Type>ART_DEF_UNIT_FEMALE_ISLAMIC_MISSIONARY</Type>
+			<Button>Modules/Female Units/Female Missionaries/Art/Interface/Buttons/Units/Female_Missionary_Islamic.dds</Button>
+			<fScale>0.44</fScale>
+			<fInterfaceScale>1.0</fInterfaceScale>
+			<bActAsLand>0</bActAsLand>
+			<bActAsAir>0</bActAsAir>
+			<NIF>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Islamic/islamic_missionary.nif</NIF>
+			<KFM>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Islamic/islamic_missionary.kfm</KFM>
+			<SHADERNIF>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Islamic/islamic_missionary_fx.nif</SHADERNIF>
+			<ShadowDef>
+				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
+				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
+				<fShadowScale>1.0</fShadowScale>
+			</ShadowDef>
+			<fBattleDistance>0.35</fBattleDistance>
+			<fRangedDeathTime>0.31</fRangedDeathTime>
+			<bActAsRanged>0</bActAsRanged>
+			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
+			<AudioRunSounds>
+				<AudioRunTypeLoop/>
+				<AudioRunTypeEnd/>
+			</AudioRunSounds>
+			<SelectionSound>AS3D_UN_FEMALE_MISSIONARY_SELECTION_VOX</SelectionSound>
+			<ActionSound>AS3D_UN_FEMALE_MISSIONARY_ACTION_VOX</ActionSound>
+		</UnitArtInfo>
+		<UnitArtInfo>
+			<Type>ART_DEF_UNIT_FEMALE_HINDU_MISSIONARY</Type>
+			<Button>Modules/Female Units/Female Missionaries/Art/Interface/Buttons/Units/Female_Missionary_Hindu.dds</Button>
+			<fScale>0.44</fScale>
+			<fInterfaceScale>1.0</fInterfaceScale>
+			<bActAsLand>0</bActAsLand>
+			<bActAsAir>0</bActAsAir>
+			<NIF>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Hindu/buddhist_missionary.nif</NIF>
+			<KFM>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Hindu/buddhist_missionary.kfm</KFM>
+			<SHADERNIF>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Hindu/buddhist_missionary_fx.nif</SHADERNIF>
+			<ShadowDef>
+				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
+				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
+				<fShadowScale>0.8</fShadowScale>
+			</ShadowDef>
+			<fBattleDistance>0.35</fBattleDistance>
+			<fRangedDeathTime>0.31</fRangedDeathTime>
+			<bActAsRanged>0</bActAsRanged>
+			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
+			<AudioRunSounds>
+				<AudioRunTypeLoop/>
+				<AudioRunTypeEnd/>
+			</AudioRunSounds>
+			<SelectionSound>AS3D_UN_FEMALE_MISSIONARY_SELECTION_VOX</SelectionSound>
+			<ActionSound>AS3D_UN_FEMALE_MISSIONARY_ACTION_VOX</ActionSound>
+		</UnitArtInfo>
+		<UnitArtInfo>
+			<Type>ART_DEF_UNIT_FEMALE_BUDDHIST_MISSIONARY</Type>
+			<Button>Modules/Female Units/Female Missionaries/Art/Interface/Buttons/Units/Female_Missionary_Buddhist.dds</Button>
+			<fScale>0.44</fScale>
+			<fInterfaceScale>1.0</fInterfaceScale>
+			<bActAsLand>0</bActAsLand>
+			<bActAsAir>0</bActAsAir>
+			<NIF>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Buddhist/buddhist_missionary.nif</NIF>
+			<KFM>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Buddhist/buddhist_missionary.kfm</KFM>
+			<SHADERNIF>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Buddhist/buddhist_missionary_fx.nif</SHADERNIF>
+			<ShadowDef>
+				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
+				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
+				<fShadowScale>0.85</fShadowScale>
+			</ShadowDef>
+			<fBattleDistance>0.35</fBattleDistance>
+			<fRangedDeathTime>0.31</fRangedDeathTime>
+			<bActAsRanged>0</bActAsRanged>
+			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
+			<AudioRunSounds>
+				<AudioRunTypeLoop/>
+				<AudioRunTypeEnd/>
+			</AudioRunSounds>
+			<SelectionSound>AS3D_UN_FEMALE_MISSIONARY_SELECTION_VOX</SelectionSound>
+			<ActionSound>AS3D_UN_FEMALE_MISSIONARY_ACTION_VOX</ActionSound>
+		</UnitArtInfo>
+		<UnitArtInfo>
+			<Type>ART_DEF_UNIT_FEMALE_CONFUCIAN_MISSIONARY</Type>
+			<Button>Modules/Female Units/Female Missionaries/Art/Interface/Buttons/Units/Female_Missionary_Confucian.dds</Button>
+			<fScale>0.44</fScale>
+			<fInterfaceScale>1.0</fInterfaceScale>
+			<bActAsLand>0</bActAsLand>
+			<bActAsAir>0</bActAsAir>
+			<NIF>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Confucian/Confucian_missionary.nif</NIF>
+			<KFM>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Confucian/Confucian_missionary.kfm</KFM>
+			<SHADERNIF>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Confucian/Confucian_missionary_fx.nif</SHADERNIF>
+			<ShadowDef>
+				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
+				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
+				<fShadowScale>1.0</fShadowScale>
+			</ShadowDef>
+			<fBattleDistance>0.35</fBattleDistance>
+			<fRangedDeathTime>0.31</fRangedDeathTime>
+			<bActAsRanged>0</bActAsRanged>
+			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
+			<AudioRunSounds>
+				<AudioRunTypeLoop/>
+				<AudioRunTypeEnd/>
+			</AudioRunSounds>
+			<SelectionSound>AS3D_UN_FEMALE_MISSIONARY_SELECTION_VOX</SelectionSound>
+			<ActionSound>AS3D_UN_FEMALE_MISSIONARY_ACTION_VOX</ActionSound>
+		</UnitArtInfo>
+		<UnitArtInfo>
+			<Type>ART_DEF_UNIT_FEMALE_TAOIST_MISSIONARY</Type>
+			<Button>Modules/Female Units/Female Missionaries/Art/Interface/Buttons/Units/Female_Missionary_Taoist.dds</Button>
+			<fScale>0.44</fScale>
+			<fInterfaceScale>1.0</fInterfaceScale>
+			<bActAsLand>0</bActAsLand>
+			<bActAsAir>0</bActAsAir>
+			<NIF>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Taoist/TaoistMissionary.nif</NIF>
+			<KFM>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Taoist/TaoistMissionary.kfm</KFM>
+			<SHADERNIF>Modules/Female Units/Female Missionaries/Art/Units/Missionary/Female_Taoist/TaoistMissionary_fx.nif</SHADERNIF>
+			<ShadowDef>
+				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
+				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
+				<fShadowScale>0.85</fShadowScale>
+			</ShadowDef>
+			<fBattleDistance>0.35</fBattleDistance>
+			<fRangedDeathTime>0.31</fRangedDeathTime>
+			<bActAsRanged>0</bActAsRanged>
+			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
+			<AudioRunSounds>
+				<AudioRunTypeLoop/>
+				<AudioRunTypeEnd/>
+			</AudioRunSounds>
+			<SelectionSound>AS3D_UN_FEMALE_MISSIONARY_SELECTION_VOX</SelectionSound>
+			<ActionSound>AS3D_UN_FEMALE_MISSIONARY_ACTION_VOX</ActionSound>
+		</UnitArtInfo>
+		<UnitArtInfo>
+			<Type>ART_DEF_UNIT_FEMALE_CEO_1</Type>
+			<Button>Modules/Female Units/Female Missionaries/Art/Interface/Buttons/Units/Female_CEO_cereal.dds</Button>
+			<fScale>0.44</fScale>
+			<fInterfaceScale>1.0</fInterfaceScale>
+			<bActAsLand>0</bActAsLand>
+			<bActAsAir>0</bActAsAir>
+			<NIF>Modules/Female Units/Female Missionaries/Art/Units/CEO/Logos/Female_CEO_Cereal.nif</NIF>
+			<KFM>Modules/Female Units/Female Missionaries/Art/Units/CEO/CEO.kfm</KFM>
+			<SHADERNIF>Modules/Female Units/Female Missionaries/Art/Units/CEO/Logos/Female_CEO_Cereal_FX.nif</SHADERNIF>
+			<ShadowDef>
+				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
+				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
+				<fShadowScale>1.0</fShadowScale>
+			</ShadowDef>
+			<fBattleDistance>0.35</fBattleDistance>
+			<fRangedDeathTime>0.31</fRangedDeathTime>
+			<bActAsRanged>0</bActAsRanged>
+			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
+			<AudioRunSounds>
+				<AudioRunTypeLoop/>
+				<AudioRunTypeEnd/>
+			</AudioRunSounds>
+			<SelectionSound>AS3D_UN_FEMALE_SELECTION_VOX</SelectionSound>
+			<ActionSound>AS3D_UN_FEMALE_ACTION_VOX</ActionSound>
+		</UnitArtInfo>
+		<UnitArtInfo>
+			<Type>ART_DEF_UNIT_FEMALE_CEO_2</Type>
+			<Button>Modules/Female Units/Female Missionaries/Art/Interface/Buttons/Units/Female_CEO_sushi.dds</Button>
+			<fScale>0.44</fScale>
+			<fInterfaceScale>1.0</fInterfaceScale>
+			<bActAsLand>0</bActAsLand>
+			<bActAsAir>0</bActAsAir>
+			<NIF>Modules/Female Units/Female Missionaries/Art/Units/CEO/Logos/Female_CEO_Sushi.nif</NIF>
+			<KFM>Modules/Female Units/Female Missionaries/Art/Units/CEO/CEO.kfm</KFM>
+			<SHADERNIF>Modules/Female Units/Female Missionaries/Art/Units/CEO/Logos/Female_CEO_Sushi_FX.nif</SHADERNIF>
+			<ShadowDef>
+				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
+				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
+				<fShadowScale>1.0</fShadowScale>
+			</ShadowDef>
+			<fBattleDistance>0.35</fBattleDistance>
+			<fRangedDeathTime>0.31</fRangedDeathTime>
+			<bActAsRanged>0</bActAsRanged>
+			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
+			<AudioRunSounds>
+				<AudioRunTypeLoop/>
+				<AudioRunTypeEnd/>
+			</AudioRunSounds>
+			<SelectionSound>AS3D_UN_FEMALE_SELECTION_VOX</SelectionSound>
+			<ActionSound>AS3D_UN_FEMALE_ACTION_VOX</ActionSound>
+		</UnitArtInfo>
+		<UnitArtInfo>
+			<Type>ART_DEF_UNIT_FEMALE_CEO_3</Type>
+			<Button>Modules/Female Units/Female Missionaries/Art/Interface/Buttons/Units/Female_CEO_ethanol.dds</Button>
+			<fScale>0.44</fScale>
+			<fInterfaceScale>1.0</fInterfaceScale>
+			<bActAsLand>0</bActAsLand>
+			<bActAsAir>0</bActAsAir>
+			<NIF>Modules/Female Units/Female Missionaries/Art/Units/CEO/Logos/Female_CEO_Ethanol.nif</NIF>
+			<KFM>Modules/Female Units/Female Missionaries/Art/Units/CEO/CEO.kfm</KFM>
+			<SHADERNIF>Modules/Female Units/Female Missionaries/Art/Units/CEO/Logos/Female_CEO_Ethanol_FX.nif</SHADERNIF>
+			<ShadowDef>
+				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
+				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
+				<fShadowScale>1.0</fShadowScale>
+			</ShadowDef>
+			<fBattleDistance>0.35</fBattleDistance>
+			<fRangedDeathTime>0.31</fRangedDeathTime>
+			<bActAsRanged>0</bActAsRanged>
+			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
+			<AudioRunSounds>
+				<AudioRunTypeLoop/>
+				<AudioRunTypeEnd/>
+			</AudioRunSounds>
+			<SelectionSound>AS3D_UN_FEMALE_SELECTION_VOX</SelectionSound>
+			<ActionSound>AS3D_UN_FEMALE_ACTION_VOX</ActionSound>
+		</UnitArtInfo>
+		<UnitArtInfo>
+			<Type>ART_DEF_UNIT_FEMALE_CEO_4</Type>
+			<Button>Modules/Female Units/Female Missionaries/Art/Interface/Buttons/Units/Female_CEO_construction.dds</Button>
+			<fScale>0.44</fScale>
+			<fInterfaceScale>1.0</fInterfaceScale>
+			<bActAsLand>0</bActAsLand>
+			<bActAsAir>0</bActAsAir>
+			<NIF>Modules/Female Units/Female Missionaries/Art/Units/CEO/Logos/Female_CEO_Construction.nif</NIF>
+			<KFM>Modules/Female Units/Female Missionaries/Art/Units/CEO/CEO.kfm</KFM>
+			<SHADERNIF>Modules/Female Units/Female Missionaries/Art/Units/CEO/Logos/Female_CEO_Construction_FX.nif</SHADERNIF>
+			<ShadowDef>
+				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
+				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
+				<fShadowScale>1.0</fShadowScale>
+			</ShadowDef>
+			<fBattleDistance>0.35</fBattleDistance>
+			<fRangedDeathTime>0.31</fRangedDeathTime>
+			<bActAsRanged>0</bActAsRanged>
+			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
+			<AudioRunSounds>
+				<AudioRunTypeLoop/>
+				<AudioRunTypeEnd/>
+			</AudioRunSounds>
+			<SelectionSound>AS3D_UN_FEMALE_SELECTION_VOX</SelectionSound>
+			<ActionSound>AS3D_UN_FEMALE_ACTION_VOX</ActionSound>
+		</UnitArtInfo>
+		<UnitArtInfo>
+			<Type>ART_DEF_UNIT_FEMALE_CEO_5</Type>
+			<Button>Modules/Female Units/Female Missionaries/Art/Interface/Buttons/Units/Female_CEO_mining.dds</Button>
+			<fScale>0.44</fScale>
+			<fInterfaceScale>1.0</fInterfaceScale>
+			<bActAsLand>0</bActAsLand>
+			<bActAsAir>0</bActAsAir>
+			<NIF>Modules/Female Units/Female Missionaries/Art/Units/CEO/Logos/Female_CEO_Mining.nif</NIF>
+			<KFM>Modules/Female Units/Female Missionaries/Art/Units/CEO/CEO.kfm</KFM>
+			<SHADERNIF>Modules/Female Units/Female Missionaries/Art/Units/CEO/Logos/Female_CEO_Mining_FX.nif</SHADERNIF>
+			<ShadowDef>
+				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
+				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
+				<fShadowScale>1.0</fShadowScale>
+			</ShadowDef>
+			<fBattleDistance>0.35</fBattleDistance>
+			<fRangedDeathTime>0.31</fRangedDeathTime>
+			<bActAsRanged>0</bActAsRanged>
+			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
+			<AudioRunSounds>
+				<AudioRunTypeLoop/>
+				<AudioRunTypeEnd/>
+			</AudioRunSounds>
+			<SelectionSound>AS3D_UN_FEMALE_SELECTION_VOX</SelectionSound>
+			<ActionSound>AS3D_UN_FEMALE_ACTION_VOX</ActionSound>
+		</UnitArtInfo>
+		<UnitArtInfo>
+			<Type>ART_DEF_UNIT_FEMALE_CEO_6</Type>
+			<Button>Modules/Female Units/Female Missionaries/Art/Interface/Buttons/Units/Female_CEO_aluminum.dds</Button>
+			<fScale>0.44</fScale>
+			<fInterfaceScale>1.0</fInterfaceScale>
+			<bActAsLand>0</bActAsLand>
+			<bActAsAir>0</bActAsAir>
+			<NIF>Modules/Female Units/Female Missionaries/Art/Units/CEO/Logos/Female_CEO_Aluminum.nif</NIF>
+			<KFM>Modules/Female Units/Female Missionaries/Art/Units/CEO/CEO.kfm</KFM>
+			<SHADERNIF>Modules/Female Units/Female Missionaries/Art/Units/CEO/Logos/Female_CEO_Aluminum_FX.nif</SHADERNIF>
+			<ShadowDef>
+				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
+				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
+				<fShadowScale>1.0</fShadowScale>
+			</ShadowDef>
+			<fBattleDistance>0.35</fBattleDistance>
+			<fRangedDeathTime>0.31</fRangedDeathTime>
+			<bActAsRanged>0</bActAsRanged>
+			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
+			<AudioRunSounds>
+				<AudioRunTypeLoop/>
+				<AudioRunTypeEnd/>
+			</AudioRunSounds>
+			<SelectionSound>AS3D_UN_FEMALE_SELECTION_VOX</SelectionSound>
+			<ActionSound>AS3D_UN_FEMALE_ACTION_VOX</ActionSound>
+		</UnitArtInfo>
+		<UnitArtInfo>
+			<Type>ART_DEF_UNIT_FEMALE_CEO_7</Type>
+			<Button>Modules/Female Units/Female Missionaries/Art/Interface/Buttons/Units/Female_CEO_jewelry.dds</Button>
+			<fScale>0.44</fScale>
+			<fInterfaceScale>1.0</fInterfaceScale>
+			<bActAsLand>0</bActAsLand>
+			<bActAsAir>0</bActAsAir>
+			<NIF>Modules/Female Units/Female Missionaries/Art/Units/CEO/Logos/Female_CEO_Jewelry.nif</NIF>
+			<KFM>Modules/Female Units/Female Missionaries/Art/Units/CEO/CEO.kfm</KFM>
+			<SHADERNIF>Modules/Female Units/Female Missionaries/Art/Units/CEO/Logos/Female_CEO_Jewelry_FX.nif</SHADERNIF>
+			<ShadowDef>
+				<ShadowNIF>Art/Units/01_UnitShadows/UnitShadow.nif</ShadowNIF>
+				<ShadowAttachNode>BIP Pelvis</ShadowAttachNode>
+				<fShadowScale>1.0</fShadowScale>
+			</ShadowDef>
+			<fBattleDistance>0.35</fBattleDistance>
+			<fRangedDeathTime>0.31</fRangedDeathTime>
+			<bActAsRanged>0</bActAsRanged>
+			<TrainSound>AS2D_UNIT_BUILD_UNIT</TrainSound>
+			<AudioRunSounds>
+				<AudioRunTypeLoop/>
+				<AudioRunTypeEnd/>
+			</AudioRunSounds>
+			<SelectionSound>AS3D_UN_FEMALE_SELECTION_VOX</SelectionSound>
+			<ActionSound>AS3D_UN_FEMALE_ACTION_VOX</ActionSound>
+		</UnitArtInfo>
+	</UnitArtInfos>
+</Civ4ArtDefines>
