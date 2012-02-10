@@ -2234,14 +2234,18 @@ void CvUnitAI::AI_attackMove()
 
 	// Attack choking units
 	// K-Mod (bbai code deleted)
-	if (plot()->isCity() && plot()->getTeam() == getTeam() && bDanger)
+	if (plot()->getTeam() == getTeam() && (bDanger || area()->getAreaAIType(getTeam()) != AREAAI_NEUTRAL))
 	{
-		if (AI_anyAttack(1, 65, 0, 2))
-			return;
-
-		if (AI_leaveAttack(3, 50, 120))
-			return;
-		// Perhaps I should put in something like AI_defensiveCollateral. That function is pretty good...
+		if (bDanger && plot()->isCity())
+		{
+			if (AI_leaveAttack(2, 55, 105))
+				return;
+		}
+		else
+		{
+			if (AI_defendTeritory(70, 0, 2, true))
+				return;
+		}
 	}
 	// K-Mod end
 
@@ -2467,7 +2471,7 @@ void CvUnitAI::AI_attackMove()
 			// K-Mod
 			if (plot()->getTeam() == getTeam())
 			{
-				if (AI_defendTeritory(50, 0, 2))
+				if (AI_defendTeritory(50, 0, 2, true))
 				{
 					return;
 				}
@@ -2642,6 +2646,19 @@ void CvUnitAI::AI_attackMove()
 			}
 		}
 
+		// K-Mod
+		if (getGroup()->getNumUnits() >= 4 && plot()->getTeam() == getTeam())
+		{
+			CvSelectionGroup *pSplitGroup, *pRemainderGroup = NULL;
+			pSplitGroup = getGroup()->splitGroup(2, 0, &pRemainderGroup);
+			if (pSplitGroup)
+				pSplitGroup->pushMission(MISSION_SKIP);
+			if (pRemainderGroup)
+				pRemainderGroup->pushMission(MISSION_SKIP);
+			return;
+		}
+		// K-Mod end
+
 		if (AI_defend())
 		{
 			return;
@@ -2664,25 +2681,10 @@ void CvUnitAI::AI_attackMove()
 			return;
 		}
 
-		if( getGroup()->getNumUnits() < 4 )
+		if (AI_patrol())
 		{
-			if (AI_patrol())
-			{
-				return;
-			}
-		}
-		// K-Mod
-		else if (plot()->getTeam() == getTeam())
-		{
-			CvSelectionGroup *pSplitGroup, *pRemainderGroup = NULL;
-			pSplitGroup = getGroup()->splitGroup(2, 0, &pRemainderGroup);
-			if (pSplitGroup)
-				pSplitGroup->pushMission(MISSION_SKIP);
-			if (pRemainderGroup)
-				pRemainderGroup->pushMission(MISSION_SKIP);
 			return;
 		}
-		// K-Mod end
 
 		if (AI_retreatToCity())
 		{
@@ -3807,17 +3809,11 @@ void CvUnitAI::AI_collateralMove()
 	return;
 }
 
-
 void CvUnitAI::AI_pillageMove()
 {
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      03/05/10                                jdog5000      */
-/*                                                                                              */
-/* Unit AI                                                                                      */
-/************************************************************************************************/
 	PROFILE_FUNC();
 
-	if (AI_guardCity(false, true, 1))
+	if (AI_guardCity(false, true, 2)) // was 1
 	{
 		return;
 	}
@@ -3892,7 +3888,8 @@ void CvUnitAI::AI_pillageMove()
 		}
 	}
 
-	if (AI_group(UNITAI_PILLAGE, /*iMaxGroup*/ 1, /*iMaxOwnUnitAI*/ 1, -1, /*bIgnoreFaster*/ true, false, false, /*iMaxPath*/ 3))
+	//if (AI_group(UNITAI_PILLAGE, /*iMaxGroup*/ 1, /*iMaxOwnUnitAI*/ 1, -1, /*bIgnoreFaster*/ true, false, false, /*iMaxPath*/ 3))
+	if (AI_group(UNITAI_PILLAGE, /*iMaxGroup*/ 2, /*iMaxOwnUnitAI*/ 1, -1, /*bIgnoreFaster*/ true, false, false, /*iMaxPath*/ 3)) // K-Mod. (later, I might tell counter units to join up.)
 	{
 		return;
 	}
@@ -3941,6 +3938,11 @@ void CvUnitAI::AI_pillageMove()
 		return;
 	}
 
+	// K-Mod
+	if (AI_handleStranded())
+		return;
+	// K-Mod end
+
 	if (AI_safety())
 	{
 		return;
@@ -3948,9 +3950,6 @@ void CvUnitAI::AI_pillageMove()
 
 	getGroup()->pushMission(MISSION_SKIP);
 	return;
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 }
 
 
@@ -3965,10 +3964,31 @@ void CvUnitAI::AI_reserveMove()
 
 	bool bDanger = (GET_PLAYER(getOwnerINLINE()).AI_getAnyPlotDanger(plot(), 3));
 
+	/* original bts code
 	if (bDanger && AI_leaveAttack(2, 55, 130))
 	{
 		return;
+	} */
+	// K-Mod
+	if (plot()->getTeam() == getTeam() && (bDanger || area()->getAreaAIType(getTeam()) != AREAAI_NEUTRAL))
+	{
+		if (bDanger && plot()->isCity())
+		{
+			if (AI_leaveAttack(1, 55, 110))
+				return;
+		}
+		else
+		{
+			if (AI_defendTeritory(65, 0, 2, true))
+				return;
+		}
 	}
+	else
+	{
+		if (AI_anyAttack(1, 65))
+			return;
+	}
+	// K-Mod end
 
 	if (plot()->getOwnerINLINE() == getOwnerINLINE())
 	{
@@ -4142,10 +4162,18 @@ void CvUnitAI::AI_counterMove()
 
 	// K-Mod
 	bool bDanger = GET_PLAYER(getOwnerINLINE()).AI_getAnyPlotDanger(plot(), 3);
-	if (plot()->isCity() && plot()->getTeam() == getTeam() && bDanger)
+	if (bDanger && plot()->getTeam() == getTeam())
 	{
-		if (AI_leaveAttack(1, 60, 110))
-			return;
+		if (plot()->isCity())
+		{
+			if (AI_leaveAttack(1, 65, 115))
+				return;
+		}
+		else
+		{
+			if (AI_defendTeritory(70, 0, 2, true))
+				return;
+		}
 	}
 	// K-Mod end
 
@@ -4218,10 +4246,10 @@ void CvUnitAI::AI_counterMove()
 
 	if (bDanger)
 	{
-		if (AI_cityAttack(1, 35))
+		/*if (AI_cityAttack(1, 35))
 		{
 			return;
-		}
+		}*/ // disabled by K-Mod
 
 		if (AI_anyAttack(1, 40))
 		{
@@ -4291,6 +4319,11 @@ void CvUnitAI::AI_counterMove()
 		return;
 	}
 
+	// K-Mod
+	if (AI_handleStranded())
+		return;
+	// K-Mod end
+
 	if (AI_safety())
 	{
 		return;
@@ -4337,7 +4370,7 @@ void CvUnitAI::AI_cityDefenseMove()
 
 	if (bDanger)
 	{
-		if (AI_leaveAttack(1, 70, 175))
+		if (AI_leaveAttack(1, 70, 140)) // was ,,175
 		{
 			return;
 		}
@@ -4401,7 +4434,7 @@ void CvUnitAI::AI_cityDefenseMove()
 		if (AI_load(UNITAI_ASSAULT_SEA, MISSIONAI_LOAD_ASSAULT, UNITAI_ATTACK_CITY, -1, -1, -1, 0, MOVE_SAFE_TERRITORY))
 		{
 			return;
-		}		
+		}
 	}
 
 	if ((AI_getBirthmark() % 4) == 0)
@@ -4437,13 +4470,13 @@ void CvUnitAI::AI_cityDefenseMove()
 /* City AI                                                                                      */
 /************************************************************************************************/
 	//join any city attacks in progress
-	if (plot()->getOwnerINLINE() != getOwnerINLINE())
+	/*if (plot()->getOwnerINLINE() != getOwnerINLINE())
 	{
 		if (AI_groupMergeRange(UNITAI_ATTACK_CITY, 1, true, true))
 		{
 			return;
 		}
-	}
+	}*/ // disabled by K-Mod (how often do you think this is going to help us?)
 /************************************************************************************************/
 /* BETTER_BTS_AI_MOD                       END                                                  */
 /************************************************************************************************/
@@ -4613,10 +4646,10 @@ void CvUnitAI::AI_exploreMove()
 
 	if (!isHuman() && canAttack())
 	{
-		if (AI_cityAttack(1, 60))
+		/*if (AI_cityAttack(1, 60))
 		{
 			return;
-		}
+		}*/ // disabled by K-Mod
 
 		if (AI_anyAttack(1, 70))
 		{
@@ -6436,7 +6469,7 @@ void CvUnitAI::AI_pirateSeaMove()
 		}
 		
 		//if (AI_protect(30))
-		if (AI_defendTeritory(40, 0, 3)) // K-Mod
+		if (AI_defendTeritory(40, 0, 3, true)) // K-Mod
 		{
 			return;
 		}
@@ -6546,7 +6579,7 @@ void CvUnitAI::AI_attackSeaMove()
 			}
 
 			//if (AI_protect(35, 3))
-			if (AI_defendTeritory(45, 0, 3)) // K-Mod
+			if (AI_defendTeritory(45, 0, 3, true)) // K-Mod
 			{
 				return;
 			}
@@ -6784,7 +6817,7 @@ void CvUnitAI::AI_reserveSeaMove()
 			}
 
 			//if (AI_protect(40))
-			if (AI_defendTeritory(40, 0, 3)) // K-Mod
+			if (AI_defendTeritory(40, 0, 3, true)) // K-Mod
 			{
 				return;
 			}
@@ -12573,49 +12606,28 @@ bool CvUnitAI::AI_goldenAge()
 
 
 // Returns true if a mission was pushed...
+// This function has been edited for K-Mod
 bool CvUnitAI::AI_spreadReligion()
 {
 	PROFILE_FUNC();
 
 	const CvPlayerAI& kOwner = GET_PLAYER(getOwnerINLINE()); // K-Mod
 
-	CvCity* pLoopCity;
-	CvPlot* pBestPlot;
-	CvPlot* pBestSpreadPlot;
-	ReligionTypes eReligion;
-	int iPathTurns;
-	int iValue;
-	int iBestValue;
-	int iPlayerMultiplierPercent;
-	int iLoop;
-	int iI;
-
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      03/08/10                                jdog5000      */
-/*                                                                                              */
-/* Victory Strategy AI                                                                          */
-/************************************************************************************************/
 	bool bCultureVictory = kOwner.AI_isDoVictoryStrategy(AI_VICTORY_CULTURE2);
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
-	eReligion = NO_RELIGION;
 
-	// BBAI TODO: Unnecessary with changes below ...
-	if (eReligion == NO_RELIGION)
+	ReligionTypes eReligion = NO_RELIGION;
+
+	if (kOwner.getStateReligion() != NO_RELIGION)
 	{
-		if (kOwner.getStateReligion() != NO_RELIGION)
+		if (m_pUnitInfo->getReligionSpreads(kOwner.getStateReligion()) > 0)
 		{
-			if (m_pUnitInfo->getReligionSpreads(kOwner.getStateReligion()) > 0)
-			{
-				eReligion = kOwner.getStateReligion();
-			}
+			eReligion = kOwner.getStateReligion();
 		}
 	}
 
 	if (eReligion == NO_RELIGION)
 	{
-		for (iI = 0; iI < GC.getNumReligionInfos(); iI++)
+		for (int iI = 0; iI < GC.getNumReligionInfos(); iI++)
 		{
 			//if (bCultureVictory || GET_TEAM(getTeam()).hasHolyCity((ReligionTypes)iI))
 			{
@@ -12637,54 +12649,46 @@ bool CvUnitAI::AI_spreadReligion()
 	bool bHasAnyHolyCity = bHasHolyCity;
 	if (!bHasAnyHolyCity)
 	{
-		for (iI = 0; !bHasAnyHolyCity && iI < GC.getNumReligionInfos(); iI++)
+		for (int iI = 0; !bHasAnyHolyCity && iI < GC.getNumReligionInfos(); iI++)
 		{
 			bHasAnyHolyCity = GET_TEAM(getTeam()).hasHolyCity((ReligionTypes)iI);
 		}
 	}
 
-	iBestValue = 0;
-	pBestPlot = NULL;
-	pBestSpreadPlot = NULL;
+	int iBestValue = 0;
+	CvPlot* pBestPlot = NULL;
+	CvPlot* pBestSpreadPlot = NULL;
 
 	// BBAI TODO: Could also use CvPlayerAI::AI_missionaryValue to determine which player to target ...
-	for (iI = 0; iI < MAX_PLAYERS; iI++)
+	for (int iI = 0; iI < MAX_PLAYERS; iI++)
 	{
-		if (GET_PLAYER((PlayerTypes)iI).isAlive())
-		{
-		    iPlayerMultiplierPercent = 0;
+		const CvPlayer& kLoopPlayer = GET_PLAYER((PlayerTypes)iI);
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      11/28/09                                jdog5000      */
-/*                                                                                              */
-/* Unit AI, Efficiency                                                                          */
-/************************************************************************************************/
-			//if (GET_PLAYER((PlayerTypes)iI).getTeam() != getTeam())
-			if (GET_PLAYER((PlayerTypes)iI).getTeam() != getTeam() && canEnterTerritory(GET_PLAYER((PlayerTypes)iI).getTeam()))
+		if (kLoopPlayer.isAlive())
+		{
+		    int iPlayerMultiplierPercent = 0;
+
+			if (kLoopPlayer.getTeam() != getTeam() && canEnterTerritory(kLoopPlayer.getTeam()))
 			{
 				if (bHasHolyCity)
 				{
 					iPlayerMultiplierPercent = 100;
-					// BBAI TODO: If going for cultural victory, don't spread to other teams?  Sure, this might decrease the chance of 
-					// someone else winning by culture, but at the cost of $$ in holy city and diplomatic conversions (ie future wars!).  
-					// Doesn't seem to up our odds of winning by culture really.  Also, no foreign spread after Free Religion?  Still get
-					// gold for city count.
 					if (!bCultureVictory || (eReligion == kOwner.getStateReligion()))
 					{
-						if (GET_PLAYER((PlayerTypes)iI).getStateReligion() == NO_RELIGION)
+						if (kLoopPlayer.getStateReligion() == NO_RELIGION)
 						{
-							if (0 == (GET_PLAYER((PlayerTypes)iI).getNonStateReligionHappiness()))
+							if (0 == (kLoopPlayer.getNonStateReligionHappiness()))
 							{
 								iPlayerMultiplierPercent += 600;
 							}
 						}
-						else if (GET_PLAYER((PlayerTypes)iI).getStateReligion() == eReligion)
+						else if (kLoopPlayer.getStateReligion() == eReligion)
 						{
 							iPlayerMultiplierPercent += 300;
 						}
 						else
 						{
-							if (GET_PLAYER((PlayerTypes)iI).hasHolyCity(GET_PLAYER((PlayerTypes)iI).getStateReligion()))
+							if (kLoopPlayer.hasHolyCity(kLoopPlayer.getStateReligion()))
 							{
 								iPlayerMultiplierPercent += 50;
 							}
@@ -12694,8 +12698,9 @@ bool CvUnitAI::AI_spreadReligion()
 							}
 						}
 						
-						int iReligionCount = GET_PLAYER((PlayerTypes)iI).countTotalHasReligion();
-						int iCityCount = kOwner.getNumCities();
+						int iReligionCount = kLoopPlayer.countTotalHasReligion();
+						//int iCityCount = kOwner.getNumCities();
+						int iCityCount = kLoopPlayer.getNumCities(); // K-Mod!
 						//magic formula to produce normalized adjustment factor based on religious infusion
 						int iAdjustment = (100 * (iCityCount + 1));
 						iAdjustment /= ((iCityCount + 1) + iReligionCount);
@@ -12710,21 +12715,18 @@ bool CvUnitAI::AI_spreadReligion()
 			}
 			else if (iI == getOwnerINLINE())
 			{
-				iPlayerMultiplierPercent = 100;
+				iPlayerMultiplierPercent = (bCultureVictory ? 1600 : 400) + (kOwner.getStateReligion() == eReligion ? 100 : 0);
 			}
-			else if (bHasHolyCity && GET_PLAYER((PlayerTypes)iI).getTeam() == getTeam())
+			else if (bHasHolyCity && kLoopPlayer.getTeam() == getTeam())
 			{
-				iPlayerMultiplierPercent = 80;
+				iPlayerMultiplierPercent = kLoopPlayer.getStateReligion() == eReligion ? 600 : 300;
 			}
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 			
 			if (iPlayerMultiplierPercent > 0)
 			{
-				for (pLoopCity = GET_PLAYER((PlayerTypes)iI).firstCity(&iLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER((PlayerTypes)iI).nextCity(&iLoop))
+				int iLoop;
+				for (CvCity* pLoopCity = kLoopPlayer.firstCity(&iLoop); pLoopCity != NULL; pLoopCity = kLoopPlayer.nextCity(&iLoop))
 				{
-
 					if (AI_plotValid(pLoopCity->plot()) && pLoopCity->area() == area())
 					{
 						//if (canSpread(pLoopCity->plot(), eReligion))
@@ -12734,40 +12736,18 @@ bool CvUnitAI::AI_spreadReligion()
 							{
 								if (kOwner.AI_plotTargetMissionAIs(pLoopCity->plot(), MISSIONAI_SPREAD, getGroup()) == 0)
 								{
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      04/03/09                                jdog5000      */
-/*                                                                                              */
-/* Unit AI                                                                                      */
-/************************************************************************************************/
+									int iPathTurns;
 									if (generatePath(pLoopCity->plot(), MOVE_NO_ENEMY_TERRITORY, true, &iPathTurns))
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 									{
-										iValue = (7 + (pLoopCity->getPopulation() * 4));
+										int iValue = 16 + pLoopCity->getPopulation() * 4; // was 7 +
 
-										bool bOurCity = false;
-										// BBAI TODO: Why not just use iPlayerMultiplier??
-										if (pLoopCity->getOwnerINLINE() == getOwnerINLINE())
-										{
-											iValue *= (bCultureVictory ? 16 : 4);
-											bOurCity = true;
-										}
-										else if (pLoopCity->getTeam() == getTeam())
-										{
-											iValue *= 3;
-											bOurCity = true;
-										}
-										else
-										{
-											iValue *= iPlayerMultiplierPercent;
-											iValue /= 100;
-										}
+										iValue *= iPlayerMultiplierPercent;
+										iValue /= 100;
 										
 										int iCityReligionCount = pLoopCity->getReligionCount();
 										int iReligionCountFactor = iCityReligionCount;
 
-										if (bOurCity)
+										if (kLoopPlayer.getTeam() == kOwner.getTeam())
 										{
 											// count cities with no religion the same as cities with 2 religions
 											// prefer a city with exactly 1 religion already
@@ -12812,7 +12792,8 @@ bool CvUnitAI::AI_spreadReligion()
 
 										iValue *= 1000;
 
-										iValue /= (iPathTurns + 2);
+										if (iPathTurns > 0)
+											iValue /= (iPathTurns + 2);
 
 										if (iValue > iBestValue)
 										{
@@ -12840,15 +12821,7 @@ bool CvUnitAI::AI_spreadReligion()
 		else
 		{
 			FAssert(!atPlot(pBestPlot));
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      03/09/09                                jdog5000      */
-/*                                                                                              */
-/* Unit AI                                                                                      */
-/************************************************************************************************/
 			getGroup()->pushMission(MISSION_MOVE_TO, pBestPlot->getX_INLINE(), pBestPlot->getY_INLINE(), MOVE_NO_ENEMY_TERRITORY, false, false, MISSIONAI_SPREAD, pBestSpreadPlot);
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 			return true;
 		}
 	}
@@ -16059,8 +16032,10 @@ bool CvUnitAI::AI_defensiveCollateral(int iThreshold, int iSearchRange)
 	return false;
 }
 
-// K-Mod
-bool CvUnitAI::AI_defendTeritory(int iThreshold, int iFlags, int iMaxPathTurns)
+// K-Mod.
+// bLocal is just to help with the efficiency of this function for short-range checks. It means that we should look only in nearby plots.
+// the default (bLocal == false) is to look at every plot on the map!
+bool CvUnitAI::AI_defendTeritory(int iThreshold, int iFlags, int iMaxPathTurns, bool bLocal)
 {
 	PROFILE_FUNC();
 
@@ -16069,11 +16044,20 @@ bool CvUnitAI::AI_defendTeritory(int iThreshold, int iFlags, int iMaxPathTurns)
 	CvPlot* pEndTurnPlot = NULL;
 	int iBestValue = 0;
 
-	for (int iI = 0; iI < GC.getMapINLINE().numPlotsINLINE(); iI++)
+	//for (int iI = 0; iI < GC.getMapINLINE().numPlotsINLINE(); iI++)
+	// I'm going to use a loop equivalent to the above when !bLocal; and a loop in a square around our unit if bLocal.
+	int i = 0;
+	int iRange = bLocal ? AI_searchRange(iMaxPathTurns) : 0;
+	int iPlots = bLocal ? (2*iRange+1)*(2*iRange+1) : GC.getMapINLINE().numPlotsINLINE();
+	FAssert(!bLocal || (iRange > 0 && iRange < 20)); // nothing wrong with being above 20. I just don't expect it...
+	while (i < iPlots)
 	{
-		CvPlot* pLoopPlot = GC.getMapINLINE().plotByIndexINLINE(iI);
+		CvPlot* pLoopPlot = bLocal
+			? plotXY(getX_INLINE(), getY_INLINE(), -iRange + i % (2*iRange+1), -iRange + i / (2*iRange+1))
+			: GC.getMapINLINE().plotByIndexINLINE(i);
+		i++; // for next cycle.
 
-		if (pLoopPlot->getTeam() == getTeam() && AI_plotValid(pLoopPlot))
+		if (pLoopPlot && pLoopPlot->getTeam() == getTeam() && AI_plotValid(pLoopPlot))
 		{
 			if (pLoopPlot->isVisibleEnemyUnit(this))
 			{
@@ -16112,7 +16096,7 @@ bool CvUnitAI::AI_defendTeritory(int iThreshold, int iFlags, int iMaxPathTurns)
 							iValue = 2*iValue/3;
 
 						if (iPathTurns > 1)
-							iValue /= iPathTurns + 1;
+							iValue /= iPathTurns + 2;
 
 						if (iOdds >= iThreshold)
 							iValue = 4*iValue/3;
@@ -16125,8 +16109,8 @@ bool CvUnitAI::AI_defendTeritory(int iThreshold, int iFlags, int iMaxPathTurns)
 					}
 				}
 			}
-		} // dy
-	} // dx
+		}
+	}
 
 	if (pEndTurnPlot != NULL)
 	{
