@@ -82,12 +82,74 @@ class SevoPediaUnit:
 	def interfaceScreen(self, iUnit):
 		self.iUnit = iUnit
 		screen = self.top.getScreen()
+	## ==================================
+	## Begin BAT 3.0 GP Sevo-Tweak - 28/09/10 by Lemon Merchant
+	## Allows the display of both Male and female unit buttons for a unit class that has both male and female types
+	## Both buttons display on the unit screen, and the animation varies between male and female when unit is clicked.
+	
+		UnitInfo = gc.getUnitInfo(self.iUnit)
+		sUnitType = UnitInfo.getType()
+		bAltUnitTag = False
+		self.fUunit = 0
+		iFemaleUnitType = 0
 
+		# These two lines are from the original code.  Do not modify
 		screen.addPanel(self.top.getNextWidgetName(), "", "", False, False, self.X_UNIT_PANE, self.Y_UNIT_PANE, self.W_UNIT_PANE, self.H_UNIT_PANE, PanelStyles.PANEL_STYLE_BLUE50)
 		screen.addPanel(self.top.getNextWidgetName(), "", "", False, False, self.X_ICON, self.Y_ICON, self.W_ICON, self.H_ICON, PanelStyles.PANEL_STYLE_MAIN)
+		##
+		if UnitInfo.getDefaultUnitAIType() == gc.getInfoTypeForString('UNITAI_MISSIONARY'):  ## Test for CEO or Missionary
+			sUnitSelected = gc.getInfoTypeForString(sUnitType[:20])
+			
+			if sUnitSelected == "UNITCLASS_EXECUTIVE_":  ## If CEO, set the female unit type
+				sCEOType = gc.getInfoTypeForString(sUnitType[20:])
+				iFemaleUnitType = CvUtil.findInfoTypeNum(gc.getUnitInfo,gc.getNumUnitInfos(),sUnitSelected+sCEOType+'_FEMALE')
+				bAltUnitTag = True
+				self.fUnit = iFemaleUnitType
+			else:
+				sFemaleUnitType = 'UNIT_FEMALE'+sUnitType[4:]  ## If Missionary, set the female unit type
+				iFemaleUnitType = gc.getInfoTypeForString(sFemaleUnitType)
+				bAltUnitTag = True
+				self.fUnit = iFemaleUnitType
+					
+		if UnitInfo.isGoldenAge() or sUnitType == "UNIT_GREAT_GENERAL":  #### If GP or GG, set the female unit type
+			sUnitType = UnitInfo.getType()
+			sFemaleUnitType = sUnitType+'_FEMALE'
+			iFemaleUnitType = gc.getInfoTypeForString(sFemaleUnitType)
+			self.fUnit = iFemaleUnitType
+			bAltUnitTag = True	
+						
+		if bAltUnitTag == True:
+			bAltUnitTag = False
+			self.W_ICON = 100
+			self.H_ICON = 139  ## Set oversize button panel - blue
+			self.X_ICON = self.X_UNIT_PANE + (self.H_UNIT_PANE - self.W_ICON) / 2
+			self.Y_ICON = self.Y_UNIT_PANE + (self.H_UNIT_PANE - self.H_ICON) / 2
+			
+			screen.addPanel(self.top.getNextWidgetName(), "", "", False, False, self.X_UNIT_PANE, self.Y_UNIT_PANE, self.W_UNIT_PANE, self.H_UNIT_PANE, PanelStyles.PANEL_STYLE_BLUE50)
+			screen.addPanel(self.top.getNextWidgetName(), "", "", False, False, self.X_ICON, self.Y_ICON + 2, self.W_ICON, self.H_ICON, PanelStyles.PANEL_STYLE_MAIN)
+			screen.addDDSGFC(self.top.getNextWidgetName(), gc.getUnitInfo(self.iUnit).getButton(), self.X_ICON + self.W_ICON/2 - self.ICON_SIZE/2, self.Y_ICON + self.ICON_SIZE/8 + 2, self.ICON_SIZE, self.ICON_SIZE, WidgetTypes.WIDGET_GENERAL, -1, -1)
+			screen.addDDSGFC(self.top.getNextWidgetName(), gc.getUnitInfo(self.fUnit).getButton(), self.X_ICON + self.W_ICON/2 - self.ICON_SIZE/2, self.Y_ICON + self.ICON_SIZE + 6, self.ICON_SIZE, self.ICON_SIZE, WidgetTypes.WIDGET_GENERAL, -1, -1)
+			
+			iRnd = CyGame().getSorenRandNum(100, "alt animate")  ## Alternate the animations  50-50 chance of male/female 
+			if iRnd <= 50:
+				screen.addUnitGraphicGFC(self.top.getNextWidgetName(), self.iUnit, self.X_UNIT_ANIMATION, self.Y_UNIT_ANIMATION, self.W_UNIT_ANIMATION, self.H_UNIT_ANIMATION, WidgetTypes.WIDGET_GENERAL, -1, -1, self.X_ROTATION_UNIT_ANIMATION, self.Z_ROTATION_UNIT_ANIMATION, self.SCALE_ANIMATION, True)
+			
+			else:
+				screen.addUnitGraphicGFC(self.top.getNextWidgetName(), self.fUnit, self.X_UNIT_ANIMATION, self.Y_UNIT_ANIMATION, self.W_UNIT_ANIMATION, self.H_UNIT_ANIMATION, WidgetTypes.WIDGET_GENERAL, -1, -1, self.X_ROTATION_UNIT_ANIMATION, self.Z_ROTATION_UNIT_ANIMATION, self.SCALE_ANIMATION, True)
+		
+			self.W_ICON = 100
+			self.H_ICON = 100  ## Reset parameters on exit for normal unit display
+			self.X_ICON = self.X_UNIT_PANE + (self.H_UNIT_PANE - self.H_ICON) / 2
+			self.Y_ICON = self.Y_UNIT_PANE + (self.H_UNIT_PANE - self.H_ICON) / 2
+			
+		else:
+			## If code falls through to here, put up normal unit button and animation
 		screen.addDDSGFC(self.top.getNextWidgetName(), gc.getUnitInfo(self.iUnit).getButton(), self.X_ICON + self.W_ICON/2 - self.ICON_SIZE/2, self.Y_ICON + self.H_ICON/2 - self.ICON_SIZE/2, self.ICON_SIZE, self.ICON_SIZE, WidgetTypes.WIDGET_GENERAL, -1, -1)
 		screen.addUnitGraphicGFC(self.top.getNextWidgetName(), self.iUnit, self.X_UNIT_ANIMATION, self.Y_UNIT_ANIMATION, self.W_UNIT_ANIMATION, self.H_UNIT_ANIMATION, WidgetTypes.WIDGET_GENERAL, -1, -1, self.X_ROTATION_UNIT_ANIMATION, self.Z_ROTATION_UNIT_ANIMATION, self.SCALE_ANIMATION, True)
 
+	## End BAT 3.0 GP Sevo-Tweak
+	#=================================
+			
 		self.placeStats()
 		self.placeUpgradesTo()
 		self.placeRequires()
@@ -179,6 +241,11 @@ class SevoPediaUnit:
 		iPrereq = gc.getUnitInfo(self.iUnit).getPrereqBuilding()
 		if (iPrereq >= 0):
 			screen.attachImageButton(panelName, "", gc.getBuildingInfo(iPrereq).getButton(), GenericButtonSizes.BUTTON_SIZE_CUSTOM, WidgetTypes.WIDGET_PEDIA_JUMP_TO_BUILDING, iPrereq, -1, False)
+		
+		# LM
+		iPrereq = gc.getUnitInfo(self.iUnit).getPrereqCorporation()
+		if (iPrereq >= 0):
+			screen.attachImageButton(panelName, "", gc.getCorporationInfo(iPrereq).getButton(), GenericButtonSizes.BUTTON_SIZE_CUSTOM, WidgetTypes.WIDGET_PEDIA_JUMP_TO_CORPORATION, iPrereq, -1, False)	
 
 
 
