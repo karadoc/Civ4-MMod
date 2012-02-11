@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- edited with XMLSPY v2004 rel. 2 U (http://www.xmlspy.com) by lcollins (Firaxis Games) -->
+<!-- Sid Meier's Civilization 4 -->
+<!-- Copyright Firaxis Games 2005 -->
+<!-- -->
+<!-- Game Text - New -->
+<Civ4GameText xmlns="http://www.firaxis.com">
+		
+<TEXT>
+		<Tag>TXT_KEY_UNIT_HORSE_ARCHER</Tag>
+		<English>Horseman</English>
+		<French>
+			<Text>Cavalier</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German>
+			<Text>Reiter</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</German>
+		<Italian>
+			<Text>Cavaliere</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Jinete</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</Spanish>	
+	</TEXT>	
+	<TEXT>
+		<Tag>TXT_KEY_UNIT_MACEMAN</Tag>
+		<English>Heavy Footman</English>
+		<French>
+			<Text>Fantassin lourd</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German>
+			<Text>Schwerer Lakai</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</German>
+		<Italian>
+			<Text>Fante pesante</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Lacayo pesado</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</Spanish>		
+	</TEXT>		
+	<TEXT>
+		<Tag>TXT_KEY_UNIT_CUIRASSIER</Tag>
+		<English>Heavy Horseman</English>
+		<French>
+			<Text>Cavalier lourd</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German>
+			<Text>Schwerer Reiter</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</German>
+		<Italian>
+			<Text>Cavaliere pesante</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Jinete pesado</Text>
+			<Gender>Male</Gender>
+			<Plural>0</Plural>
+		</Spanish>	
+	</TEXT>
+
+</Civ4GameText>

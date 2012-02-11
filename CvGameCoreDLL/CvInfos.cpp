@@ -3072,6 +3072,9 @@ m_iUnitMeleeWaveSize(0),
 m_iUnitRangedWaveSize(0),
 m_iNumUnitNames(0),
 m_iCommandType(NO_COMMAND),
+// BUG - Female Great People - start
+m_bFemale(false),
+// BUG - Female Great People - end
 m_bAnimal(false),
 m_bFoodProduction(false),
 m_bNoBadGoodies(false),
@@ -3572,6 +3575,25 @@ int CvUnitInfo::getNumUnitNames() const
 {
 	return m_iNumUnitNames;
 }
+
+// BUG - Female Great People - start
+bool CvUnitInfo::isFemale() const
+{
+	return m_bFemale;
+}
+
+/*
+ * Find the equivalent female unit type by appending "_FEMALE" to this unit's type.
+ * Returns -1 if there is no such unit.
+ *
+ * Ideally this would be done in a second pass while reading the XML and saved.
+ */
+int CvUnitInfo::getFemaleUnitType() const
+{
+	CvString szFemaleUnitType = m_szType + "_FEMALE";
+	return GC.getInfoTypeForString(szFemaleUnitType.GetCString(), true);
+}
+// BUG - Female Great People - end
 
 bool CvUnitInfo::isAnimal() const				
 {
@@ -4266,6 +4288,9 @@ void CvUnitInfo::read(FDataStreamBase* stream)
 	stream->Read(&m_iNumUnitNames);
 	stream->Read(&m_iCommandType);
 
+// BUG - Female Great People - start
+	stream->Read(&m_bFemale);
+// BUG - Female Great People - end
 	stream->Read(&m_bAnimal);
 	stream->Read(&m_bFoodProduction);
 	stream->Read(&m_bNoBadGoodies);
@@ -4562,6 +4587,9 @@ void CvUnitInfo::write(FDataStreamBase* stream)
 	stream->Write(m_iNumUnitNames);
 	stream->Write(m_iCommandType);
 
+// BUG - Female Great People - start
+	stream->Write(m_bFemale);
+// BUG - Female Great People - end
 	stream->Write(m_bAnimal);
 	stream->Write(m_bFoodProduction);
 	stream->Write(m_bNoBadGoodies);
@@ -4704,6 +4732,9 @@ bool CvUnitInfo::read(CvXMLLoadUtility* pXML)
 	pXML->GetChildXmlValByName(szTextVal, "Advisor");
 	m_iAdvisorType = pXML->FindInInfoClass(szTextVal);
 
+// BUG - Female Great People - start
+	pXML->GetChildXmlValByName(&m_bFemale, "bFemale");
+// BUG - Female Great People - end
 	pXML->GetChildXmlValByName(&m_bAnimal, "bAnimal");
 	pXML->GetChildXmlValByName(&m_bFoodProduction, "bFood");
 	pXML->GetChildXmlValByName(&m_bNoBadGoodies, "bNoBadGoodies");
@@ -12839,7 +12870,7 @@ m_iGrowthProbability(0),
 m_iDefenseModifier(0),
 m_iAdvancedStartRemoveCost(0),
 m_iTurnDamage(0),
-m_iWarmingDefense(0), //GWMod new xml field M.A.
+m_iWarmingDefense(0), // K-Mod
 m_bNoCoast(false),				
 m_bNoRiver(false),					
 m_bNoAdjacent(false),			
@@ -13120,7 +13151,7 @@ bool CvFeatureInfo::read(CvXMLLoadUtility* pXML)
 	pXML->GetChildXmlValByName(&m_iDefenseModifier, "iDefense");
 	pXML->GetChildXmlValByName(&m_iAdvancedStartRemoveCost, "iAdvancedStartRemoveCost");
 	pXML->GetChildXmlValByName(&m_iTurnDamage, "iTurnDamage");
-	pXML->GetChildXmlValByName(&m_iWarmingDefense, "iWarmingDefense"); //GWMod new xml field M.A.
+	pXML->GetChildXmlValByName(&m_iWarmingDefense, "iWarmingDefense"); // K-Mod
 	pXML->GetChildXmlValByName(&m_iAppearanceProbability, "iAppearance");
 	pXML->GetChildXmlValByName(&m_iDisappearanceProbability, "iDisappearance");
 	pXML->GetChildXmlValByName(&m_iGrowthProbability, "iGrowth");

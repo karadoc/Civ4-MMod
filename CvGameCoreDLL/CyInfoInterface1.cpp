@@ -269,6 +269,9 @@ void CyInfoPythonInterface1()
 		.def("getNumUnitNames", &CvUnitInfo::getNumUnitNames, "int ()")
 		.def("getCommandType", &CvUnitInfo::getCommandType, "int ()")
 
+// BUG - Female Great People - start
+		.def("isFemale", &CvUnitInfo::isFemale, "bool ()")
+// BUG - Female Great People - end
 		.def("isAnimal", &CvUnitInfo::isAnimal, "bool ()")
 		.def("isFoodProduction", &CvUnitInfo::isFoodProduction, "bool ()")
 		.def("isNoBadGoodies", &CvUnitInfo::isNoBadGoodies, "bool ()")

@@ -7842,6 +7842,13 @@ int CvUnit::workRate(bool bMax) const
 }
 
 
+// BUG - Female Great People - start
+bool CvUnit::isFemale() const
+{
+	return m_pUnitInfo->isFemale();
+}
+// BUG - Female Great People - end
+
 bool CvUnit::isAnimal() const
 {
 	return m_pUnitInfo->isAnimal();
