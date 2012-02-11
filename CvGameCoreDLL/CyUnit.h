@@ -157,6 +157,9 @@ public:
 	int /*BuildTypes*/ getBuildType();
 	int workRate(bool bMax);
 
+// BUG - Female Great People - start
+	bool isFemale();
+// BUG - Female Great People - end
 	bool isAnimal();
 	bool isNoBadGoodies();
 	bool isOnlyDefensive();

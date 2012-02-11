@@ -19,20 +19,21 @@ class BugCityScreenOptionsTab(BugOptionsTab.BugOptionsTab):
 		panel = self.createMainPanel(screen)
 		column = self.addOneColumnLayout(screen, panel)
 		
-		left, right = self.addTwoColumnLayout(screen, column, "Page", True)
+		#left, right = self.addTwoColumnLayout(screen, column, "Page", True)
+		left, middle, right = self.addThreeColumnLayout(screen, column, "Page", True) # K-Mod
 		
 		self.createRawYieldsPanel(screen, left)
 		self.addSpacer(screen, left, "CityScreen1")
 		self.createHurryDetailPanel(screen, left)
-		#self.addSpacer(screen, left, "CityScreen2")
-		#self.createBuildingActualEffectsPanel(screen, left)
-		self.addSpacer(screen, left, "CityScreen3")
+		self.addSpacer(screen, left, "CityScreen2")
+		self.createBuildingActualEffectsPanel(screen, middle) # was left
+		#self.addSpacer(screen, left, "CityScreen3")
 		self.createGreatPersonBarPanel(screen, left)
-		self.addSpacer(screen, left, "CityScreen4")
-		self.createProductionQueuePanel(screen, left)
+		self.addSpacer(screen, middle, "CityScreen4") # was left
+		self.createProductionQueuePanel(screen, middle) # was left
 		
 		#self.createCityBarPanel(screen, right)
-		self.addSpacer(screen, right, "CityScreen6")
+		#self.addSpacer(screen, right, "CityScreen6")
 		self.createMiscellaneousPanel(screen, right)
 		
 	def createRawYieldsPanel(self, screen, panel):
@@ -51,18 +52,18 @@ class BugCityScreenOptionsTab(BugOptionsTab.BugOptionsTab):
 		#self.addCheckbox(screen, left, "MiscHover__HurryOverflow")
 		#self.addCheckbox(screen, right, "MiscHover__HurryOverflowIncludeCurrent")
 		
-	#def createBuildingActualEffectsPanel(self, screen, panel):
-		#self.addLabel(screen, panel, "BuildingEffects", "Building Actual Effects in Hovers:")
-		#left, right = self.addTwoColumnLayout(screen, panel, "BuildingEffects", False)
-		#self.addCheckbox(screen, left, "MiscHover__BuildingActualEffects")
+	def createBuildingActualEffectsPanel(self, screen, panel):
+		self.addLabel(screen, panel, "BuildingEffects", "Building Actual Effects in Hovers:")
+		left, right = self.addTwoColumnLayout(screen, panel, "BuildingEffects", False)
+		self.addCheckbox(screen, left, "MiscHover__BuildingActualEffects")
 		#self.addCheckbox(screen, left, "MiscHover__BuildingAdditionalFood")
-		#self.addCheckbox(screen, left, "MiscHover__BuildingAdditionalProduction")
-		#self.addCheckbox(screen, left, "MiscHover__BuildingAdditionalCommerce")
-		#self.addCheckbox(screen, left, "MiscHover__BuildingSavedMaintenance")
-		#self.addSpacer(screen, right, "CityScreen2a")
-		#self.addCheckbox(screen, right, "MiscHover__BuildingAdditionalHealth")
-		#self.addCheckbox(screen, right, "MiscHover__BuildingAdditionalHappiness")
-		#self.addCheckbox(screen, right, "MiscHover__BuildingAdditionalGreatPeople")
+		self.addCheckbox(screen, left, "MiscHover__BuildingAdditionalProduction")
+		self.addCheckbox(screen, left, "MiscHover__BuildingAdditionalCommerce")
+		self.addCheckbox(screen, left, "MiscHover__BuildingSavedMaintenance")
+		self.addSpacer(screen, right, "CityScreen2a")
+		self.addCheckbox(screen, right, "MiscHover__BuildingAdditionalHealth")
+		self.addCheckbox(screen, right, "MiscHover__BuildingAdditionalHappiness")
+		self.addCheckbox(screen, right, "MiscHover__BuildingAdditionalGreatPeople")
 		#self.addCheckbox(screen, right, "MiscHover__BuildingAdditionalDefense")
 		
 	def createGreatPersonBarPanel(self, screen, panel):
@@ -112,7 +113,7 @@ class BugCityScreenOptionsTab(BugOptionsTab.BugOptionsTab):
 		
 	def createMiscellaneousPanel(self, screen, panel):
 		self.addLabel(screen, panel, "Misc", "Miscellaneous:")
-		#self.addCheckbox(screen, panel, "MiscHover__BaseCommerce")
+		self.addCheckbox(screen, panel, "MiscHover__BaseCommerce")
 		self.addCheckbox(screen, panel, "CityScreen__FoodAssist")
 		self.addCheckbox(screen, panel, "CityScreen__Anger_Counter")
 		self.addCheckbox(screen, panel, "CityScreen__CultureTurns")

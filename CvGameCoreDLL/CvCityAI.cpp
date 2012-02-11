@@ -7979,7 +7979,9 @@ void CvCityAI::AI_doHurry(bool bForce)
 			const CvUnitInfo& kUnitInfo = GC.getUnitInfo(eProductionUnit);
 
 			int iValue = 0;
-			if (!kOwner.AI_isFinancialTrouble())
+			if (kOwner.AI_isFinancialTrouble())
+				iTotalCost = std::max(0, iTotalCost); // overflow is not good when it is being used to build units that we don't want.
+			else
 			{
 				iValue = productionLeft();
 				switch (eProductionUnitAI)
@@ -7988,8 +7990,8 @@ void CvCityAI::AI_doHurry(bool bForce)
 				case UNITAI_SETTLE:
 				case UNITAI_WORKER_SEA:
 					iValue *= kUnitInfo.isFoodProduction() ? 5 : 4;
-					iValue += eProductionUnitAI == UNITAI_SETTLE && area()->getNumAIUnits(getOwnerINLINE(), eProductionUnitAI) == 0
-						? 20 : 12 * getProductionTurnsLeft(eProductionUnit, 1); // cf. value of commerce/turn
+					iValue += (eProductionUnitAI == UNITAI_SETTLE && area()->getNumAIUnits(getOwnerINLINE(), eProductionUnitAI) == 0
+						? 24 : 14) * (getProductionTurnsLeft(eProductionUnit, 1)-1); // cf. value of commerce/turn
 					break;
 				case UNITAI_SETTLER_SEA:
 				case UNITAI_EXPLORE_SEA:
@@ -8009,7 +8011,7 @@ void CvCityAI::AI_doHurry(bool bForce)
 							area()->getAreaAIType(kOwner.getTeam()) == AREAAI_ASSAULT_ASSIST ||
 							area()->getAreaAIType(kOwner.getTeam()) == AREAAI_ASSAULT_MASSING))
 						{
-							iValue *= 6;
+							iValue *= 5;
 						}
 						else
 						{
@@ -8026,7 +8028,10 @@ void CvCityAI::AI_doHurry(bool bForce)
 							}
 							else
 							{
-								iValue *= area()->getAreaAIType(kOwner.getTeam()) == AREAAI_NEUTRAL ? 3 : 4;
+								if (area()->getAreaAIType(kOwner.getTeam()) == AREAAI_NEUTRAL)
+									iValue *= kOwner.AI_unitCostPerMil() >= kOwner.AI_maxUnitCostPerMil(area(), AI_buildUnitProb()) ? 0 : 3;
+								else
+									iValue *= 4;
 							}
 						}
 					}
@@ -8050,7 +8055,7 @@ void CvCityAI::AI_doHurry(bool bForce)
 		{
 			const CvBuildingInfo& kBuildingInfo = GC.getBuildingInfo(eProductionBuilding);
 
-			int iValue = AI_buildingValue(eProductionBuilding) * getProductionTurnsLeft(eProductionBuilding, 1);
+			int iValue = AI_buildingValue(eProductionBuilding) * (getProductionTurnsLeft(eProductionBuilding, 1) - 1);
 			iValue /= std::max(4, 3 - iHappyDiff) + (iHurryPopulation + 1)/2;
 
 			if (iValue > iTotalCost)
@@ -8395,7 +8400,7 @@ bool CvCityAI::AI_bestSpreadUnit(bool bMissionary, bool bExecutive, int iBaseCha
 				int iRoll = (iHasCount > 4) ? iBaseChance : (((100 - iBaseChance) / iHasCount) + iBaseChance);
 				if (!kTeam.hasHeadquarters(eCorporation))
 				{
-					iRoll /= 8;			
+					iRoll /= 3; // was 8
 				}
 				
 				if (iRoll > kGame.getSorenRandNum(100, "AI choose executive"))
@@ -9064,7 +9069,8 @@ int CvCityAI::AI_citizenLossCost(int iCitDelta, int iAnger)
 	std::partial_sort(job_scores.begin(), job_scores.begin()+iCitDelta, job_scores.end());
 	int iAverageScore = ROUND_DIVIDE(iTotalScore, job_scores.size());
 
-	int iTotalFood = getYieldRate(YIELD_FOOD);
+	int iWastedFood = -healthRate();
+	int iTotalFood = getYieldRate(YIELD_FOOD) - iWastedFood;
 
 	int iScoreLoss = 0;
 	int iCost = 0;
@@ -9073,15 +9079,18 @@ int CvCityAI::AI_citizenLossCost(int iCitDelta, int iAnger)
 		// since the score estimate is very rough, I'm going to flatten it out a bit by combining it with the average score
 		iScoreLoss += (2*job_scores[i] + iAverageScore + 2)/3;
 
+		//const int iGrowthWeight = kOwner.AI_getFlavorValue(FLAVOR_GROWTH) > 0 ? 112 + kOwner.AI_getFlavorValue(FLAVOR_GROWTH) : 105;
+
 		int iFoodLoss = kOwner.getGrowthThreshold(getPopulation() - i - 1) * (110 - getMaxFoodKeptPercent()) / 100;
 		int iFoodRate = iTotalFood - (iScoreLoss * AI_yieldMultiplier(YIELD_FOOD) * iYields[YIELD_FOOD] + iTotalScore*100-1)/(iTotalScore * 100);
 		iFoodRate -= (getPopulation() - i - 1) * GC.getFOOD_CONSUMPTION_PER_POPULATION();
+		iFoodRate += std::max(iWastedFood, i+1);
 
 		int iRecoveryTurns = iFoodRate > 0 ? (iFoodLoss+iFoodRate-1) / iFoodRate : iFoodLoss * 3 / 2;
 		int iCostPerTurn = 0;
 		for (int j = 0; j < NUM_YIELD_TYPES; j++)
 		{
-			int y = iYields[j] - (j == YIELD_FOOD ? GC.getFOOD_CONSUMPTION_PER_POPULATION()*job_scores.size() : 0);
+			int y = iYields[j] - (j == YIELD_FOOD ? std::max(iWastedFood, i+1) + GC.getFOOD_CONSUMPTION_PER_POPULATION()*job_scores.size() : 0);
 			if (y > 0)
 				iCostPerTurn += 4 * y * AI_yieldMultiplier((YieldTypes)j) * kOwner.AI_yieldWeight((YieldTypes)j) / 100;
 		}

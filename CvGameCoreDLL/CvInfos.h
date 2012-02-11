@@ -890,6 +890,10 @@ public:
 	int getCommandType() const;								// Exposed to Python
 	void setCommandType(int iNewType);
 
+// BUG - Female Great People - start
+	bool isFemale() const;				// Exposed to Python
+	int getFemaleUnitType() const;
+// BUG - Female Great People - end
 	bool isAnimal() const;				// Exposed to Python
 	bool isFoodProduction() const;				// Exposed to Python
 	bool isNoBadGoodies() const;				// Exposed to Python
@@ -1072,6 +1076,9 @@ protected:
 	int m_iCommandType;
 	int m_iLeaderExperience;
 
+// BUG - Female Great People - start
+	bool m_bFemale;
+// BUG - Female Great People - end
 	bool m_bAnimal;
 	bool m_bFoodProduction;
 	bool m_bNoBadGoodies;

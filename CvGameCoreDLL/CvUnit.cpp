@@ -2547,7 +2547,8 @@ bool CvUnit::canMoveInto(const CvPlot* pPlot, bool bAttack, bool bDeclareWar, bo
 		{
 			if (!pPlot->isCity() || 0 == GC.getDefineINT("LAND_UNITS_CAN_ATTACK_WATER_CITIES"))
 			{
-				if (bIgnoreLoad || !isHuman() || plot()->isWater() || !canLoad(pPlot))
+				//if (bIgnoreLoad || !isHuman() || plot()->isWater() || !canLoad(pPlot))
+				if (bIgnoreLoad || plot()->isWater() || !canLoad(pPlot)) // K-Mod. (AI might want to load into a boat on the coast)
 				{
 					return false;
 				}
@@ -7841,6 +7842,13 @@ int CvUnit::workRate(bool bMax) const
 	return iRate;
 }
 
+
+// BUG - Female Great People - start
+bool CvUnit::isFemale() const
+{
+	return m_pUnitInfo->isFemale();
+}
+// BUG - Female Great People - end
 
 bool CvUnit::isAnimal() const
 {
