@@ -1321,10 +1321,10 @@ bool CvUnitAI::AI_considerPathDOW(CvPlot* pPlot, int iFlags)
 	FAStarNode* pNode = getPathLastNode();
 	while (!bDOW && pNode)
 	{
-		if (pNode->m_iData2 <= 1) // only consider DOW for moves in this turn.
-		{
-			bDOW = AI_considerDOW(GC.getMapINLINE().plotSorenINLINE(pNode->m_iX, pNode->m_iY));
-		}
+		// we need to check DOW even for moves several turns away - otherwise the actual move mission may fail to find a path.
+		// however, I would consider it irresponsible to call this function for multi-move missions.
+		FAssert(pNode->m_iData2 <= 1);
+		bDOW = AI_considerDOW(GC.getMapINLINE().plotSorenINLINE(pNode->m_iX, pNode->m_iY));
 		pNode = pNode->m_pParent;
 	}
 
@@ -3788,7 +3788,7 @@ void CvUnitAI::AI_collateralMove()
 	// K-Mod end
 
 	//if (AI_protect(50))
-	if (AI_defendTeritory(50, 0, 6)) // K-Mod
+	if (AI_defendTeritory(55, 0, 6)) // K-Mod
 	{
 		return;
 	}
@@ -7557,7 +7557,17 @@ void CvUnitAI::AI_assaultSeaMove()
 			// split out galleys from stack of ocean capable ships
 			if( kOwner.AI_unitImpassableCount(getUnitType()) == 0 && getGroup()->getNumUnits() > 1 )
 			{
-				getGroup()->AI_separateImpassable();
+				//getGroup()->AI_separateImpassable();
+				// K-Mod
+				if (getGroup()->AI_separateImpassable())
+				{
+					// recalculate cached variables.
+					bEmpty = !getGroup()->hasCargo();
+					bFull = getGroup()->getCargo() > 0 && getGroup()->AI_isFull();
+					iCargo = getGroup()->getCargo();
+					iEscorts = getGroup()->countNumUnitAIType(UNITAI_ESCORT_SEA) + getGroup()->countNumUnitAIType(UNITAI_ATTACK_SEA);
+				}
+				// K-Mod end
 			}
 
 			// galleys with upgrade available should get that ASAP
@@ -16078,21 +16088,21 @@ bool CvUnitAI::AI_defendTeritory(int iThreshold, int iFlags, int iMaxPathTurns, 
 					int iOdds = AI_getWeightedOdds(pLoopPlot);
 					int iValue = iOdds;
 
-					if (iOdds > 0 && iOdds < 100)
+					if (iOdds > 0 && iOdds < 100 && iThreshold > 0)
 					{
 						int iOurAttack = kOwner.AI_localAttackStrength(pLoopPlot, getTeam(), getDomainType(), 2, true, true, true);
 						int iEnemyDefence = kOwner.AI_localDefenceStrength(pLoopPlot, NO_TEAM, getDomainType(), 0);
 
 						if (iOurAttack > iEnemyDefence && iEnemyDefence > 0)
 						{
-							int iBonus = 100 - iOdds;
+							/*int iBonus = 100 - iOdds;
 							iBonus -= iBonus * 4*iBonus / (4*iBonus + 100*(iOurAttack-iEnemyDefence)/iEnemyDefence);
-							// That looks overly complex, doesn't it? I hope it works...
-							// The goal is for odds+bonus to rise quickly to around 50% when we are stronger, and then grow slowly from there.
+
 							FAssert(iBonus >= 0);
 							FAssert(iBonus <= 100 - iOdds);
 
-							iValue += iBonus;
+							iValue += iBonus;*/
+							iValue += 100 * (iOdds+10) * (iOurAttack-iEnemyDefence)/((iThreshold+100) * iEnemyDefence);
 						}
 					}
 
@@ -17832,7 +17842,8 @@ bool CvUnitAI::AI_assaultSeaReinforce(bool bAttackBarbs)
 								if (iValue > iBestValue)
 								{
 									iBestValue = iValue;
-									pBestPlot = (bCityDanger ? getPathEndTurnPlot() : pLoopCity->plot());
+									//pBestPlot = (bCityDanger ? getPathEndTurnPlot() : pLoopCity->plot());
+									pBestPlot = getPathEndTurnPlot(); // K-Mod (why did they have that other stuff?)
 									pBestAssaultPlot = pLoopCity->plot();
 								}
 							}
@@ -21072,7 +21083,7 @@ bool CvUnitAI::AI_pickupStranded(UnitAITypes eUnitAI, int iMaxPath)
 				{
 					CvPlot* pAdjacentPlot = plotDirection(pPickupPlot->getX_INLINE(), pPickupPlot->getY_INLINE(), ((DirectionTypes)iI));
 
-					if (pAdjacentPlot && generatePath(pAdjacentPlot, 0, true, &iPathTurns, iMaxPath))
+					if (pAdjacentPlot && canMoveInto(pAdjacentPlot) && generatePath(pAdjacentPlot, 0, true, &iPathTurns, iMaxPath))
 					{
 						pTargetPlot = getPathEndTurnPlot();
 						break;

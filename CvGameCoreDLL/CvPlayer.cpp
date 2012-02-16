@@ -1435,7 +1435,8 @@ void CvPlayer::changeCiv( CivilizationTypes eNewCiv )
 		// dirty all of this player's cities...
 		for (pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
 		{
-			if (pLoopCity->getOwnerINLINE() == getID())
+			//if (pLoopCity->getOwnerINLINE() == getID())
+			FAssert(pLoopCity->getOwnerINLINE() == getID()); // K-Mod
 			{
 				pLoopCity->setLayoutDirty(true);
 			}
@@ -2577,11 +2578,23 @@ void CvPlayer::acquireCity(CvCity* pOldCity, bool bConquest, bool bTrade, bool b
 				}
 				else
 				{
+					/* original bts code
 					pNewCity->chooseProduction();
-					CvEventReporter::getInstance().cityAcquiredAndKept(getID(), pNewCity);
+					CvEventReporter::getInstance().cityAcquiredAndKept(getID(), pNewCity); */
+					lResult = 0; // K-Mod. (signal that we cannot raze the city.)
 				}
 			}
 		}
+		// K-Mod. properly handle the case where python says we can't raze the city
+		// (note. this isn't in an 'else' because I overwrite lResult in the case above.)
+		if (lResult == 0)
+		{
+			CvEventReporter::getInstance().cityAcquiredAndKept(getID(), pNewCity);
+
+			if (isHuman())
+				pNewCity->chooseProduction();
+		}
+		// K-Mod end
 	}
 	else if (!bTrade)
 	{
@@ -8955,6 +8968,12 @@ void CvPlayer::changeGoldenAgeTurns(int iChange)
 			if (isGoldenAge())
 			{
 				changeAnarchyTurns(-getAnarchyTurns());
+				// K-Mod. Allow the AI to reconsider their civics. (a golden age is a good time for reform!)
+				if (!isHuman() && getMaxAnarchyTurns() != 0 && getAnarchyModifier() + 100 > 0)
+				{
+					GET_PLAYER(getID()).AI_setCivicTimer(0); // silly, I know. But what else can I do?
+				}
+				// K-Mod end
 			}
 
 			updateYield();
@@ -9069,6 +9088,19 @@ void CvPlayer::changeAnarchyTurns(int iChange)
 			else
 			{
 				gDLL->getInterfaceIFace()->addHumanMessage(getID(), false, GC.getEVENT_MESSAGE_TIME(), gDLL->getText("TXT_KEY_MISC_REVOLUTION_OVER").GetCString(), "AS2D_REVOLTEND", MESSAGE_TYPE_MINOR_EVENT, NULL, (ColorTypes)GC.getInfoTypeForString("COLOR_WARNING_TEXT"));
+				// K-Mod. trigger production popups that have been suppressed.
+				if (isHuman())
+				{
+					int iLoop;
+					for (CvCity* pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
+					{
+						if (pLoopCity->AI_isChooseProductionDirty() && !pLoopCity->isProduction() && !pLoopCity->isDisorder() && !pLoopCity->isProductionAutomated())
+						{
+							pLoopCity->chooseProduction();
+						}
+					}
+				}
+				// K-Mod end
 			}
 
 			if (getID() == GC.getGameINLINE().getActivePlayer())
@@ -11462,7 +11494,8 @@ void CvPlayer::setCurrentEra(EraTypes eNewValue)
 		// dirty all of this player's cities...
 		for (pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
 		{
-			if (pLoopCity->getOwnerINLINE() == getID())
+			//if (pLoopCity->getOwnerINLINE() == getID())
+			FAssert(pLoopCity->getOwnerINLINE() == getID()); // K-Mod
 			{
 				pLoopCity->setLayoutDirty(true);
 			}
@@ -15016,7 +15049,10 @@ bool CvPlayer::doEspionageMission(EspionageMissionTypes eMission, PlayerTypes eT
 
 				bSomethingHappened = true;
 				bShowExplosion = true;
-				pCity->AI_setChooseProductionDirty(true); // K-Mod
+				// K-Mod
+				if (!isHuman())
+					pCity->AI_setChooseProductionDirty(true);
+				// K-Mod end
 			}
 		}
 	}
@@ -15059,7 +15095,10 @@ bool CvPlayer::doEspionageMission(EspionageMissionTypes eMission, PlayerTypes eT
 
 				bSomethingHappened = true;
 				bShowExplosion = true;
-				pCity->AI_setChooseProductionDirty(true); // K-Mod
+				// K-Mod
+				if (!isHuman())
+					pCity->AI_setChooseProductionDirty(true);
+				// K-Mod end
 			}
 		}
 	}
