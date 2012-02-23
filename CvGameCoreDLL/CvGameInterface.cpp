@@ -470,6 +470,7 @@ void CvGame::updateSelectionList()
 void CvGame::updateTestEndTurn()
 {
 	bool bAny;
+	bool bShift = GC.shiftKey() || (GetKeyState(VK_SHIFT) & 0x8000); // K-Mod.
 
 	bAny = ((gDLL->getInterfaceIFace()->getHeadSelectedUnit() != NULL) && !(GET_PLAYER(getActivePlayer()).isOption(PLAYEROPTION_NO_UNIT_CYCLING)));
 
@@ -488,14 +489,14 @@ void CvGame::updateTestEndTurn()
 			{
 				if (!(gDLL->getInterfaceIFace()->isForcePopup()))
 				{
-					if (!gDLL->shiftKey()) // K-Mod
+					if (!bShift) // K-Mod
 						gDLL->getInterfaceIFace()->setForcePopup(true);
 				}
 				else
 				{
 					if (GET_PLAYER(getActivePlayer()).hasAutoUnit())
 					{
-						if (!(gDLL->shiftKey()))
+						if (!(GC.shiftKey()))
 						{
 							CvMessageControl::getInstance().sendAutoMoves();
 						}
@@ -1140,7 +1141,8 @@ void CvGame::selectedCitiesGameNetMessage(int eMessage, int iData2, int iData3, 
 					break;
 
 				case GAMEMESSAGE_POP_ORDER:
-					if (pSelectedCity->getOrderQueueLength() > 1)
+					//if (pSelectedCity->getOrderQueueLength() > 1)
+					if (pSelectedCity->getOrderQueueLength() > 1 || pSelectedCity->isProductionAutomated()) // K-Mod. (automated cities will choose their production at the end of the turn)
 					{
 						CvMessageControl::getInstance().sendPopOrder(pSelectedCity->getID(), iData2);
 					}
@@ -1167,7 +1169,7 @@ bool CvGame::canHandleAction(int iAction, CvPlot* pPlot, bool bTestVisible, bool
 	CvSelectionGroup* pSelectedGroup;
 	CvUnit* pHeadSelectedUnit;
 	CvPlot* pMissionPlot;
-	bool bShift = gDLL->shiftKey();
+	bool bShift = GC.shiftKey();
 
 	if(GC.getUSE_CANNOT_HANDLE_ACTION_CALLBACK())
 	{
@@ -1275,8 +1277,8 @@ void CvGame::handleAction(int iAction)
 	bool bShift;
 	bool bSkip;
 
-	bAlt = gDLL->altKey();
-	bShift = gDLL->shiftKey();
+	bAlt = GC.altKey();
+	bShift = GC.shiftKey();
 
 	if (!(gDLL->getInterfaceIFace()->canHandleAction(iAction)))
 	{

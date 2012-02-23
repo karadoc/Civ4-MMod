@@ -270,25 +270,29 @@ bool CvSelectionGroupAI::AI_update()
 			if (!m_bGroupAttack)
 			{
 				pEntityNode = headUnitNode();
-				bool bFirst = true; // K-Mod
+				// K-Mod note: I've rearranged a few things below, and added 'bFirst'.
+				bool bFirst = true;
 
 				while ((pEntityNode != NULL) && readyToMove(true))
 				{
 					pLoopUnit = ::getUnit(pEntityNode->m_data);
 					pEntityNode = nextUnitNode(pEntityNode);
 
-					if (pLoopUnit->canMove())
-					{
+					if (bFirst)
 						resetPath();
 
+					if (pLoopUnit->canMove())
+					{
 						if (pLoopUnit->AI_follow(bFirst))
 						{
 							bFollow = true;
-							break;
+							bFirst = true; // let the next unit start fresh.
 						}
+						else
+							bFirst = false;
 					}
-					bFirst = false; // K-Mod
 				}
+				// K-Mod end
 			}
 
 			if (doDelayedDeath())
@@ -565,6 +569,7 @@ int CvSelectionGroupAI::AI_sumStrength(const CvPlot* pAttackedPlot, DomainTypes 
 	CLLNode<IDInfo>* pUnitNode;
 	CvUnit* pLoopUnit;
 	int	strSum = 0;
+	bool bDefenders = pAttackedPlot ? pAttackedPlot->isVisibleEnemyUnit(getOwnerINLINE()) : false; // K-Mod
 	bool bCountCollateral = pAttackedPlot && pAttackedPlot != plot(); // K-Mod
 
 	pUnitNode = headUnitNode();
@@ -585,13 +590,13 @@ int CvSelectionGroupAI::AI_sumStrength(const CvPlot* pAttackedPlot, DomainTypes 
 			{
 				if (pLoopUnit->getDomainType() == DOMAIN_AIR)
 				{
-					if (!pLoopUnit->canAirAttack() || !pLoopUnit->canMove() || (pAttackedPlot && !pLoopUnit->canMoveInto(pAttackedPlot, true, true)))
+					if (!pLoopUnit->canAirAttack() || !pLoopUnit->canMove() || (pAttackedPlot && bDefenders && !pLoopUnit->canMoveInto(pAttackedPlot, true, true)))
 						continue; // can't attack.
 				}
 				else
 				{
 					if (!pLoopUnit->canAttack() || !pLoopUnit->canMove()
-						|| (pAttackedPlot && !pLoopUnit->canMoveInto(pAttackedPlot, true, true))
+						|| (pAttackedPlot && bDefenders && !pLoopUnit->canMoveInto(pAttackedPlot, true, true))
 						|| (!pLoopUnit->isBlitz() && pLoopUnit->isMadeAttack()))
 						continue; // can't attack.
 				}

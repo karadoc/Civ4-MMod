@@ -1122,7 +1122,16 @@ void CvGame::normalizeAddRiver()
 					// if we will be able to add a lake, then use old river code
 					if (normalizeFindLakePlot((PlayerTypes)iI) != NULL)
 					{
-						CvMapGenerator::GetInstance().doRiver(pStartingPlot);
+						//CvMapGenerator::GetInstance().doRiver(pStartingPlot);
+						// K-Mod. If we can have a lake then we don't always need a river.
+						// Also, the river shouldn't always start on the SE corner of our site.
+						if (getSorenRandNum(10, "normalize add river") < (pStartingPlot->isCoastalLand() ? 5 : 7))
+						{
+							CvPlot* pRiverPlot = pStartingPlot->getInlandCorner();
+							if (pRiverPlot)
+								CvMapGenerator::GetInstance().doRiver(pRiverPlot);
+						}
+						// K-Mod end.
 					}
 					// otherwise, use new river code which is much more likely to succeed
 					else
@@ -1226,9 +1235,14 @@ CvPlot* CvGame::normalizeFindLakePlot(PlayerTypes ePlayer)
 	{
 		if (!(pStartingPlot->isFreshWater()))
 		{
+			// K-Mod. Shuffle the order that plots are checked.
+			int aiShuffle[NUM_CITY_PLOTS];
+			shuffleArray(aiShuffle, NUM_CITY_PLOTS, getMapRand());
+			// K-Mod end
 			for (int iJ = 0; iJ < NUM_CITY_PLOTS; iJ++)
 			{
-				CvPlot* pLoopPlot = plotCity(pStartingPlot->getX_INLINE(), pStartingPlot->getY_INLINE(), iJ);
+				//CvPlot* pLoopPlot = plotCity(pStartingPlot->getX_INLINE(), pStartingPlot->getY_INLINE(), iJ);
+				CvPlot* pLoopPlot = plotCity(pStartingPlot->getX_INLINE(), pStartingPlot->getY_INLINE(), aiShuffle[iJ]); // K-Mod
 
 				if (pLoopPlot != NULL)
 				{
@@ -1469,7 +1483,13 @@ void CvGame::normalizeAddFoodBonuses()
 									}
 									else
 									{
-										iFoodBonus += 3;
+										//iFoodBonus += 3;
+										// K-Mod. Bonus which only give 3 food with their improvement should not be worth 3 points. (ie. plains-cow should not be the only food resource.)
+										if (pLoopPlot->calculateMaxYield(YIELD_FOOD) >= 2*GC.getFOOD_CONSUMPTION_PER_POPULATION()) // ie. >= 4
+											iFoodBonus += 3;
+										else
+											iFoodBonus += 2;
+										// K-Mod end
 									}
 								}
 							}
@@ -1489,7 +1509,8 @@ void CvGame::normalizeAddFoodBonuses()
 				}
 				
 				int iTargetFoodBonusCount = 3;
-				iTargetFoodBonusCount += (iGoodNatureTileCount == 0) ? 2 : 0;
+				//iTargetFoodBonusCount += (iGoodNatureTileCount == 0) ? 2 : 0;
+				iTargetFoodBonusCount += std::max(0, 2-iGoodNatureTileCount); // K-Mod
 
 				for (int iJ = 0; iJ < NUM_CITY_PLOTS; iJ++)
 				{

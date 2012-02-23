@@ -1411,11 +1411,13 @@ void CvUnitAI::AI_settleMove()
 			{
 				return;
 			}
+			/* original bts code
 			if (AI_safety())
 			{
 				return;
 			}
-			getGroup()->pushMission(MISSION_SKIP);
+			getGroup()->pushMission(MISSION_SKIP); */
+			// fallthrough. There might be something useful we can do. eg. AI_handleStranded!
 		}
 	}
 
@@ -2943,6 +2945,13 @@ void CvUnitAI::AI_attackCityMove()
 
 	// K-Mod. Try to be consistent in our usage of move flags, so that we don't cause unnecessary pathfinder resets.
 	int iMoveFlags = MOVE_AVOID_ENEMY_WEIGHT_2 | (bReadyToAttack ? MOVE_ATTACK_STACK | MOVE_DECLARE_WAR : 0);
+
+	// Barbarian stacks should be reckless and unpredictable.
+	if (isBarbarian())
+	{
+		int iThreshold = GC.getGameINLINE().getSorenRandNum(150, "barb attackCity stackVsStack threshold") + 20;
+		AI_stackVsStack(1, iThreshold, 0, iMoveFlags);
+	}
 	// K-Mod end
 
 	if (AI_guardCity(false, false, MAX_INT, iMoveFlags))
@@ -3470,7 +3479,7 @@ void CvUnitAI::AI_attackCityMove()
 			int iPathTurns;
 			if (!generatePath(pTargetCity->plot(), iMoveFlags, true, &iPathTurns))
 			{
-				FAssertMsg(false, "failed to find path to target city.");
+				//FAssertMsg(false, "failed to find path to target city."); // AI_pickTargetCity now allows boat-only paths, so this assertion no longer holds.
 				iPathTurns = 100;
 			}
 			if (!pTargetCity->isBarbarian() || iPathTurns < (bAnyWarPlan ? 7 : 12)) // don't bother with long-distance barb attacks
@@ -10962,21 +10971,18 @@ bool CvUnitAI::AI_omniGroup(UnitAITypes eUnitAI, int iMaxGroup, int iMaxOwnUnitA
 							int iPathTurns = 0;
 							if (atPlot(pPlot) || generatePath(pPlot, iFlags, true, &iPathTurns, iMaxPath))
 							{
-								if (iMaxPath < 0 || iPathTurns <= iMaxPath)
-								{
-									int iCost = 100 * (iPathTurns * iPathTurns + 1);
-									iCost *= 4 + pLoopGroup->getCargo();
-									iCost /= 2 + pLoopGroup->getNumUnits();
-									/*int iSizeMod = 10*std::max(getGroup()->getNumUnits(), pLoopGroup->getNumUnits());
-									iSizeMod /= std::min(getGroup()->getNumUnits(), pLoopGroup->getNumUnits());
-									iCost *= iSizeMod * iSizeMod;
-									iCost /= 1000; */
+								int iCost = 100 * (iPathTurns * iPathTurns + 1);
+								iCost *= 4 + pLoopGroup->getCargo();
+								iCost /= 2 + pLoopGroup->getNumUnits();
+								/*int iSizeMod = 10*std::max(getGroup()->getNumUnits(), pLoopGroup->getNumUnits());
+								iSizeMod /= std::min(getGroup()->getNumUnits(), pLoopGroup->getNumUnits());
+								iCost *= iSizeMod * iSizeMod;
+								iCost /= 1000; */
 
-									if (iCost < iBestValue)
-									{
-										iBestValue = iCost;
-										pBestUnit = pLoopUnit;
-									}
+								if (iCost < iBestValue)
+								{
+									iBestValue = iCost;
+									pBestUnit = pLoopUnit;
 								}
 							}
 						}
@@ -15658,6 +15664,7 @@ bool CvUnitAI::AI_bombardCity()
 }
 
 // Returns true if a mission was pushed...
+// This function has been been heavily edited for K-Mod.
 bool CvUnitAI::AI_cityAttack(int iRange, int iOddsThreshold, int iFlags, bool bFollow)
 {
 	PROFILE_FUNC();
@@ -15665,6 +15672,7 @@ bool CvUnitAI::AI_cityAttack(int iRange, int iOddsThreshold, int iFlags, bool bF
 	FAssert(canMove());
 
 	int iSearchRange = bFollow ? 1 : AI_searchRange(iRange);
+	bool bDeclareWar = iFlags & MOVE_DECLARE_WAR;
 
 	int iBestValue = 0;
 	CvPlot* pBestPlot = NULL;
@@ -15679,26 +15687,20 @@ bool CvUnitAI::AI_cityAttack(int iRange, int iOddsThreshold, int iFlags, bool bF
 			{
 				if (AI_plotValid(pLoopPlot))
 				{
-					//if (pLoopPlot->isCity() || (pLoopPlot->isCity(true, getTeam()) && pLoopPlot->isVisibleEnemyUnit(this)))
-					if (pLoopPlot->isCity()) // K-Mod.
+					if (pLoopPlot->isCity() && (bDeclareWar ? AI_potentialEnemy(pLoopPlot->getTeam(), pLoopPlot) : isEnemy(pLoopPlot->getTeam(), pLoopPlot)))
 					{
-						if (AI_potentialEnemy(pLoopPlot->getTeam(), pLoopPlot))
+						int iPathTurns;
+						if (!atPlot(pLoopPlot) && (bFollow ? canMoveOrAttackInto(pLoopPlot, bDeclareWar) : generatePath(pLoopPlot, iFlags, true, &iPathTurns, iRange)))
 						{
-							int iPathTurns;
-							if (!atPlot(pLoopPlot) && (bFollow ? canMoveInto(pLoopPlot, true) : generatePath(pLoopPlot, iFlags, true, &iPathTurns, iRange)))
-							{
-								//iValue = getGroup()->AI_attackOdds(pLoopPlot, true);
-								int iValue = AI_getWeightedOdds(pLoopPlot, true); // K-Mod
+							int iValue = pLoopPlot->getNumVisiblePotentialEnemyDefenders(this) == 0 ? 100 : AI_getWeightedOdds(pLoopPlot, true);
 
-								//if (iValue >= AI_finalOddsThreshold(pLoopPlot, iOddsThreshold))
-								if (iValue >= iOddsThreshold) // K-Mod
+							if (iValue >= iOddsThreshold)
+							{
+								if (iValue > iBestValue)
 								{
-									if (iValue > iBestValue)
-									{
-										iBestValue = iValue;
-										pBestPlot = ((bFollow) ? pLoopPlot : getPathEndTurnPlot());
-										FAssert(!atPlot(pBestPlot));
-									}
+									iBestValue = iValue;
+									pBestPlot = ((bFollow) ? pLoopPlot : getPathEndTurnPlot());
+									FAssert(!atPlot(pBestPlot));
 								}
 							}
 						}
@@ -15711,7 +15713,7 @@ bool CvUnitAI::AI_cityAttack(int iRange, int iOddsThreshold, int iFlags, bool bF
 	if (pBestPlot != NULL)
 	{
 		FAssert(!atPlot(pBestPlot));
-		// K-Mod. (Note. we probably don't really want to declare war here, but that's just the way it works currently.)
+		// K-Mod
 		if (AI_considerPathDOW(pBestPlot, iFlags))
 		{
 			// after DOW, we might not be able to get to our target this turn... but try anyway.
@@ -15720,6 +15722,13 @@ bool CvUnitAI::AI_cityAttack(int iRange, int iOddsThreshold, int iFlags, bool bF
 			if (bFollow && pBestPlot != getPathEndTurnPlot())
 				return false;
 			pBestPlot = getPathEndTurnPlot();
+		}
+		if (bFollow && pBestPlot->getNumVisiblePotentialEnemyDefenders(this) == 0)
+		{
+			FAssert(pBestPlot->getPlotCity() != 0);
+			// we need to ungroup this unit so that we can move into the city.
+			joinGroup(0);
+			bFollow = false;
 		}
 		// K-Mod end
 		getGroup()->pushMission(MISSION_MOVE_TO, pBestPlot->getX_INLINE(), pBestPlot->getY_INLINE(), iFlags | (bFollow ? MOVE_DIRECT_ATTACK | MOVE_SINGLE_ATTACK : 0));
@@ -15730,6 +15739,7 @@ bool CvUnitAI::AI_cityAttack(int iRange, int iOddsThreshold, int iFlags, bool bF
 }
 
 // Returns true if a mission was pushed...
+// This function has been been heavily edited for K-Mod. (it started getting messy, so I deleted most of the old code)
 bool CvUnitAI::AI_anyAttack(int iRange, int iOddsThreshold, int iFlags, int iMinStack, bool bAllowCities, bool bFollow)
 {
 	PROFILE_FUNC();
@@ -15742,8 +15752,8 @@ bool CvUnitAI::AI_anyAttack(int iRange, int iOddsThreshold, int iFlags, int iMin
 	}
 
 	int iSearchRange = bFollow ? 1 : AI_searchRange(iRange);
+	bool bDeclareWar = iFlags & MOVE_DECLARE_WAR;
 
-	//int iBestValue = 0;
 	CvPlot* pBestPlot = NULL;
 
 	for (int iDX = -iSearchRange; iDX <= iSearchRange; iDX++)
@@ -15758,34 +15768,20 @@ bool CvUnitAI::AI_anyAttack(int iRange, int iOddsThreshold, int iFlags, int iMin
 				{
 					if( (bAllowCities) || !(pLoopPlot->isCity(false)) )
 					{
-						//if (pLoopPlot->isVisibleEnemyUnit(this) || (pLoopPlot->isCity() && AI_potentialEnemy(pLoopPlot->getTeam())))
-						if (pLoopPlot->isVisibleEnemyUnit(this) || (pLoopPlot->isCity() && isEnemy(pLoopPlot->getPlotCity()->getTeam()))) // K-Mod
-						{
-							if (pLoopPlot->getNumVisibleEnemyDefenders(this) >= iMinStack)
-							{
-								//if (!atPlot(pLoopPlot) && ((bFollow) ? canMoveInto(pLoopPlot, true) : (generatePath(pLoopPlot, 0, true, &iPathTurns) && (iPathTurns <= iRange))))
-								if (!atPlot(pLoopPlot) && canMoveInto(pLoopPlot, true) && (bFollow ? true : generatePath(pLoopPlot, iFlags, true, 0, iRange))) // K-Mod
-								{
-									/* original bts code
-									iValue = getGroup()->AI_attackOdds(pLoopPlot, true);
+						int iEnemies = bDeclareWar
+							? pLoopPlot->getNumVisiblePotentialEnemyDefenders(this)
+							: pLoopPlot->getNumVisibleEnemyDefenders(this);
 
-									if (iValue >= AI_finalOddsThreshold(pLoopPlot, iOddsThreshold))
-									{
-										if (iValue > iBestValue)
-										{
-											iBestValue = iValue;
-											pBestPlot = ((bFollow) ? pLoopPlot : getPathEndTurnPlot());
-											FAssert(!atPlot(pBestPlot));
-										}
-									}*/
-									// K-Mod
-									int iOdds = AI_getWeightedOdds(pLoopPlot, false);
-									if (iOdds >= iOddsThreshold)
-									{
-										iOddsThreshold = iOdds;
-										pBestPlot = bFollow ? pLoopPlot : getPathEndTurnPlot();
-									}
-									// K-Mod end
+						if ((iEnemies > 0 && iEnemies >= iMinStack) ||
+							(pLoopPlot->isCity() && (bDeclareWar ? AI_potentialEnemy(pLoopPlot->getPlotCity()->getTeam(), pLoopPlot) : isEnemy(pLoopPlot->getPlotCity()->getTeam()))))
+						{
+							if (!atPlot(pLoopPlot) && (bFollow ? canMoveOrAttackInto(pLoopPlot, bDeclareWar) : generatePath(pLoopPlot, iFlags, true, 0, iRange)))
+							{
+								int iOdds = iEnemies == 0 ? 100 : AI_getWeightedOdds(pLoopPlot, false);
+								if (iOdds >= iOddsThreshold)
+								{
+									iOddsThreshold = iOdds;
+									pBestPlot = bFollow ? pLoopPlot : getPathEndTurnPlot();
 								}
 							}
 						}
@@ -15798,7 +15794,24 @@ bool CvUnitAI::AI_anyAttack(int iRange, int iOddsThreshold, int iFlags, int iMin
 	if (pBestPlot != NULL)
 	{
 		FAssert(!atPlot(pBestPlot));
-		// K-Mod note: no AI_considerDOW here.
+		// K-Mod
+		if (AI_considerPathDOW(pBestPlot, iFlags))
+		{
+			// after DOW, we might not be able to get to our target this turn... but try anyway.
+			if (!generatePath(pBestPlot, iFlags))
+				return false;
+			if (bFollow && pBestPlot != getPathEndTurnPlot())
+				return false;
+			pBestPlot = getPathEndTurnPlot();
+		}
+		if (bFollow && pBestPlot->getNumVisiblePotentialEnemyDefenders(this) == 0)
+		{
+			FAssert(pBestPlot->getPlotCity() != 0);
+			// we need to ungroup this unit so that we can move into the city.
+			joinGroup(0);
+			bFollow = false;
+		}
+		// K-Mod end
 		getGroup()->pushMission(MISSION_MOVE_TO, pBestPlot->getX_INLINE(), pBestPlot->getY_INLINE(), iFlags | (bFollow ? MOVE_DIRECT_ATTACK | MOVE_SINGLE_ATTACK : 0));
 		return true;
 	}
@@ -16070,7 +16083,14 @@ bool CvUnitAI::AI_defendTeritory(int iThreshold, int iFlags, int iMaxPathTurns, 
 	int i = 0;
 	int iRange = bLocal ? AI_searchRange(iMaxPathTurns) : 0;
 	int iPlots = bLocal ? (2*iRange+1)*(2*iRange+1) : GC.getMapINLINE().numPlotsINLINE();
-	FAssert(!bLocal || (iRange > 0 && iRange < 20)); // nothing wrong with being above 20. I just don't expect it...
+	if (bLocal && iPlots >= GC.getMapINLINE().numPlotsINLINE())
+	{
+		bLocal = false;
+		iRange = 0;
+		iPlots = GC.getMapINLINE().numPlotsINLINE();
+		// otherwise it's just silly.
+	}
+	FAssert(!bLocal || (iRange > 0 && iRange < 30)); // nothing wrong with being above 30. I just don't expect it...
 	while (i < iPlots)
 	{
 		CvPlot* pLoopPlot = bLocal
@@ -21083,7 +21103,7 @@ bool CvUnitAI::AI_pickupStranded(UnitAITypes eUnitAI, int iMaxPath)
 				{
 					CvPlot* pAdjacentPlot = plotDirection(pPickupPlot->getX_INLINE(), pPickupPlot->getY_INLINE(), ((DirectionTypes)iI));
 
-					if (pAdjacentPlot && canMoveInto(pAdjacentPlot) && generatePath(pAdjacentPlot, 0, true, &iPathTurns, iMaxPath))
+					if (pAdjacentPlot && !pAdjacentPlot->isVisibleEnemyUnit(this) && generatePath(pAdjacentPlot, 0, true, &iPathTurns, iMaxPath))
 					{
 						pTargetPlot = getPathEndTurnPlot();
 						break;

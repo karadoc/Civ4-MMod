@@ -1166,14 +1166,13 @@ void CvPlayerAI::AI_updateAreaTargets()
 
 
 // Returns priority for unit movement (lower values move first...)
-// Note: the priorities have been edited by bbai and then by K-Mod.
+// This function has been heavily edited for K-Mod
 int CvPlayerAI::AI_movementPriority(CvSelectionGroup* pGroup) const
 {
-	// K-Mod. If the group is trying to do a stack attack, let it go first!
+	// If the group is trying to do a stack attack, let it go first!
 	// (this is required for amphibious assults; during which a low priority group can be ordered to attack before its turn.)
 	if (pGroup->AI_isGroupAttack())
 		return -1;
-	// K-Mod end
 
 	const CvUnit* pHeadUnit = pGroup->getHeadUnit();
 
@@ -1185,65 +1184,58 @@ int CvPlayerAI::AI_movementPriority(CvSelectionGroup* pGroup) const
 		return 0;
 	}
 
-	/*if (pHeadUnit->hasCargo())
-	{
-		if (pHeadUnit->specialCargo() == NO_SPECIALUNIT)
-		{
-			return 1;
-		}
-		else
-		{
-			return 2;
-		}
-	}*/
-
-	// Make fighters move before bombers, they are better at clearing out air defenses
-	if (pHeadUnit->getDomainType() == DOMAIN_AIR)
-	{
-		if( pHeadUnit->canAirDefend() )
-		{
-			return 3;
-		}
-		else
-		{
-			return 4;
-		}
-	}
-
-	if ((pHeadUnit->AI_getUnitAIType() == UNITAI_WORKER) || (pHeadUnit->AI_getUnitAIType() == UNITAI_WORKER_SEA))
-	{
-		return 5;
-	}
-
-	if ((pHeadUnit->AI_getUnitAIType() == UNITAI_EXPLORE) || (pHeadUnit->AI_getUnitAIType() == UNITAI_EXPLORE_SEA))
-	{
-		return 6;
-	}
-
-	if (pHeadUnit->bombardRate() > 0)
-	{
-		return 7;
-	}
-
-	if (pHeadUnit->collateralDamage() > 0)
-	{
-		return 8;
-	}
-
 	if (pHeadUnit->getDomainType() != DOMAIN_LAND)
 	{
+		if (pHeadUnit->bombardRate() > 0)
+			return 1;
+
 		if (pHeadUnit->hasCargo())
-			return 9;
+		{
+			if (pHeadUnit->specialCargo() != NO_SPECIALUNIT)
+				return 2;
+			else
+				return 3;
+		}
+
+		if (pHeadUnit->getDomainType() == DOMAIN_AIR)
+		{
+			if (pHeadUnit->canAirDefend() || pHeadUnit->evasionProbability() > 10)
+				return 4;
+			else
+				return 5;
+		}
+
+		if (pHeadUnit->canFight())
+		{
+			if (pHeadUnit->collateralDamage() > 0)
+				return 6;
+			else
+				return 7;
+		}
 		else
-			return 10;
+			return 8;
 	}
+
+	FAssert(pHeadUnit->getDomainType() == DOMAIN_LAND);
+
+	if (pHeadUnit->AI_getUnitAIType() == UNITAI_WORKER)
+		return 9;
+
+	if (pHeadUnit->AI_getUnitAIType() == UNITAI_EXPLORE)
+		return 10;
+
+	if (pHeadUnit->bombardRate() > 0)
+		return 11;
+
+	if (pHeadUnit->collateralDamage() > 0)
+		return 12;
 
 	if (pGroup->isStranded())
 		return 505;
 
 	if (pHeadUnit->canFight())
 	{
-		int iPriority = 60; // allow + or - 50
+		int iPriority = 65; // allow + or - 50
 
 		iPriority += (GC.getGameINLINE().getBestLandUnitCombat()*100 - pHeadUnit->currCombatStr(NULL, NULL) + 10) / 20; // note: currCombatStr has a factor of 100 built in.
 
@@ -1340,7 +1332,7 @@ int CvPlayerAI::AI_movementPriority(CvSelectionGroup* pGroup) const
 		}
 	*/
 
-	return 111;
+	return 200;
 }
 
 
@@ -1446,7 +1438,7 @@ void CvPlayerAI::AI_unitUpdate()
 			// K-Mod. It seems to me that all we're trying to do is run AI_update
 			// on the highest priority groups until one of them becomes busy.
 			// ... if only they had used the STL, this would be a lot easier.
-			bool bRepeat = false;
+			bool bRepeat = true;
 			do
 			{
 				std::vector<std::pair<int, int> > groupList;
@@ -1470,6 +1462,7 @@ void CvPlayerAI::AI_unitUpdate()
 					CvSelectionGroup* pLoopSelectionGroup = getSelectionGroup(groupList[i].second);
 					if (pLoopSelectionGroup && pLoopSelectionGroup->AI_update())
 					{
+						bRepeat = false;
 						break;
 					}
 				}
@@ -1477,7 +1470,7 @@ void CvPlayerAI::AI_unitUpdate()
 				// one last trick that might save us a bit of time...
 				// if the number of selection groups has increased, then lets try to take care of the new groups right away.
 				// (there might be a faster way to look for the new groups, but I don't know it.)
-				bRepeat = getNumSelectionGroups() > (int)groupList.size();
+				bRepeat = bRepeat && getNumSelectionGroups() > (int)groupList.size();
 				// the repeat will do a stack of redundant checks,
 				// but I still expect it to be much faster than waiting for the next turnslice.
 			} while (bRepeat);
@@ -3256,7 +3249,7 @@ short CvPlayerAI::AI_foundValueBulk(int iX, int iY, const CvFoundSettings& kSet)
 			{
 				//iTempValue += 10;
 				// K-Mod
-				iTempValue += (kSet.bFinancial ? 25 : 5);
+				iTempValue += (kSet.bFinancial || kSet.bStartingLoc) ? 25 : 5;
 				iTempValue += (pPlot->isRiver() ? 15 : 0);
 			}
 			// K-Mod
@@ -4333,9 +4326,9 @@ int CvPlayerAI::AI_getPlotDanger(CvPlot* pPlot, int iRange, bool bTestMoves) con
 	    {
             iCount += iBorderDanger;
 	    } */
-		// K-Mod. I don't want auto-workers on the frontline. So unless the plot is defended, count border danger for humans too.
+		// K-Mod. I don't want auto-workers on the frontline. So unless the plot is defended, or a water, count border danger for humans too.
 		// but on the other hand, I don't think two border tiles are really more dangerous than one border tile.
-		if (!isHuman() || pPlot->plotCount(PUF_canDefend, -1, -1, getID(), NO_TEAM) == 0)
+		if (!isHuman() || (!pPlot->isWater() && pPlot->plotCount(PUF_canDefend, -1, -1, getID(), NO_TEAM) == 0))
 			iCount++;
 		// K-Mod end
 	}
@@ -15083,7 +15076,7 @@ void CvPlayerAI::AI_doCommerce()
 					if (eWarPlan != WARPLAN_DOGPILE && AI_isDoStrategy(AI_STRATEGY_BIG_ESPIONAGE) && getCapitalCity())
 					{
 						CvCity* pTargetCity = getCapitalCity()->area()->getTargetCity(getID());
-						if (pTargetCity && pTargetCity->getTeam() == iTeam)
+						if (pTargetCity && pTargetCity->getTeam() == iTeam && pTargetCity->area()->getAreaAIType(getTeam()) != AREAAI_DEFENSIVE && pTargetCity->area()->getNumAIUnits(getID(), UNITAI_SPY) > 0)
 						{
 							iMissionCost = std::max(iMissionCost, getEspionageMissionCost(eCityRevoltMission, pTargetCity->getOwnerINLINE(), pTargetCity->plot()));
 							if (eWarPlan == WARPLAN_TOTAL || eWarPlan == WARPLAN_PREPARING_TOTAL)
@@ -15124,7 +15117,8 @@ void CvPlayerAI::AI_doCommerce()
 					}
 				}
 
-				iRateDivisor += 4*iAttitude/(5*iTargetTurns);
+				iRateDivisor += 4*std::max(-4, iAttitude)/(5*iTargetTurns);
+				iRateDivisor += AI_totalUnitAIs(UNITAI_SPY) == 0 ? 4 : 0;
 				aiWeight[iTeam] -= (iAttitude/3);
 				if (GET_TEAM(getTeam()).AI_hasCitiesInPrimaryArea((TeamTypes)iTeam))
 				{
@@ -15173,7 +15167,7 @@ void CvPlayerAI::AI_doCommerce()
 									{
 										if (canStealTech((PlayerTypes)iPlayer, (TechTypes)iT))
 										{
-											bValid = true;
+											bValid = iApproxTechCost > 0; // don't set it true unless there are at least 2 stealable techs.
 											// get a (very rough) approximation of how much it will cost to steal a tech.
 											iApproxTechCost = (GET_TEAM(getTeam()).getResearchCost((TechTypes)iT) + iApproxTechCost) / (iApproxTechCost != 0 ? 2 : 1);
 											break;
@@ -15199,8 +15193,8 @@ void CvPlayerAI::AI_doCommerce()
 					int iTheirTotal = std::max(4, kLoopTeam.getEspionagePointsEver());
 
 					iTheirEspPoints *= (3*iOurTotal + iTheirTotal);
-					iTheirEspPoints /= (2*iOurTotal + 3*iTheirTotal);
-					// That's a factor between 3/2 and 1/3, centered at 4/5
+					iTheirEspPoints /= (2*iOurTotal + 4*iTheirTotal);
+					// That's a factor between 3/2 and 1/4, centered at 4/6
 					iDesiredMissionPoints = std::max(iTheirEspPoints, iDesiredMissionPoints);
 				}
 
@@ -15223,7 +15217,7 @@ void CvPlayerAI::AI_doCommerce()
 				// This is the espionage cost modifier for stealing techs.
 
 				// lets say "cheap" means 80% of the research cost.
-				bCheapTechSteal = (8000 * AI_averageCommerceMultiplier(COMMERCE_ESPIONAGE) / std::max(1, iMinModifier) > AI_averageCommerceMultiplier(COMMERCE_RESEARCH)*calculateResearchModifier(getCurrentResearch()));
+				bCheapTechSteal = ((AI_isDoStrategy(AI_STRATEGY_ESPIONAGE_ECONOMY) ? 8500 : 8000) * AI_averageCommerceMultiplier(COMMERCE_ESPIONAGE) / std::max(1, iMinModifier) > AI_averageCommerceMultiplier(COMMERCE_RESEARCH)*calculateResearchModifier(getCurrentResearch()));
 				if (bCheapTechSteal)
 				{
 					aiTarget[eMinModTeam] += iApproxTechCost / 10;
@@ -15270,15 +15264,18 @@ void CvPlayerAI::AI_doCommerce()
 
 		//if economy is weak, neglect espionage spending.
 		//instead invest hammers into espionage via spies/builds
-		if (bFinancialTrouble || AI_isDoVictoryStrategy(AI_VICTORY_CULTURE3) || !bFirstTech) // K-Mod
+		if (bFinancialTrouble || AI_isDoVictoryStrategy(AI_VICTORY_CULTURE3) || bFirstTech) // K-Mod
 		{
 			//can still get trickle espionage income
 			iEspionageTargetRate = 0;
 		}
 		else
 		{
-			iEspionageTargetRate *= (110 - getCommercePercent(COMMERCE_GOLD) * 2);
-			iEspionageTargetRate /= 110;
+			if (!bCheapTechSteal) // K-Mod
+			{
+				iEspionageTargetRate *= (140 - getCommercePercent(COMMERCE_GOLD) * 2); // was 110 -
+				iEspionageTargetRate /= 140; // was 110
+			}
 
 			iEspionageTargetRate *= GC.getLeaderHeadInfo(getLeaderType()).getEspionageWeight();
 			iEspionageTargetRate /= 100;
@@ -15287,8 +15284,11 @@ void CvPlayerAI::AI_doCommerce()
 
 			//while (getCommerceRate(COMMERCE_ESPIONAGE) < iEspionageTargetRate && getCommercePercent(COMMERCE_ESPIONAGE) < 20)
 			// K-Mod
-			int iCap = (bCheapTechSteal? 60 :20);
-			iCap += AI_avoidScience() ? 40 : 0;
+			int iCap = AI_isDoStrategy(AI_STRATEGY_BIG_ESPIONAGE) ? 20 : 10;
+			iCap += bCheapTechSteal || AI_avoidScience() ? 50 : 0;
+
+			FAssert(iCap <= 100);
+			iCap = std::min(iCap, 100); // just in case.
 
 			while (getCommerceRate(COMMERCE_ESPIONAGE) < iEspionageTargetRate && getCommercePercent(COMMERCE_ESPIONAGE) < iCap)
 			{
@@ -19422,41 +19422,44 @@ void CvPlayerAI::AI_updateStrategyHash()
 	}
 
 	// Espionage
+	// K-Mod
+	// Apparently BBAI wanted to use "big espionage" to save points when our espionage is weak.
+	// I've got other plans.
 	if (!GC.getGameINLINE().isOption(GAMEOPTION_NO_ESPIONAGE))
 	{
-		int iTempValue = 0;
-		// K-Mod
-		// Apparently BBAI wanted to use "big espionage" to save points when our espionage is weak.
-		// I've got other plans.
-		iTempValue += AI_commerceWeight(COMMERCE_ESPIONAGE) / 8;
-		// Note: although AI_commerceWeight is doubled for Big Espionage,
-		// the value here is unaffected because the strategy hash has been cleared.
-		iTempValue += kTeam.getBestKnownTechScorePercent() < 85 ? 3 : 0;
-		iTempValue += kTeam.getAnyWarPlanCount(true) > kTeam.getAtWarCount(true) ? 2 : 0; // build up espionage before the start of a war
-		if (iWarSuccessRating < 0)
-			iTempValue += iWarSuccessRating/15 - 1;
-		iTempValue += AI_getStrategyRand(10) % 8;
-		// K-Mod end
-
-		if (iTempValue > 11)
+		// don't start espionage strategy if we have no spies
+		if (iLastStrategyHash & AI_STRATEGY_BIG_ESPIONAGE || AI_getNumAIUnits(UNITAI_SPY) > 0)
 		{
-			// K-Mod. Don't allow big esp if we have no local esp targets
-			//m_iStrategyHash |= AI_STRATEGY_BIG_ESPIONAGE;
-			for (int i = 0; i < MAX_CIV_TEAMS; i++)
+			int iTempValue = 0;
+			iTempValue += AI_commerceWeight(COMMERCE_ESPIONAGE) / 8;
+			// Note: although AI_commerceWeight is doubled for Big Espionage,
+			// the value here is unaffected because the strategy hash has been cleared.
+			iTempValue += kTeam.getBestKnownTechScorePercent() < 85 ? 3 : 0;
+			iTempValue += kTeam.getAnyWarPlanCount(true) > kTeam.getAtWarCount(true) ? 2 : 0; // build up espionage before the start of a war
+			if (iWarSuccessRating < 0)
+				iTempValue += iWarSuccessRating/15 - 1;
+			iTempValue += AI_getStrategyRand(10) % 8;
+
+			if (iTempValue > 11)
 			{
-				if (i != getTeam() && kTeam.isHasMet((TeamTypes)i) && kTeam.AI_hasCitiesInPrimaryArea((TeamTypes)i))
+				// Don't allow big esp if we have no local esp targets
+				for (int i = 0; i < MAX_CIV_TEAMS; i++)
 				{
-					m_iStrategyHash |= AI_STRATEGY_BIG_ESPIONAGE;
-					break;
+					if (i != getTeam() && kTeam.isHasMet((TeamTypes)i) && kTeam.AI_hasCitiesInPrimaryArea((TeamTypes)i))
+					{
+						m_iStrategyHash |= AI_STRATEGY_BIG_ESPIONAGE;
+						break;
+					}
 				}
 			}
 		}
 
-		// K-Mod.. the espionage economy decision is actually somewhere else. This is just a marker.
+		// The espionage economy decision is actually somewhere else. This is just a marker.
 		if (getCommercePercent(COMMERCE_ESPIONAGE) > 20)
 			m_iStrategyHash |= AI_STRATEGY_ESPIONAGE_ECONOMY;
 	}
 	log_strat(AI_STRATEGY_ESPIONAGE_ECONOMY)
+	// K-Mod end
 
 	// Turtle strategy
 	if( kTeam.getAtWarCount(true) > 0 && getNumCities() > 0 )

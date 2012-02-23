@@ -1656,7 +1656,7 @@ bool CvUnit::isActionRecommended(int iAction)
 
 	if (pPlot == NULL)
 	{
-		if (gDLL->shiftKey())
+		if (GC.shiftKey())
 		{
 			pPlot = getGroup()->lastMissionPlot();
 		}
@@ -2662,8 +2662,12 @@ bool CvUnit::canMoveInto(const CvPlot* pPlot, bool bAttack, bool bDeclareWar, bo
 					if (pPlot->isVisibleEnemyUnit(this) != bAttack)
 					{
 						//FAssertMsg(isHuman() || (!bDeclareWar || (pPlot->isVisibleOtherUnit(getOwnerINLINE()) != bAttack)), "hopefully not an issue, but tracking how often this is the case when we dont want to really declare war");
-						// K-Mod note: I don't really understand the condition here. It seems... strange.
-						if (!bDeclareWar || (pPlot->isVisibleOtherUnit(getOwnerINLINE()) != bAttack && !(bAttack && pPlot->getPlotCity() && !isNoCapture())))
+						/* original bts code
+						if (!bDeclareWar || (pPlot->isVisibleOtherUnit(getOwnerINLINE()) != bAttack && !(bAttack && pPlot->getPlotCity() && !isNoCapture()))) */
+						// K-Mod. I'm not entirely sure I understand what they were trying to do here. But I'm pretty sure it's wrong.
+						// I think the rule should be that bAttack means we have to actually fight an enemy unit. Capturing an undefended city doesn't not count.
+						if (!bAttack || !bDeclareWar || pPlot->getNumVisiblePotentialEnemyDefenders(this) == 0)
+						// K-Mod end
 						{
 							return false;
 						}
@@ -3084,6 +3088,10 @@ bool CvUnit::jumpToNearestValidPlot(bool bGroup, bool bForceMove)
 	bool bValid = true;
 	if (pBestPlot != NULL)
 	{
+		// K-Mod. If a unit is bumped, we should clear their mission queue
+		if (pBestPlot != plot())
+			getGroup()->clearMissionQueue();
+		// K-Mod end
 		setXY(pBestPlot->getX_INLINE(), pBestPlot->getY_INLINE(), bGroup);
 	}
 	else

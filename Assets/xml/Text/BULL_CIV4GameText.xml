@@ -204,84 +204,6 @@
 		<Spanish>[COLOR_WARNING_TEXT]Will lose %d1[ICON_PRODUCTION] if not produced for %d2 [NUM2:turn:turns][COLOR_REVERT]</Spanish>
 	</TEXT>
 
-<!-- Leaderhead Hover -->
-
-	<TEXT>
-		<Tag>TXT_KEY_AT_WAR_WITH</Tag>
-		<English>[ICON_BULLET][COLOR_YELLOW]War with %s1_player[COLOR_REVERT]</English>
-		<French>[ICON_BULLET][COLOR_YELLOW]Guerre avec %s1_player[COLOR_REVERT]</French>
-		<German>[ICON_BULLET][COLOR_YELLOW]Im Krieg mit %s1_player[COLOR_REVERT]</German>
-		<Italian>[ICON_BULLET][COLOR_YELLOW]Guerra con %s1_player[COLOR_REVERT]</Italian>
-		<Spanish>[ICON_BULLET][COLOR_YELLOW]Guerra con %s1_player[COLOR_REVERT]</Spanish>
-	</TEXT>
-	<TEXT>
-		<Tag>TXT_KEY_AT_WAR_WITH_YOU</Tag>
-		<English>[ICON_BULLET][COLOR_YELLOW]You are at war![COLOR_REVERT]</English>
-		<French>[ICON_BULLET][COLOR_YELLOW]Vous êtes en guerre![COLOR_REVERT]</French>
-		<German>[ICON_BULLET][COLOR_YELLOW]Im Krieg mit Euch![COLOR_REVERT]</German>
-		<Italian>[ICON_BULLET][COLOR_YELLOW]Si è in guerra![COLOR_REVERT]</Italian>
-		<Spanish>[ICON_BULLET][COLOR_YELLOW]Usted está en guerra![COLOR_REVERT]</Spanish>
-	</TEXT>
-	
-	<TEXT>
-		<Tag>TXT_KEY_PEACE_TREATY_WITH</Tag>
-		<English>[ICON_BULLET][COLOR_CYAN]Peace Treaty with %s1_player[COLOR_REVERT]</English>
-		<French>[ICON_BULLET][COLOR_CYAN]Trait&#233; de paix avec %s1_player[COLOR_REVERT]</French>
-		<German>[ICON_BULLET][COLOR_CYAN]Friedensvertrag mit %s1_player[COLOR_REVERT]</German>
-		<Italian>[ICON_BULLET][COLOR_CYAN]Trattato di pace con %s1_player[COLOR_REVERT]</Italian>
-		<Spanish>[ICON_BULLET][COLOR_CYAN]Tratado de paz con %s1_player[COLOR_REVERT]</Spanish>
-	</TEXT>
-	<TEXT>
-		<Tag>TXT_KEY_PEACE_TREATY_WITH_YOU</Tag>
-		<English>[ICON_BULLET][COLOR_CYAN]You have a Peace Treaty[COLOR_REVERT]</English>
-		<French>[ICON_BULLET][COLOR_CYAN]Vous disposez d'un trait&#233; de paix[COLOR_REVERT]</French>
-		<German>[ICON_BULLET][COLOR_CYAN]Friedensvertrag mit Euch[COLOR_REVERT]</German>
-		<Italian>[ICON_BULLET][COLOR_CYAN]Si dispone di un trattato di pace[COLOR_REVERT]</Italian>
-		<Spanish>[ICON_BULLET][COLOR_CYAN]Ustedes tiene un tratado de paz[COLOR_REVERT]</Spanish>
-	</TEXT>
-	
-	<TEXT>
-		<Tag>TXT_KEY_WORST_ENEMY_OF</Tag>
-		<English>[ICON_BULLET][COLOR_YELLOW]Worst Enemy of %s1_player[COLOR_REVERT]</English>
-		<French>[ICON_BULLET][COLOR_YELLOW]Pire ennemi de %s1_player[COLOR_REVERT]</French>
-		<German>[ICON_BULLET][COLOR_YELLOW]Erzfeind von %s1_player[COLOR_REVERT]</German>
-		<Italian>[ICON_BULLET][COLOR_YELLOW]Peggiore ostile di %s1_player[COLOR_REVERT]</Italian>
-		<Spanish>[ICON_BULLET][COLOR_YELLOW]Peor enemigo de %s1_player[COLOR_REVERT]</Spanish>
-	</TEXT>
-	<TEXT>
-		<Tag>TXT_KEY_WORST_ENEMY_IS</Tag>
-		<English>[ICON_BULLET][COLOR_YELLOW]%s1_player is Worst Enemy[COLOR_REVERT]</English>
-		<French>[ICON_BULLET][COLOR_YELLOW]%s1_player est pire ennemi[COLOR_REVERT]</French>
-		<German>[ICON_BULLET][COLOR_YELLOW]Erzfeind: %s1_player[COLOR_REVERT]</German>
-		<Italian>[ICON_BULLET][COLOR_YELLOW]%s1_player è peggiore ostile[COLOR_REVERT]</Italian>
-		<Spanish>[ICON_BULLET][COLOR_YELLOW]%s1_player es peor enemigo[COLOR_REVERT]</Spanish>
-	</TEXT>
-	<TEXT>
-		<Tag>TXT_KEY_WORST_ENEMY_IS_YOU</Tag>
-		<English>[ICON_BULLET][COLOR_YELLOW]You are Worst Enemy[COLOR_REVERT]</English>
-		<French>[ICON_BULLET][COLOR_YELLOW]Vous êtes pire ennemi[COLOR_REVERT]</French>
-		<German>[ICON_BULLET][COLOR_YELLOW]Euer Erzfeind[COLOR_REVERT]</German>
-		<Italian>[ICON_BULLET][COLOR_YELLOW]Tu sei peggiore ostile[COLOR_REVERT]</Italian>
-		<Spanish>[ICON_BULLET][COLOR_YELLOW]Usted es peor enemigo[COLOR_REVERT]</Spanish>
-	</TEXT>
-	
-	<TEXT>
-		<Tag>TXT_KEY_DEFENSIVE_PACT_WITH</Tag>
-		<English>[ICON_BULLET][COLOR_BLUE]Defensive Pact with %s1_player[COLOR_REVERT]</English>
-		<French>[ICON_BULLET][COLOR_BLUE]Défensive pacte avec %s1_player[COLOR_REVERT]</French>
-		<German>[ICON_BULLET][COLOR_BLUE]Verteidigungsbündnis mit %s1_player[COLOR_REVERT]</German>
-		<Italian>[ICON_BULLET][COLOR_BLUE]Difensive patto con %s1_player[COLOR_REVERT]</Italian>
-		<Spanish>[ICON_BULLET][COLOR_BLUE]Pacto defensivo con %s1_player[COLOR_REVERT]</Spanish>
-	</TEXT>
-	<TEXT>
-		<Tag>TXT_KEY_DEFENSIVE_PACT_WITH_YOU</Tag>
-		<English>[ICON_BULLET][COLOR_BLUE]You have a Defensive Pact[COLOR_REVERT]</English>
-		<French>[ICON_BULLET][COLOR_BLUE]Vous disposez d'un pacte défensif[COLOR_REVERT]</French>
-		<German>[ICON_BULLET][COLOR_BLUE]Verteidigungsbündnis mit Euch[COLOR_REVERT]</German>
-		<Italian>[ICON_BULLET][COLOR_BLUE]Si dispone di un patto di difesa[COLOR_REVERT]</Italian>
-		<Spanish>[ICON_BULLET][COLOR_BLUE]Ustedes tiene un pacto defensivo[COLOR_REVERT]</Spanish>
-	</TEXT>
-	
 <!-- Tech Hover -->
 
 	<TEXT>
@@ -305,11 +227,11 @@
 
 	<TEXT>
 		<Tag>TXT_KEY_ACTUAL_EFFECTS</Tag>
-		<English>Actual</English>
-		<French>Actual</French>
+		<English>Net Effect</English>
+		<French>Net Effect</French>
 		<German>Effektiv</German>
 		<Italian>Effettivo</Italian>
-		<Spanish>Actual</Spanish>
+		<Spanish>Net Effect</Spanish>
 	</TEXT>
 
 <!-- Min/Max Commerce Rate Buttons -->
@@ -321,49 +243,6 @@
 		<German>Anteil für %s1_CmrcType auf %d2_Value%% ändern</German>
 		<Italian>Aumenta il %s1_CmrcType del %d2_Value%%</Italian>
 		<Spanish>Aumentar ritmo de %s1_CmrcType a %d2_Value%%</Spanish>
-	</TEXT>
-
-<!-- Lat/Long Coordinates -->
-	
-	<TEXT>
-		<Tag>TXT_KEY_LATLONG</Tag>
-		<English>%d1&#176;%d2'[SPACE]</English>
-		<French>%d1&#176;%d2'[SPACE]</French>
-		<German>%d1&#176;%d2'[SPACE]</German>
-		<Italian>%d1&#176;%d2'[SPACE]</Italian>
-		<Spanish>%d1&#176;%d2'[SPACE]</Spanish>
-	</TEXT>
-	<TEXT>
-		<Tag>TXT_KEY_LATLONG_NORTH</Tag>
-		<English>N</English>
-		<French>N</French>
-		<German>N</German>
-		<Italian>N</Italian>
-		<Spanish>N</Spanish>
-	</TEXT>
-	<TEXT>
-		<Tag>TXT_KEY_LATLONG_EAST</Tag>
-		<English>E</English>
-		<French>E</French>
-		<German>O</German>
-		<Italian>E</Italian>
-		<Spanish>E</Spanish>
-	</TEXT>
-	<TEXT>
-		<Tag>TXT_KEY_LATLONG_SOUTH</Tag>
-		<English>S</English>
-		<French>S</French>
-		<German>S</German>
-		<Italian>S</Italian>
-		<Spanish>S</Spanish>
-	</TEXT>
-	<TEXT>
-		<Tag>TXT_KEY_LATLONG_WEST</Tag>
-		<English>W</English>
-		<French>W</French>
-		<German>W</German>
-		<Italian>W</Italian>
-		<Spanish>W</Spanish>
 	</TEXT>
 
 <!-- City Screen -->
