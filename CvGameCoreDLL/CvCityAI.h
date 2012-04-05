@@ -26,11 +26,11 @@ public:
 	void AI_assignWorkingPlots();
 	void AI_updateAssignWork();
 
-	bool AI_avoidGrowth();
+	//bool AI_avoidGrowth(); // disabled by K-Mod
 	bool AI_ignoreGrowth();
-	int AI_specialistValue(SpecialistTypes eSpecialist, bool bAvoidGrowth, bool bRemove) const;
+	//int AI_specialistValue(SpecialistTypes eSpecialist, bool bAvoidGrowth, bool bRemove, bool bIgnoreFood = false) const;
+	int AI_specialistValue(SpecialistTypes eSpecialist, bool bRemove, bool bIgnoreFood = false, int iGrowthValue = -1) const; // K-Mod
 	int AI_permanentSpecialistValue(SpecialistTypes eSpecialist) const; // K-Mod
-
 	void AI_chooseProduction();
 
 	UnitTypes AI_bestUnit(bool bAsync = false, AdvisorTypes eIgnoreAdvisor = NO_ADVISOR, UnitAITypes* peBestUnitAI = NULL);
@@ -43,13 +43,12 @@ public:
 	int AI_buildingValueThreshold(BuildingTypes eBuilding, int iFocusFlags = 0, int iThreshold = 0) const; */
 	int AI_buildingValue(BuildingTypes eBuilding, int iFocusFlags = 0, int iThreshold = 0, bool bConstCache = false, bool bAllowRecursion = true) const;
 
-	ProjectTypes AI_bestProject();
+	ProjectTypes AI_bestProject(int* piBestValue = 0);
 	int AI_projectValue(ProjectTypes eProject);
 
-	ProcessTypes AI_bestProcess();
-	ProcessTypes AI_bestProcess(CommerceTypes eCommerceType);
-	int AI_processValue(ProcessTypes eProcess);
-	int AI_processValue(ProcessTypes eProcess, CommerceTypes eCommerceType);
+	// K-Mod note, I've deleted the single-argument version of the following two functions. They were completely superfluous.
+	ProcessTypes AI_bestProcess(CommerceTypes eCommerceType = NO_COMMERCE);
+	int AI_processValue(ProcessTypes eProcess, CommerceTypes eCommerceType = NO_COMMERCE);
 
 	int AI_neededSeaWorkers();
 
@@ -107,8 +106,8 @@ public:
 	int AI_getGoodTileCount() const;
 	int AI_countWorkedPoorTiles() const;
 	int AI_getTargetPopulation() const;
-	int AI_getImprovementValue(CvPlot* pPlot, ImprovementTypes eImprovement, int iFoodPriority, int iProductionPriority, int iCommercePriority, int iFoodChange, int iClearFeatureValue = 0, bool bEmphasizeIrrigation = false, BuildTypes* peBestBuild = 0) const;
 	void AI_getYieldMultipliers(int &iFoodMultiplier, int &iProductionMultiplier, int &iCommerceMultiplier, int &iDesiredFoodChange) const;
+	int AI_getImprovementValue(CvPlot* pPlot, ImprovementTypes eImprovement, int iFoodPriority, int iProductionPriority, int iCommercePriority, int iDesiredFoodChange, int iClearFeatureValue = 0, bool bEmphasizeIrrigation = false, BuildTypes* peBestBuild = 0) const;
 	// K-Mod end
 	BuildTypes AI_getBestBuild(int iIndex) const;
 	int AI_countBestBuilds(CvArea* pArea) const;
@@ -127,15 +126,7 @@ public:
 	int AI_specialYieldMultiplier(YieldTypes eYield) const;
 
 	int AI_countNumBonuses(BonusTypes eBonus, bool bIncludeOurs, bool bIncludeNeutral, int iOtherCultureThreshold, bool bLand = true, bool bWater = true);
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      11/14/09                                jdog5000      */
-/*                                                                                              */
-/* City AI                                                                                      */
-/************************************************************************************************/
-	int AI_countNumImprovableBonuses( bool bIncludeNeutral, TechTypes eExtraTech = NO_TECH, bool bLand = true, bool bWater = false );
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
+	int AI_countNumImprovableBonuses( bool bIncludeNeutral, TechTypes eExtraTech = NO_TECH, bool bLand = true, bool bWater = false ); // BBAI
 
 	int AI_playerCloseness(PlayerTypes eIndex, int iMaxDistance);
 	bool AI_isFrontlineCity() const; // K-Mod
@@ -221,13 +212,18 @@ protected:
 
 	bool AI_potentialPlot(short* piYields) const;
 	bool AI_foodAvailable(int iExtra = 0) const;
-	int AI_yieldValue(short* piYields, short* piCommerceYields, bool bAvoidGrowth, bool bRemove, bool bIgnoreFood = false, bool bIgnoreGrowth = false, bool bIgnoreStarvation = false, bool bWorkerOptimization = false) const;
-	int AI_plotValue(CvPlot* pPlot, bool bAvoidGrowth, bool bRemove, bool bIgnoreFood = false, bool bIgnoreGrowth = false, bool bIgnoreStarvation = false) const;
+	//int AI_yieldValue(short* piYields, short* piCommerceYields, bool bAvoidGrowth, bool bRemove, bool bIgnoreFood = false, bool bIgnoreGrowth = false, bool bIgnoreStarvation = false, bool bWorkerOptimization = false) const;
+	//int AI_plotValue(CvPlot* pPlot, bool bAvoidGrowth, bool bRemove, bool bIgnoreFood = false, bool bIgnoreGrowth = false, bool bIgnoreStarvation = false) const;
+	// K-Mod. Note: iGrowthValue < 0 means "automatic". It will use AI_growthValuePerFood. iGrowthValue == 0 means "ignore growth".
+	int AI_yieldValue(short* piYields, short* piCommerceYields, bool bRemove, bool bIgnoreFood, bool bIgnoreStarvation, bool bWorkerOptimization, int iGrowthValue) const;
+	int AI_plotValue(CvPlot* pPlot, bool bRemove, bool bIgnoreFood, bool bIgnoreStarvation, int iGrowthValue) const;
+	int AI_growthValuePerFood() const;
+	// K-mod end
 
 	int AI_experienceWeight();
 	int AI_buildUnitProb();
 
-	void AI_bestPlotBuild(CvPlot* pPlot, int* piBestValue, BuildTypes* peBestBuild, int iFoodPriority, int iProductionPriority, int iCommercePriority, bool bChop, int iHappyAdjust, int iHealthAdjust, int iFoodChange);
+	void AI_bestPlotBuild(CvPlot* pPlot, int* piBestValue, BuildTypes* peBestBuild, int iFoodPriority, int iProductionPriority, int iCommercePriority, bool bChop, int iHappyAdjust, int iHealthAdjust, int iDesiredFoodChange);
 
 	void AI_buildGovernorChooseProduction();
 	void AI_barbChooseProduction(); // K-Mod

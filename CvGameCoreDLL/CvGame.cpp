@@ -1451,25 +1451,29 @@ void CvGame::normalizeRemoveBadTerrain()
 void CvGame::normalizeAddFoodBonuses()
 {
 	bool bIgnoreLatitude = pythonIsBonusIgnoreLatitudes();
+	int iFoodPerPop = GC.getFOOD_CONSUMPTION_PER_POPULATION(); // K-Mod
 
 	for (int iI = 0; iI < MAX_CIV_PLAYERS; iI++)
 	{
-		if (GET_PLAYER((PlayerTypes)iI).isAlive())
+		const CvPlayer& kLoopPlayer = GET_PLAYER((PlayerTypes)iI); // K-Mod
+
+		if (kLoopPlayer.isAlive())
 		{
-			CvPlot* pStartingPlot = GET_PLAYER((PlayerTypes)iI).getStartingPlot();
+			CvPlot* pStartingPlot = kLoopPlayer.getStartingPlot();
 
 			if (pStartingPlot != NULL)
 			{
 				int iFoodBonus = 0;
 				int iGoodNatureTileCount = 0;
 
-				for (int iJ = 0; iJ < NUM_CITY_PLOTS; iJ++)
+				//for (int iJ = 0; iJ < NUM_CITY_PLOTS; iJ++)
+				for (int iJ = 1; iJ < NUM_CITY_PLOTS; iJ++) // K-Mod. Don't count the city plot.
 				{
 					CvPlot* pLoopPlot = plotCity(pStartingPlot->getX_INLINE(), pStartingPlot->getY_INLINE(), iJ);
 
 					if (pLoopPlot != NULL)
 					{
-						BonusTypes eBonus = pLoopPlot->getBonusType(GET_PLAYER((PlayerTypes)iI).getTeam());
+						BonusTypes eBonus = pLoopPlot->getBonusType(kLoopPlayer.getTeam());
 
 						if (eBonus != NO_BONUS)
 						{
@@ -1485,7 +1489,7 @@ void CvGame::normalizeAddFoodBonuses()
 									{
 										//iFoodBonus += 3;
 										// K-Mod. Bonus which only give 3 food with their improvement should not be worth 3 points. (ie. plains-cow should not be the only food resource.)
-										if (pLoopPlot->calculateMaxYield(YIELD_FOOD) >= 2*GC.getFOOD_CONSUMPTION_PER_POPULATION()) // ie. >= 4
+										if (pLoopPlot->calculateMaxYield(YIELD_FOOD) >= 2*iFoodPerPop) // ie. >= 4
 											iFoodBonus += 3;
 										else
 											iFoodBonus += 2;
@@ -1493,14 +1497,14 @@ void CvGame::normalizeAddFoodBonuses()
 									}
 								}
 							}
-							else if (pLoopPlot->calculateBestNatureYield(YIELD_FOOD, GET_PLAYER((PlayerTypes)iI).getTeam()) >= 2)
+							else if (pLoopPlot->calculateBestNatureYield(YIELD_FOOD, kLoopPlayer.getTeam()) >= iFoodPerPop)
 						    {
 						        iGoodNatureTileCount++;
 						    }
 						}
 						else
 						{
-                            if (pLoopPlot->calculateBestNatureYield(YIELD_FOOD, GET_PLAYER((PlayerTypes)iI).getTeam()) >= 3)
+                            if (pLoopPlot->calculateBestNatureYield(YIELD_FOOD, kLoopPlayer.getTeam()) >= iFoodPerPop+1)
 						    {
 						        iGoodNatureTileCount++;
 						    }
@@ -1512,7 +1516,8 @@ void CvGame::normalizeAddFoodBonuses()
 				//iTargetFoodBonusCount += (iGoodNatureTileCount == 0) ? 2 : 0;
 				iTargetFoodBonusCount += std::max(0, 2-iGoodNatureTileCount); // K-Mod
 
-				for (int iJ = 0; iJ < NUM_CITY_PLOTS; iJ++)
+				// K-Mod. I've rearranged a couple of things to make it a bit more efficient and easier to read.
+				for (int iJ = 1; iJ < NUM_CITY_PLOTS; iJ++)
 				{
 					if (iFoodBonus >= iTargetFoodBonusCount)
 					{
@@ -1521,37 +1526,29 @@ void CvGame::normalizeAddFoodBonuses()
 
 					CvPlot* pLoopPlot = plotCity(pStartingPlot->getX_INLINE(), pStartingPlot->getY_INLINE(), iJ);
 
-					if (pLoopPlot != NULL)
+					if (pLoopPlot && pLoopPlot->getBonusType() == NO_BONUS)
 					{
-						if (pLoopPlot != pStartingPlot)
+						for (int iK = 0; iK < GC.getNumBonusInfos(); iK++)
 						{
-							if (pLoopPlot->getBonusType() == NO_BONUS)
+							const CvBonusInfo& kLoopBonus = GC.getBonusInfo((BonusTypes)iK);
+							if (kLoopBonus.isNormalize() && kLoopBonus.getYieldChange(YIELD_FOOD) > 0)
 							{
-								for (int iK = 0; iK < GC.getNumBonusInfos(); iK++)
+								if ((kLoopBonus.getTechCityTrade() == NO_TECH) || (GC.getTechInfo((TechTypes)(kLoopBonus.getTechCityTrade())).getEra() <= getStartEra()))
 								{
-									if (GC.getBonusInfo((BonusTypes)iK).isNormalize())
+									if (GET_TEAM(kLoopPlayer.getTeam()).isHasTech((TechTypes)kLoopBonus.getTechReveal()))
 									{
-										if (GC.getBonusInfo((BonusTypes)iK).getYieldChange(YIELD_FOOD) > 0)
+										if (pLoopPlot->canHaveBonus(((BonusTypes)iK), bIgnoreLatitude))
 										{
-											if ((GC.getBonusInfo((BonusTypes)iK).getTechCityTrade() == NO_TECH) || (GC.getTechInfo((TechTypes)(GC.getBonusInfo((BonusTypes)iK).getTechCityTrade())).getEra() <= getStartEra()))
+											pLoopPlot->setBonusType((BonusTypes)iK);
+											if (pLoopPlot->isWater())
 											{
-												if (GET_TEAM(GET_PLAYER((PlayerTypes)iI).getTeam()).isHasTech((TechTypes)(GC.getBonusInfo((BonusTypes)iK).getTechReveal())))
-												{
-													if (pLoopPlot->canHaveBonus(((BonusTypes)iK), bIgnoreLatitude))
-													{
-														pLoopPlot->setBonusType((BonusTypes)iK);
-														if (pLoopPlot->isWater())
-														{
-															iFoodBonus += 2;
-														}
-														else
-														{
-															iFoodBonus += 3;
-														}
-														break;
-													}
-												}
+												iFoodBonus += 2;
 											}
+											else
+											{
+												iFoodBonus += 3;
+											}
+											break;
 										}
 									}
 								}
@@ -2379,15 +2376,18 @@ void CvGame::cityPushOrder(CvCity* pCity, OrderTypes eOrder, int iData, bool bAl
 {
 	if (pCity->getProduction() > 0)
 	{
-		CvMessageControl::getInstance().sendPushOrder(pCity->getID(), eOrder, iData, bAlt, bShift, !bShift);
+		//CvMessageControl::getInstance().sendPushOrder(pCity->getID(), eOrder, iData, bAlt, bShift, !bShift);
+		CvMessageControl::getInstance().sendPushOrder(pCity->getID(), eOrder, iData, bAlt, false, bShift ? -1 : 0);
 	}
 	else if ((eOrder == ORDER_TRAIN) && (pCity->getProductionUnit() == iData))
 	{
-		CvMessageControl::getInstance().sendPushOrder(pCity->getID(), eOrder, iData, bAlt, !bCtrl, bCtrl);
+		//CvMessageControl::getInstance().sendPushOrder(pCity->getID(), eOrder, iData, bAlt, !bCtrl, bCtrl);
+		CvMessageControl::getInstance().sendPushOrder(pCity->getID(), eOrder, iData, bAlt, false, bCtrl ? 0 : -1);
 	}
 	else
 	{
-		CvMessageControl::getInstance().sendPushOrder(pCity->getID(), eOrder, iData, bAlt, bShift, bCtrl);
+		//CvMessageControl::getInstance().sendPushOrder(pCity->getID(), eOrder, iData, bAlt, bShift, bCtrl);
+		CvMessageControl::getInstance().sendPushOrder(pCity->getID(), eOrder, iData, bAlt, !(bShift || bCtrl), bCtrl ? 0 : -1);
 	}
 }
 
@@ -2461,17 +2461,33 @@ void CvGame::selectGroup(CvUnit* pUnit, bool bShift, bool bCtrl, bool bAlt) cons
 {
 	PROFILE_FUNC();
 
-	CLLNode<IDInfo>* pUnitNode;
-	CvUnit* pLoopUnit;
-	CvPlot* pUnitPlot;
-	bool bGroup;
-
 	FAssertMsg(pUnit != NULL, "pUnit == NULL unexpectedly");
+	// K-Mod. A hack to change the functionality of double-click from select all to wake all.
+	if (bAlt && !bShift && !bCtrl && !GC.altKey())
+	{
+		// the caller says alt is pressed, but the computer says otherwise. Lets assume this is a double-click.
+		CvPlot* pUnitPlot = pUnit->plot();
+		CLLNode<IDInfo>* pUnitNode = pUnitPlot->headUnitNode();
+		while (pUnitNode != NULL)
+		{
+			CvUnit* pLoopUnit = ::getUnit(pUnitNode->m_data);
+			pUnitNode = pUnitPlot->nextUnitNode(pUnitNode);
+
+			if (pLoopUnit->getOwnerINLINE() == getActivePlayer() && pLoopUnit->isGroupHead() && pLoopUnit->isWaiting())
+			{
+				CvMessageControl::getInstance().sendDoCommand(pLoopUnit->getID(), COMMAND_WAKE, -1, -1, false);
+			}
+		}
+		gDLL->getInterfaceIFace()->selectUnit(pUnit, true, false, true);
+		return;
+	}
+	// K-Mod end
 
 	if (bAlt || bCtrl)
 	{
 		gDLL->getInterfaceIFace()->clearSelectedCities();
 
+		bool bGroup;
 		if (!bShift)
 		{
 			gDLL->getInterfaceIFace()->clearSelectionList();
@@ -2482,20 +2498,21 @@ void CvGame::selectGroup(CvUnit* pUnit, bool bShift, bool bCtrl, bool bAlt) cons
 			bGroup = gDLL->getInterfaceIFace()->mirrorsSelectionGroup();
 		}
 
-		pUnitPlot = pUnit->plot();
+		CvPlot* pUnitPlot = pUnit->plot();
+		DomainTypes eDomain = pUnit->getDomainType(); // K-Mod
 
-		pUnitNode = pUnitPlot->headUnitNode();
+		CLLNode<IDInfo>* pUnitNode = pUnitPlot->headUnitNode();
 
 		gDLL->getInterfaceIFace()->selectionListPreChange();
 
 		while (pUnitNode != NULL)
 		{
-			pLoopUnit = ::getUnit(pUnitNode->m_data);
+			CvUnit* pLoopUnit = ::getUnit(pUnitNode->m_data);
 			pUnitNode = pUnitPlot->nextUnitNode(pUnitNode);
 
 			if (pLoopUnit->getOwnerINLINE() == getActivePlayer())
 			{
-				if (pLoopUnit->canMove())
+				if (pLoopUnit->getDomainType() == eDomain && pLoopUnit->canMove()) // K-Mod added domain check
 				{
 					//if (!isMPOption(MPOPTION_SIMULTANEOUS_TURNS) || getTurnSlice() - pLoopUnit->getLastMoveTurn() > GC.getDefineINT("MIN_TIMER_UNIT_DOUBLE_MOVES")) // disabled by K-Mod
 					{
@@ -5442,20 +5459,14 @@ void CvGame::setVoteOutcome(const VoteTriggeredData& kData, PlayerVoteTypes eNew
 }
 
 
-int CvGame::getReligionGameTurnFounded(ReligionTypes eIndex)
+int CvGame::getReligionGameTurnFounded(ReligionTypes eIndex) const
 {
-// K-Mod
-	/* original bts code
-	FAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
-	FAssertMsg(eIndex < GC.getNumReligionInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
-	*/
 	FASSERT_BOUNDS(0, GC.getNumReligionInfos(), eIndex, "CvGame::getReligionGameTurnFounded");
-// K-Mod end
 	return m_paiReligionGameTurnFounded[eIndex];
 }
 
 
-bool CvGame::isReligionFounded(ReligionTypes eIndex)
+bool CvGame::isReligionFounded(ReligionTypes eIndex) const
 {
 	return (getReligionGameTurnFounded(eIndex) != -1);
 }
@@ -5490,7 +5501,7 @@ void CvGame::setReligionSlotTaken(ReligionTypes eReligion, bool bTaken)
 }
 
 
-int CvGame::getCorporationGameTurnFounded(CorporationTypes eIndex)
+int CvGame::getCorporationGameTurnFounded(CorporationTypes eIndex) const
 {
 	FAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
 	FAssertMsg(eIndex < GC.getNumCorporationInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
@@ -5498,7 +5509,7 @@ int CvGame::getCorporationGameTurnFounded(CorporationTypes eIndex)
 }
 
 
-bool CvGame::isCorporationFounded(CorporationTypes eIndex)
+bool CvGame::isCorporationFounded(CorporationTypes eIndex) const
 {
 	return (getCorporationGameTurnFounded(eIndex) != -1);
 }
@@ -5744,7 +5755,7 @@ void CvGame::setHolyCity(ReligionTypes eIndex, CvCity* pNewValue, bool bAnnounce
 }
 
 
-CvCity* CvGame::getHeadquarters(CorporationTypes eIndex)
+CvCity* CvGame::getHeadquarters(CorporationTypes eIndex) const
 {
 	FAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
 	FAssertMsg(eIndex < GC.getNumCorporationInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
@@ -5964,7 +5975,14 @@ void CvGame::doTurn()
 
 	doUpdateCacheOnTurn();
 
-	CvSelectionGroup::path_finder.Reset(); // K-Mod. (this is the only manual reset we need. - I hope.)
+	CvSelectionGroup::path_finder.Reset(); // K-Mod. (one of the few manual resets we need)
+	// K-Mod - fixing a problem from the CAR mod.
+	// (CvTeamAI::AI_doCounter has a couple of things which invalidate the cache without clearing it. So I'm clearing the cache here to avoid OOS errors.)
+	for (iI = 0; iI < MAX_PLAYERS; iI++)
+	{
+		GET_PLAYER((PlayerTypes)iI).AI_invalidateAttitudeCache();
+	}
+	// K-Mod end
 
 	updateScore();
 
@@ -6800,7 +6818,7 @@ void CvGame::createBarbarianCities()
 				if (pLoopPlot->area()->getCitiesPerPlayer(BARBARIAN_PLAYER) < iTargetCities)
 				{
 					//iValue = GET_PLAYER(BARBARIAN_PLAYER).AI_foundValue(pLoopPlot->getX_INLINE(), pLoopPlot->getY_INLINE(), GC.getDefineINT("MIN_BARBARIAN_CITY_STARTING_DISTANCE"));
-					int iValue = GET_PLAYER(BARBARIAN_PLAYER).AI_foundValueBulk(pLoopPlot->getX_INLINE(), pLoopPlot->getY_INLINE(), kFoundSet); // K-Mod
+					int iValue = GET_PLAYER(BARBARIAN_PLAYER).AI_foundValue_bulk(pLoopPlot->getX_INLINE(), pLoopPlot->getY_INLINE(), kFoundSet); // K-Mod
 				
 					if (iTargetCitiesMultiplier > 100)
 					{

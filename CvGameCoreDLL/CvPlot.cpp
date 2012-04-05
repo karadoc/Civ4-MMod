@@ -50,7 +50,7 @@ CvPlot::CvPlot()
 /* Efficiency                                                                                   */
 /************************************************************************************************/
 	// Plot danger cache
-	m_abIsTeamBorderCache = new bool[MAX_TEAMS];
+	m_abBorderDangerCache = new bool[MAX_TEAMS];
 /************************************************************************************************/
 /* BETTER_BTS_AI_MOD                       END                                                  */
 /************************************************************************************************/
@@ -97,7 +97,7 @@ CvPlot::~CvPlot()
 /* Efficiency                                                                                   */
 /************************************************************************************************/
 	// Plot danger cache
-	SAFE_DELETE_ARRAY(m_abIsTeamBorderCache);
+	SAFE_DELETE_ARRAY(m_abBorderDangerCache);
 /************************************************************************************************/
 /* BETTER_BTS_AI_MOD                       END                                                  */
 /************************************************************************************************/
@@ -235,11 +235,11 @@ void CvPlot::reset(int iX, int iY, bool bConstructorCall)
 /* Efficiency                                                                                   */
 /************************************************************************************************/
 	// Plot danger cache
-	m_bIsActivePlayerNoDangerCache = false;
+	m_bActivePlayerNoDangerCache = false;
 
 	for (iI = 0; iI < MAX_TEAMS; iI++)
 	{
-		m_abIsTeamBorderCache[iI] = false;
+		m_abBorderDangerCache[iI] = false;
 	}
 /************************************************************************************************/
 /* BETTER_BTS_AI_MOD                       END                                                  */
@@ -1166,25 +1166,20 @@ void CvPlot::updatePlotGroupBonus(bool bAdd)
 {
 	PROFILE_FUNC();
 
-	CvCity* pPlotCity;
-	CvPlotGroup* pPlotGroup;
-	BonusTypes eNonObsoleteBonus;
-	int iI;
-
 	if (!isOwned())
 	{
 		return;
 	}
 
-	pPlotGroup = getPlotGroup(getOwnerINLINE());
+	CvPlotGroup* pPlotGroup = getPlotGroup(getOwnerINLINE());
 
 	if (pPlotGroup != NULL)
 	{
-		pPlotCity = getPlotCity();
+		CvCity* pPlotCity = getPlotCity();
 
 		if (pPlotCity != NULL)
 		{
-			for (iI = 0; iI < GC.getNumBonusInfos(); ++iI)
+			for (int iI = 0; iI < GC.getNumBonusInfos(); ++iI)
 			{
 				if (!GET_TEAM(getTeam()).isBonusObsolete((BonusTypes)iI))
 				{
@@ -1194,7 +1189,7 @@ void CvPlot::updatePlotGroupBonus(bool bAdd)
 
 			if (pPlotCity->isCapital())
 			{
-				for (iI = 0; iI < GC.getNumBonusInfos(); ++iI)
+				for (int iI = 0; iI < GC.getNumBonusInfos(); ++iI)
 				{
 					pPlotGroup->changeNumBonuses(((BonusTypes)iI), (GET_PLAYER(getOwnerINLINE()).getBonusExport((BonusTypes)iI) * ((bAdd) ? -1 : 1)));
 					pPlotGroup->changeNumBonuses(((BonusTypes)iI), (GET_PLAYER(getOwnerINLINE()).getBonusImport((BonusTypes)iI) * ((bAdd) ? 1 : -1)));
@@ -1202,6 +1197,7 @@ void CvPlot::updatePlotGroupBonus(bool bAdd)
 			}
 		}
 
+		/* original code
 		eNonObsoleteBonus = getNonObsoleteBonusType(getTeam());
 
 		if (eNonObsoleteBonus != NO_BONUS)
@@ -1217,7 +1213,14 @@ void CvPlot::updatePlotGroupBonus(bool bAdd)
 					}
 				}
 			}
+		} */
+		// K-Mod. I'm just trying to standardize the code to reduce the potential for mistakes. There are no functionality changes here.
+		BonusTypes eBonus = getNonObsoleteBonusType(getTeam(), true);
+		if (eBonus != NO_BONUS && pPlotGroup && isBonusNetwork(getTeam()))
+		{
+			pPlotGroup->changeNumBonuses(eBonus, bAdd ? 1 : -1);
 		}
+		// K-Mod end
 	}
 }
 
@@ -3148,36 +3151,39 @@ int CvPlot::calculatePathDistanceToPlot( TeamTypes eTeam, CvPlot* pTargetPlot )
 /* Efficiency                                                                                   */
 /************************************************************************************************/
 	// Plot danger cache
-bool CvPlot::isActivePlayerNoDangerCache() const
+bool CvPlot::getActivePlayerNoDangerCache() const
 {
-	return m_bIsActivePlayerNoDangerCache;
+	return m_bActivePlayerNoDangerCache;
 }
 
-bool CvPlot::isTeamBorderCache( TeamTypes eTeam ) const
+void CvPlot::setActivePlayerNoDangerCache( bool bNewValue )
 {
-	return m_abIsTeamBorderCache[eTeam];
+	m_bActivePlayerNoDangerCache = bNewValue;
 }
 
-void CvPlot::setIsActivePlayerNoDangerCache( bool bNewValue )
+// K-Mod. I've changed the purpose of this function - because this is the way it is always used...
+void CvPlot::invalidateBorderDangerCache()
 {
-	PROFILE_FUNC();
-	m_bIsActivePlayerNoDangerCache = bNewValue;
-}
-
-void CvPlot::setIsTeamBorderCache( TeamTypes eTeam, bool bNewValue )
-{
-	PROFILE_FUNC();
-	m_abIsTeamBorderCache[eTeam] = bNewValue;
-}
-
-void CvPlot::invalidateIsTeamBorderCache()
-{
-	PROFILE_FUNC();
-
-	for( int iI = 0; iI < MAX_TEAMS; iI++ )
+	/* for( int iI = 0; iI < MAX_TEAMS; iI++ )
 	{
-		m_abIsTeamBorderCache[iI] = false;
+		m_abBorderDangerCache[iI] = false;
+	} */
+	for (int iDX = -BORDER_DANGER_RANGE; iDX <= BORDER_DANGER_RANGE; iDX++)
+	{
+		for (int iDY = -BORDER_DANGER_RANGE; iDY <= BORDER_DANGER_RANGE; iDY++)
+		{
+			CvPlot* pLoopPlot = plotXY(getX_INLINE(), getY_INLINE(), iDX, iDY);
+
+			if (pLoopPlot)
+			{
+				for (TeamTypes i = (TeamTypes)0; i < MAX_TEAMS; i = (TeamTypes)(i+1))
+				{
+					pLoopPlot->setBorderDangerCache(i, false);
+				}
+			}
+		}
 	}
+	//
 }
 /************************************************************************************************/
 /* BETTER_BTS_AI_MOD                       END                                                  */
@@ -4422,7 +4428,7 @@ int CvPlot::getCityRadiusCount() const
 }
 
 
-int CvPlot::isCityRadius() const
+bool CvPlot::isCityRadius() const
 {
 	return (getCityRadiusCount() > 0);
 }
@@ -5078,28 +5084,18 @@ void CvPlot::setOwner(PlayerTypes eNewValue, bool bCheckUnits, bool bUpdatePlotG
 		}
 
 		
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      08/21/09                                jdog5000      */
-/*                                                                                              */
-/* Efficiency                                                                                   */
-/************************************************************************************************/
-		// Plot danger cache
-		CvPlot* pLoopPlot;
-		for (int iDX = -(DANGER_RANGE); iDX <= DANGER_RANGE; iDX++)
+		// BBAI / K-Mod. Plot danger cache.
+		for (int iDX = -BORDER_DANGER_RANGE; iDX <= BORDER_DANGER_RANGE; iDX++)
 		{
-			for (int iDY = -(DANGER_RANGE); iDY <= (DANGER_RANGE); iDY++)
+			for (int iDY = -BORDER_DANGER_RANGE; iDY <= BORDER_DANGER_RANGE; iDY++)
 			{
-				pLoopPlot	= plotXY(getX_INLINE(), getY_INLINE(), iDX, iDY);
+				CvPlot* pLoopPlot = plotXY(getX_INLINE(), getY_INLINE(), iDX, iDY);
 
-				if (pLoopPlot != NULL)
-				{
-					pLoopPlot->invalidateIsTeamBorderCache();
-				}
+				if (pLoopPlot)
+					pLoopPlot->invalidateBorderDangerCache();
 			}
 		}
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
+		// BBAI / K-Mod end
 		
 		updateSymbols();
 	}
@@ -5583,7 +5579,8 @@ BonusTypes CvPlot::getBonusType(TeamTypes eTeam) const
 	{
 		if (m_eBonusType != NO_BONUS)
 		{
-			if (!GET_TEAM(eTeam).isHasTech((TechTypes)(GC.getBonusInfo((BonusTypes)m_eBonusType).getTechReveal())) && !GET_TEAM(eTeam).isForceRevealedBonus((BonusTypes)m_eBonusType))
+			//if (!GET_TEAM(eTeam).isHasTech((TechTypes)(GC.getBonusInfo((BonusTypes)m_eBonusType).getTechReveal())) && !GET_TEAM(eTeam).isForceRevealedBonus((BonusTypes)m_eBonusType))
+			if (!GET_TEAM(eTeam).isBonusRevealed((BonusTypes)m_eBonusType)) // K-Mod
 			{
 				return NO_BONUS;
 			}
@@ -5594,9 +5591,10 @@ BonusTypes CvPlot::getBonusType(TeamTypes eTeam) const
 }
 
 
-BonusTypes CvPlot::getNonObsoleteBonusType(TeamTypes eTeam, bool bCheckImprovement) const // K-Mod added bCheckImprovement
+BonusTypes CvPlot::getNonObsoleteBonusType(TeamTypes eTeam, bool bCheckConnected) const // K-Mod added bCheckConnected
 {
 	FAssert(eTeam != NO_TEAM);
+	FAssert(GET_TEAM(eTeam).isAlive()); // K-Mod
 
 	BonusTypes eBonus = getBonusType(eTeam);
 	if (eBonus != NO_BONUS)
@@ -5606,12 +5604,22 @@ BonusTypes CvPlot::getNonObsoleteBonusType(TeamTypes eTeam, bool bCheckImproveme
 			return NO_BONUS;
 		}
 		// K-Mod
-		if (bCheckImprovement)
+		if (bCheckConnected)
 		{
-			if (getImprovementType() == NO_IMPROVEMENT || !GC.getImprovementInfo(getImprovementType()).isImprovementBonusTrade(eBonus))
-			{
+			// note: this checks whether the bonus is connected for the owner of the plot, from the point of view of eTeam.
+			TeamTypes ePlotTeam = getTeam();
+			if (ePlotTeam == NO_TEAM || !GET_TEAM(ePlotTeam).isHasTech((TechTypes)GC.getBonusInfo(eBonus).getTechCityTrade()))
 				return NO_BONUS;
-			}
+
+			// note: this function is used inside CvPlot::updatePlotGroupBonuses, which is called during CvPlot::setImprovementType
+			// between when the improvement is changed and the revealed improvement type is updated...
+			// therefore when eTeam == ePlotTeam, we use the real improvement, not the revealed one.
+			ImprovementTypes eImprovement = eTeam == NO_TEAM || eTeam == ePlotTeam ? getImprovementType() : getRevealedImprovementType(eTeam, false);
+
+			FAssert(ePlotTeam != eTeam || eImprovement == getImprovementType());
+
+			if (!isCity() && !GET_TEAM(ePlotTeam).doesImprovementConnectBonus(eImprovement, eBonus))
+				return NO_BONUS;
 		}
 		// K-Mod end
 	}
@@ -5835,6 +5843,11 @@ void CvPlot::setRouteType(RouteTypes eNewValue, bool bUpdatePlotGroups)
 		{
 			CvEventReporter::getInstance().routeBuilt(getRouteType(), getX_INLINE(), getY_INLINE());
 		}
+
+		// K-Mod. Fixing a bug in the border danger cache from BBAI.
+		if (bOldRoute && !isRoute())
+			invalidateBorderDangerCache();
+		// K-Mod end
 	}
 }
 
@@ -6704,7 +6717,7 @@ bool CvPlot::isBestAdjacentFound(PlayerTypes eIndex)
 	CvPlayerAI::CvFoundSettings kFoundSet(GET_PLAYER(eIndex), false); // K-Mod
 
 	//int iPlotValue = GET_PLAYER(eIndex).AI_foundValue(getX_INLINE(), getY_INLINE());
-	int iPlotValue = GET_PLAYER(eIndex).AI_foundValueBulk(getX_INLINE(), getY_INLINE(), kFoundSet);
+	int iPlotValue = GET_PLAYER(eIndex).AI_foundValue_bulk(getX_INLINE(), getY_INLINE(), kFoundSet);
 
 	if (iPlotValue == 0)
 	{
@@ -6718,7 +6731,7 @@ bool CvPlot::isBestAdjacentFound(PlayerTypes eIndex)
 		if ((pAdjacentPlot != NULL) && pAdjacentPlot->isRevealed(GET_PLAYER(eIndex).getTeam(), false))
 		{
 			//if (pAdjacentPlot->getFoundValue(eIndex) >= getFoundValue(eIndex))
-			if (GET_PLAYER(eIndex).AI_foundValueBulk(pAdjacentPlot->getX_INLINE(), pAdjacentPlot->getY_INLINE(), kFoundSet) > iPlotValue)
+			if (GET_PLAYER(eIndex).AI_foundValue_bulk(pAdjacentPlot->getX_INLINE(), pAdjacentPlot->getY_INLINE(), kFoundSet) > iPlotValue)
 			{
 				return false;
 			}
@@ -9011,8 +9024,13 @@ void CvPlot::read(FDataStreamBase* pStream)
 /* Efficiency                                                                                   */
 /************************************************************************************************/
 	// Plot danger cache
-	m_bIsActivePlayerNoDangerCache = false;
-	invalidateIsTeamBorderCache();
+	m_bActivePlayerNoDangerCache = false;
+	//invalidateBorderDangerCache();
+	// K-Mod. I've changed the purpose of invalidateBorderDangerCache. It is no longer appropriate for this.
+	for (int i = 0; i < MAX_TEAMS; i++)
+	{
+		m_abBorderDangerCache[i] = false;
+	}
 /************************************************************************************************/
 /* BETTER_BTS_AI_MOD                       END                                                  */
 /************************************************************************************************/
@@ -10237,37 +10255,6 @@ int CvPlot::airUnitSpaceAvailable(TeamTypes eTeam) const
 
 	return (iMaxUnits - countNumAirUnits(eTeam));
 }
-
-/********************************************************************************/
-/* 	BETTER_BTS_AI_MOD						10/17/08		jdog5000		*/
-/* 																			*/
-/* 	Air AI																	*/
-/********************************************************************************/
-int CvPlot::countAirInterceptorsActive(TeamTypes eTeam) const
-{
-	int iCount = 0;
-
-	CLLNode<IDInfo>* pUnitNode = headUnitNode();
-	while (pUnitNode != NULL)
-	{
-		CvUnit* pLoopUnit = ::getUnit(pUnitNode->m_data);
-		pUnitNode = nextUnitNode(pUnitNode);
-
-		if (DOMAIN_AIR == pLoopUnit->getDomainType() && !pLoopUnit->isCargo() && pLoopUnit->getTeam() == eTeam)
-		{
-			if( pLoopUnit->getGroup()->getActivityType() == ACTIVITY_INTERCEPT )
-			{
-				iCount += 1;
-			}
-		}
-	}
-
-	return iCount;
-}
-/********************************************************************************/
-/* 	BETTER_BTS_AI_MOD						END								*/
-/********************************************************************************/
-
 
 bool CvPlot::isEspionageCounterSpy(TeamTypes eTeam) const
 {

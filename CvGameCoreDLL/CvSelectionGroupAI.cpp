@@ -192,7 +192,8 @@ bool CvSelectionGroupAI::AI_update()
 	bDead = false;
 	
 	bool bFailedAlreadyFighting = false;
-	while ((m_bGroupAttack && !bFailedAlreadyFighting) || readyToMove())
+	//while ((m_bGroupAttack && !bFailedAlreadyFighting) || readyToMove())
+	while ((AI_isGroupAttack() && !isBusy()) || readyToMove()) // K-Mod
 	{
 		iTempHack++;
 		if (iTempHack > 100)
@@ -217,9 +218,9 @@ bool CvSelectionGroupAI::AI_update()
 		}
 
 		// if we want to force the group to attack, force another attack
-		if (m_bGroupAttack)
+		if (AI_isGroupAttack())
 		{			
-			m_bGroupAttack = false;
+			AI_cancelGroupAttack();
 
 			groupAttack(m_iGroupAttackX, m_iGroupAttackY, MOVE_DIRECT_ATTACK, bFailedAlreadyFighting);
 		}
@@ -234,7 +235,7 @@ bool CvSelectionGroupAI::AI_update()
 				break;
 			}
 
-			resetPath();
+			//resetPath();
 
 			if (pHeadUnit->AI_update())
 			{
@@ -252,7 +253,7 @@ bool CvSelectionGroupAI::AI_update()
 
 		// if no longer group attacking, and force separate is true, then bail, decide what to do after group is split up
 		// (UnitAI of head unit may have changed)
-		if (!m_bGroupAttack && AI_isForceSeparate())
+		if (!AI_isGroupAttack() && AI_isForceSeparate())
 		{
 			AI_separate();	// pointers could become invalid...
 			//return true;
@@ -267,7 +268,7 @@ bool CvSelectionGroupAI::AI_update()
 			bFollow = false;
 
 			// if we not group attacking, then check for follow action
-			if (!m_bGroupAttack)
+			if (!AI_isGroupAttack())
 			{
 				pEntityNode = headUnitNode();
 				// K-Mod note: I've rearranged a few things below, and added 'bFirst'.
@@ -569,7 +570,7 @@ int CvSelectionGroupAI::AI_sumStrength(const CvPlot* pAttackedPlot, DomainTypes 
 	CLLNode<IDInfo>* pUnitNode;
 	CvUnit* pLoopUnit;
 	int	strSum = 0;
-	bool bDefenders = pAttackedPlot ? pAttackedPlot->isVisibleEnemyUnit(getOwnerINLINE()) : false; // K-Mod
+	bool bDefenders = pAttackedPlot ? pAttackedPlot->isVisibleEnemyUnit(getHeadOwner()) : false; // K-Mod
 	bool bCountCollateral = pAttackedPlot && pAttackedPlot != plot(); // K-Mod
 
 	pUnitNode = headUnitNode();
@@ -635,16 +636,6 @@ void CvSelectionGroupAI::AI_queueGroupAttack(int iX, int iY)
 
 	m_iGroupAttackX = iX;
 	m_iGroupAttackY = iY;
-}
-
-inline void CvSelectionGroupAI::AI_cancelGroupAttack()
-{
-	m_bGroupAttack = false;
-}
-
-inline bool CvSelectionGroupAI::AI_isGroupAttack()
-{
-	return m_bGroupAttack;
 }
 
 bool CvSelectionGroupAI::AI_isControlled()
@@ -780,10 +771,10 @@ bool CvSelectionGroupAI::AI_isForceSeparate()
 }
 
 
-void CvSelectionGroupAI::AI_makeForceSeparate()
+/* void CvSelectionGroupAI::AI_makeForceSeparate()
 {
 	m_bForceSeparate = true;
-}
+} */
 
 
 MissionAITypes CvSelectionGroupAI::AI_getMissionAIType() const

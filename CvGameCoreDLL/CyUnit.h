@@ -39,10 +39,10 @@ public:
 
 	bool canEnterTerritory(int /*TeamTypes*/ eTeam, bool bIgnoreRightOfPassage);
 	bool canEnterArea(int /*TeamTypes*/ eTeam, CyArea* pArea, bool bIgnoreRightOfPassage);
-	int /*TeamTypes*/ getDeclareWarMove(CyPlot* pPlot);																						 
-	bool canMoveInto(CyPlot* pPlot, bool bAttack, bool bDeclareWar, bool bIgnoreLoad); 
-	bool canMoveOrAttackInto(CyPlot* pPlot, bool bDeclareWar);		 
-	bool canMoveThrough(CyPlot* pPlot);		 
+	int /*TeamTypes*/ getDeclareWarMove(CyPlot* pPlot);
+	bool canMoveInto(CyPlot* pPlot, bool bAttack, bool bDeclareWar, bool bIgnoreLoad);
+	bool canMoveOrAttackInto(CyPlot* pPlot, bool bDeclareWar);
+	//bool canMoveThrough(CyPlot* pPlot);
 	bool jumpToNearestValidPlot();
 
 	bool canAutomate(AutomateTypes eAutomate);
@@ -264,7 +264,7 @@ public:
 	bool isFull();
 	int cargoSpaceAvailable(int /*SpecialUnitTypes*/ eSpecialCargo, int /*DomainTypes*/ eDomainCargo);	 
 	bool hasCargo();
-	bool canCargoAllMove();
+	//bool canCargoAllMove();
 	int getUnitAICargo(UnitAITypes eUnitAI);
 	int getID();
 

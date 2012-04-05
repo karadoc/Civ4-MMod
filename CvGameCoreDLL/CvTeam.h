@@ -127,7 +127,7 @@ public:
 	// K-Mod
 	int getTypicalUnitValue(UnitAITypes eUnitAI) const;
 
-	int getResearchCost(TechTypes eTech) const;																// Exposed to Python
+	int getResearchCost(TechTypes eTech, bool bGlobalModifiers = true) const; // (K-Mod added bGlobalModifiers) Exposed to Python
 	int getResearchLeft(TechTypes eTech) const;																// Exposed to Python
 
 	bool hasHolyCity(ReligionTypes eReligion) const;																		// Exposed to Python
@@ -331,17 +331,6 @@ public:
 	bool isRiverTrade() const;																												// Exposed to Python
 	void changeRiverTradeCount(int iChange);
 
-	bool isHasTech(TechTypes eIndex) const;																																			// Exposed to Python
-	void setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, bool bFirst, bool bAnnounce);	// Exposed to Python
-
-	bool isNoTradeTech(TechTypes eIndex) const;																														// Exposed to Python
-	void setNoTradeTech(TechTypes eIndex, bool bNewValue);																					// Exposed to Python
-
-	int getImprovementYieldChange(ImprovementTypes eIndex1, YieldTypes eIndex2) const;										// Exposed to Python 
-	void changeImprovementYieldChange(ImprovementTypes eIndex1, YieldTypes eIndex2, int iChange);		// Exposed to Python 
-
-	bool isFriendlyTerritory(TeamTypes eTeam) const;
-
 	int getVictoryCountdown(VictoryTypes eIndex) const;																							// Exposed to Python
 	void setVictoryCountdown(VictoryTypes eIndex, int iTurnsLeft);
 	void changeVictoryCountdown(VictoryTypes eIndex, int iChange);
@@ -353,9 +342,24 @@ public:
 
 	bool isParent(TeamTypes eTeam) const;		// Exposed to Python 
 
+	bool isHasTech(TechTypes eIndex) const;																																			// Exposed to Python
+	void setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, bool bFirst, bool bAnnounce);	// Exposed to Python
+
+	bool isNoTradeTech(TechTypes eIndex) const;																														// Exposed to Python
+	void setNoTradeTech(TechTypes eIndex, bool bNewValue);																					// Exposed to Python
+
+	int getImprovementYieldChange(ImprovementTypes eIndex1, YieldTypes eIndex2) const;										// Exposed to Python 
+	void changeImprovementYieldChange(ImprovementTypes eIndex1, YieldTypes eIndex2, int iChange);		// Exposed to Python 
+
+	bool doesImprovementConnectBonus(ImprovementTypes eImprovement, BonusTypes eBonus) const; // K-Mod
+
+	bool isFriendlyTerritory(TeamTypes eTeam) const;
+
 	int getEspionagePointsAgainstTeam(TeamTypes eIndex) const;																							// Exposed to Python
 	void setEspionagePointsAgainstTeam(TeamTypes eIndex, int iValue);																							// Exposed to Python
 	void changeEspionagePointsAgainstTeam(TeamTypes eIndex, int iChange);																				// Exposed to Python
+
+	int getTotalUnspentEspionage() const; // K-Mod
 
 	int getEspionagePointsEver() const;																							// Exposed to Python
 	void setEspionagePointsEver(int iValue);																							// Exposed to Python
@@ -373,6 +377,8 @@ public:
 
 	void setForceRevealedBonus(BonusTypes eBonus, bool bRevealed);
 	bool isForceRevealedBonus(BonusTypes eBonus) const;
+
+	bool isBonusRevealed(BonusTypes eBonus) const; // K-Mod. (the definitive answer)
 
 	DllExport int countNumHumanGameTurnActive() const;
 	void setTurnActive(bool bNewValue, bool bTurn = true);

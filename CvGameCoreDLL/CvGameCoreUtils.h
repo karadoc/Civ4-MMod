@@ -152,6 +152,12 @@ inline int plotDistance(int iX1, int iY1, int iX2, int iY2)													// Expos
 	return (std::max(iDX, iDY) + (std::min(iDX, iDY) / 2));
 }
 
+// K-Mod, for convenience:
+inline int plotDistance(const CvPlot* plot1, const CvPlot* plot2)
+{
+	return plotDistance(plot1->getX_INLINE(), plot1->getY_INLINE(), plot2->getX_INLINE(), plot2->getY_INLINE());
+}
+
 // 3 | 3 | 3 | 3 | 3 | 3 | 3
 // -------------------------
 // 3 | 2 | 2 | 2 | 2 | 2 | 3
@@ -239,7 +245,8 @@ int getLandPlotsScore(int iLandPlots);									// Exposed to Python
 int getTechScore(TechTypes eTech);											// Exposed to Python
 int getWonderScore(BuildingClassTypes eWonderClass);		// Exposed to Python
 
-ImprovementTypes finalImprovementUpgrade(ImprovementTypes eImprovement, int iCount = 0);		// Exposed to Python
+//ImprovementTypes finalImprovementUpgrade(ImprovementTypes eImprovement, int iCount = 0);		// Exposed to Python
+ImprovementTypes finalImprovementUpgrade(ImprovementTypes eImprovement); // Exposed to Python, K-Mod. (I've removed iCount here, and in the python defs. It's a meaningless parameter.)
 
 int getWorldSizeMaxConscript(CivicTypes eCivic);								// Exposed to Python
 
@@ -321,6 +328,7 @@ bool PUF_isUnitAITypeGroupie(const CvUnit* pUnit, int iData1, int iData2);
 bool PUF_isFiniteRangeAndNotJustProduced(const CvUnit* pUnit, int iData1, int iData2);
 // bbai end
 bool PUF_isMissionAIType(const CvUnit* pUnit, int iData1, int iData2); // K-Mod
+bool PUF_isAirIntercept(const CvUnit* pUnit, int iData1, int iData2); // K-Mod
 
 // FAStarFunc...
 int potentialIrrigation(FAStarNode* parent, FAStarNode* node, int data, const void* pointer, FAStar* finder);
@@ -372,15 +380,7 @@ void getMissionTypeString(CvWString& szString, MissionTypes eMissionType);
 void getMissionAIString(CvWString& szString, MissionAITypes eMissionAI);
 void getUnitAIString(CvWString& szString, UnitAITypes eUnitAI);
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      02/21/10                                jdog5000      */
-/*                                                                                              */
-/* Lead From Behind                                                                             */
-/************************************************************************************************/
-// From Lead From Behind by UncutDragon
+// Lead From Behind by UncutDragon
 int LFBgetCombatOdds(int iAttackerLowFS,	int iAttackerHighFS, int iDefenderLowFS, int iDefenderHighFS, int iNeededRoundsAttacker, int iNeededRoundsDefender, int iAttackerOdds);
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 
 #endif

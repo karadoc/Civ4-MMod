@@ -182,7 +182,7 @@ void CvTeamAI::AI_doTurnPost()
 
 	AI_updateAreaStragies(false);
 
-	if (isHuman())
+	/* if (isHuman())
 	{
 		return;
 	}
@@ -195,7 +195,7 @@ void CvTeamAI::AI_doTurnPost()
 	if (isMinorCiv())
 	{
 		return;
-	}
+	} */ // disabled by K-Mod. There are some basic things inside AI_doWar which are important for all players.
 
 	AI_doWar();
 }
@@ -219,6 +219,8 @@ void CvTeamAI::AI_makeAssignWorkDirty()
 
 void CvTeamAI::AI_updateAreaStragies(bool bTargets)
 {
+	PROFILE_FUNC();
+
 	CvArea* pLoopArea;
 	int iLoop;
 
@@ -717,7 +719,7 @@ int CvTeamAI::AI_calculateBonusWarValue(TeamTypes eTeam) const
 					{
 						// 10 seems like a typical value for a health/happiness resource the AI doesn't have
 						// Values for strategic resources can be 60 or higher
-						iThisValue += GET_PLAYER((PlayerTypes)iJ).AI_bonusVal(eNonObsoleteBonus);
+						iThisValue += GET_PLAYER((PlayerTypes)iJ).AI_bonusVal(eNonObsoleteBonus, 1, true);
 					}
 				}
 				iThisValue /= getAliveCount();
@@ -2640,7 +2642,7 @@ bool CvTeamAI::AI_acceptSurrender( TeamTypes eSurrenderTeam ) const
 							BonusTypes eBonus = pLoopPlot->getNonObsoleteBonusType(getID());
 							if ( eBonus != NO_BONUS)
 							{
-								if(GET_PLAYER(getLeaderID()).AI_bonusVal(eBonus) > 15)
+								if(GET_PLAYER(getLeaderID()).AI_bonusVal(eBonus, 1) > 15)
 								{
 									bValuable = true;
 									break;
@@ -3895,7 +3897,8 @@ bool CvTeamAI::AI_isSneakAttackPreparing(TeamTypes eIndex) const
 
 bool CvTeamAI::AI_isSneakAttackReady(TeamTypes eIndex) const
 {
-	return (AI_isChosenWar(eIndex) && !(AI_isSneakAttackPreparing(eIndex)));
+	//return (AI_isChosenWar(eIndex) && !(AI_isSneakAttackPreparing(eIndex)));
+	return !isAtWar(eIndex) && AI_isChosenWar(eIndex) && !AI_isSneakAttackPreparing(eIndex); // K-Mod
 }
 
 // K-Mod
@@ -4539,14 +4542,14 @@ void CvTeamAI::AI_doWar()
 	int iLoop;
 	int iI, iJ;
 
-	FAssert(!isHuman());
+	/* FAssert(!isHuman());
 	FAssert(!isBarbarian());
 	FAssert(!isMinorCiv());
 
 	if (isAVassal())
 	{
 		return;
-	}
+	} */ // disabled by K-Mod. All civs still need to do some basic updates.
 
 	// allow python to handle it
 	if (GC.getUSE_AI_DO_WAR_CALLBACK()) // K-Mod. block unused python callbacks
@@ -4563,6 +4566,7 @@ void CvTeamAI::AI_doWar()
 
 	int iEnemyPowerPercent = AI_getEnemyPowerPercent();
 
+	// K-Mod note: This first section also used for vassals, and for human players.
 	for (iI = 0; iI < MAX_CIV_TEAMS; iI++)
 	{
 		if (GET_TEAM((TeamTypes)iI).isAlive() && isHasMet((TeamTypes)iI))
@@ -4574,6 +4578,7 @@ void CvTeamAI::AI_doWar()
 				int iAbandonTimeModifier = 100;
 				iAbandonTimeModifier *= 50 + GC.getGameSpeedInfo(GC.getGameINLINE().getGameSpeedType()).getTrainPercent();
 				iAbandonTimeModifier /= 150;
+				if (!isAtWar((TeamTypes)iI)) // K-Mod. time / abandon modifiers are only relevant for war preparations. We don't need them if we are already at war.
 				{
 					int iThreshold = (80*AI_maxWarNearbyPowerRatio())/100;
 
@@ -4776,6 +4781,12 @@ void CvTeamAI::AI_doWar()
 			}
 		}
 	}
+
+	// K-Mod. This is the end of the basics updates.
+	// The rest of the stuff is related to making peace deals, and planning future wars.
+	if (isHuman() || isBarbarian() || isMinorCiv() || isAVassal())
+		return;
+	// K-Mod end
 
 	for (iI = 0; iI < MAX_CIV_PLAYERS; iI++)
 	{

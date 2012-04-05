@@ -37,13 +37,20 @@ public:
 
 	DllExport void pushMission(MissionTypes eMission, int iData1 = -1, int iData2 = -1, int iFlags = 0, bool bAppend = false, bool bManual = false, MissionAITypes eMissionAI = NO_MISSIONAI, CvPlot* pMissionAIPlot = NULL, CvUnit* pMissionAIUnit = NULL);		// Exposed to Python
 	void popMission();																																										// Exposed to Python
-	DllExport void autoMission();
+	//DllExport void autoMission();
+	bool autoMission(); // K-Mod. (No 'DllExport'? Are you serious!?)
 	void updateMission();
 	DllExport CvPlot* lastMissionPlot();																																					// Exposed to Python
 
 	DllExport bool canStartMission(int iMission, int iData1, int iData2, CvPlot* pPlot = NULL, bool bTestVisible = false, bool bUseCache = false);		// Exposed to Python
 	void startMission();
-	void continueMission(int iSteps = 0);
+	//void continueMission(int iSteps = 0);
+	// K-Mod. Split continueMission into two functions to remove the recursion.
+	void continueMission();
+protected:
+	bool continueMission_bulk(int iSteps);
+public:
+	// K-Mod end
 
 	DllExport bool canDoInterfaceMode(InterfaceModeTypes eInterfaceMode);													// Exposed to Python
 	DllExport bool canDoInterfaceModeAt(InterfaceModeTypes eInterfaceMode, CvPlot* pPlot);				// Exposed to Python
@@ -62,14 +69,17 @@ public:
 	bool isFull();																																											// Exposed to Python
 	bool hasCargo();																																										// Exposed to Python
 	int getCargo() const;
+	int cargoSpaceAvailable(SpecialUnitTypes eSpecialCargo = NO_SPECIALUNIT, DomainTypes eDomainCargo = NO_DOMAIN) const; // K-Mod
 	DllExport bool canAllMove();																																				// Exposed to Python
-	bool canAnyMove();																																									// Exposed to Python
-	bool hasMoved();																																										// Exposed to Python
+	bool canAnyMove() const; // Exposed to Python
+	bool canCargoAllMove() const; // K-Mod (moved from CvUnit)
+	bool hasMoved() const; // Exposed to Python
 	bool canEnterTerritory(TeamTypes eTeam, bool bIgnoreRightOfPassage = false) const;									// Exposed to Python
 	bool canEnterArea(TeamTypes eTeam, const CvArea* pArea, bool bIgnoreRightOfPassage = false) const;									// Exposed to Python
 	DllExport bool canMoveInto(CvPlot* pPlot, bool bAttack = false);																		// Exposed to Python
-	DllExport bool canMoveOrAttackInto(CvPlot* pPlot, bool bDeclareWar = false);												// Exposed to Python
-	bool canMoveThrough(CvPlot* pPlot, bool bDeclareWar = false) const; // Exposed to Python, K-Mod added bDeclareWar
+	//DllExport bool canMoveOrAttackInto(CvPlot* pPlot, bool bDeclareWar = false);												// Exposed to Python
+	bool canMoveOrAttackInto(CvPlot* pPlot, bool bDeclareWar = false, bool bCheckMoves = false, bool bAssumeVisible = true); // Exposed to Python, K-Mod added bCheckMoves and bAssumeVisible. (who needs "DllExport"?)
+	bool canMoveThrough(CvPlot* pPlot, bool bDeclareWar = false, bool bAssumeVisible = true) const; // Exposed to Python, K-Mod added bDeclareWar and bAssumeVisible
 	bool canFight();																																										// Exposed to Python 
 	bool canDefend();																																										// Exposed to Python
 	bool canBombard(const CvPlot* pPlot);
@@ -111,22 +121,13 @@ public:
 
 	RouteTypes getBestBuildRoute(CvPlot* pPlot, BuildTypes* peBestBuild = NULL) const;	// Exposed to Python
 
-	//bool groupDeclareWar(CvPlot* pPlot, bool bForce = false); // disabled by K-Mod
 	bool groupAttack(int iX, int iY, int iFlags, bool& bFailedAlreadyFighting);
 	void groupMove(CvPlot* pPlot, bool bCombat, CvUnit* pCombatUnit = NULL, bool bEndMove = false);
 	bool groupPathTo(int iX, int iY, int iFlags);
 	bool groupRoadTo(int iX, int iY, int iFlags);
 	bool groupBuild(BuildTypes eBuild);
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      04/18/10                                jdog5000      */
-/*                                                                                              */
-/* General AI                                                                                   */
-/************************************************************************************************/
-	void setTransportUnit(CvUnit* pTransportUnit, CvSelectionGroup** pOtherGroup = NULL);
-	void setRemoteTransportUnit(CvUnit* pTransportUnit);
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
+
+	void setTransportUnit(CvUnit* pTransportUnit, CvSelectionGroup** pOtherGroup = NULL); // bbai added pOtherGroup
 
 	bool isAmphibPlot(const CvPlot* pPlot) const;																																		// Exposed to Python
 	bool groupAmphibMove(CvPlot* pPlot, int iFlags);
@@ -219,13 +220,14 @@ public:
 	// K-Mod end
 	virtual void AI_queueGroupAttack(int iX, int iY) = 0;
 	virtual void AI_cancelGroupAttack() = 0;
-	virtual bool AI_isGroupAttack() = 0;
+	virtual bool AI_isGroupAttack() const = 0; // K-Mod made const
 
 	virtual bool AI_isControlled() = 0;
 	virtual bool AI_isDeclareWar(const CvPlot* pPlot = NULL) = 0;
 	virtual CvPlot* AI_getMissionAIPlot() = 0;
 	virtual bool AI_isForceSeparate() = 0;
-	virtual void AI_makeForceSeparate() = 0;
+	//virtual void AI_makeForceSeparate() = 0;
+	virtual void AI_setForceSeparate(bool bNewValue = true) = 0; // K-Mod
 	//virtual MissionAITypes AI_getMissionAIType() = 0;
 	virtual MissionAITypes AI_getMissionAIType() const = 0; // K-Mod
 	virtual void AI_setMissionAI(MissionAITypes eNewMissionAI, CvPlot* pNewPlot, CvUnit* pNewUnit) = 0;

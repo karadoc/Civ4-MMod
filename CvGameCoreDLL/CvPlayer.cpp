@@ -3749,6 +3749,8 @@ void CvPlayer::updateCitySight(bool bIncrement, bool bUpdatePlotGroups)
 
 void CvPlayer::updateTradeRoutes()
 {
+	PROFILE_FUNC();
+
 	CLLNode<int>* pCityNode;
 	CvCity* pLoopCity;
 	CvCity* pListCity;
@@ -4172,6 +4174,11 @@ int CvPlayer::countOwnedBonuses(BonusTypes eBonus) const
 	int iCount;
 	int iI;
     int iLoop;
+
+	// K-Mod. Shortcut.
+	if (!GET_TEAM(getTeam()).isBonusRevealed(eBonus))
+		return 0;
+	// K-Mod end
     
     bool bAdvancedStart = (getAdvancedStartPoints() >= 0) && (getCurrentEra() < 3);
 
@@ -4210,56 +4217,37 @@ int CvPlayer::countOwnedBonuses(BonusTypes eBonus) const
 }
 
 
+// K-Mod. I've rearranged some stuff in this function to fix a couple of minor bugs; and to make the code neater and less error prone.
 int CvPlayer::countUnimprovedBonuses(CvArea* pArea, CvPlot* pFromPlot) const
 {
 	PROFILE_FUNC();
 
-	CvPlot* pLoopPlot;
-	ImprovementTypes eImprovement;
-	BuildTypes eBuild;
-	BonusTypes eNonObsoleteBonus;
-	int iCount;
-	int iI, iJ;
-
 	gDLL->getFAStarIFace()->ForceReset(&GC.getBorderFinder());
 
-	iCount = 0;
+	int iCount = 0;
 
-	for (iI = 0; iI < GC.getMapINLINE().numPlotsINLINE(); iI++)
+	for (int iI = 0; iI < GC.getMapINLINE().numPlotsINLINE(); iI++)
 	{
-		pLoopPlot = GC.getMapINLINE().plotByIndexINLINE(iI);
+		CvPlot* pLoopPlot = GC.getMapINLINE().plotByIndexINLINE(iI);
 
-		if (pLoopPlot->area() == pArea)
+		if (pLoopPlot->getOwnerINLINE() == getID() && pLoopPlot->area() == pArea && !pLoopPlot->isCity())
 		{
-			if (pLoopPlot->getOwnerINLINE() == getID())
+			BonusTypes eNonObsoleteBonus = pLoopPlot->getNonObsoleteBonusType(getTeam());
+
+			if (eNonObsoleteBonus != NO_BONUS)
 			{
-				if (!(pLoopPlot->isCity()))
+				if (!doesImprovementConnectBonus(pLoopPlot->getImprovementType(), eNonObsoleteBonus))
 				{
-					eNonObsoleteBonus = pLoopPlot->getNonObsoleteBonusType(getTeam());
-
-					if (eNonObsoleteBonus != NO_BONUS)
+					if ((pFromPlot == NULL) || gDLL->getFAStarIFace()->GeneratePath(&GC.getBorderFinder(), pFromPlot->getX_INLINE(), pFromPlot->getY_INLINE(), pLoopPlot->getX_INLINE(), pLoopPlot->getY_INLINE(), false, getID(), true))
 					{
-						eImprovement = pLoopPlot->getImprovementType();
-
-						if ((eImprovement == NO_IMPROVEMENT) || !(GC.getImprovementInfo(eImprovement).isImprovementBonusTrade(eNonObsoleteBonus)))
+						for (int iJ = 0; iJ < GC.getNumBuildInfos(); iJ++)
 						{
-							if ((pFromPlot == NULL) || gDLL->getFAStarIFace()->GeneratePath(&GC.getBorderFinder(), pFromPlot->getX_INLINE(), pFromPlot->getY_INLINE(), pLoopPlot->getX_INLINE(), pLoopPlot->getY_INLINE(), false, getID(), true))
-							{
-								for (iJ = 0; iJ < GC.getNumBuildInfos(); iJ++)
-								{
-									eBuild = ((BuildTypes)iJ);
+							BuildTypes eBuild = ((BuildTypes)iJ);
 
-									if (GC.getBuildInfo(eBuild).getImprovement() != NO_IMPROVEMENT)
-									{
-										if (GC.getImprovementInfo((ImprovementTypes)(GC.getBuildInfo(eBuild).getImprovement())).isImprovementBonusTrade(eNonObsoleteBonus))
-										{
-											if (canBuild(pLoopPlot, eBuild))
-											{
-												iCount++;
-											}
-										}
-									}
-								}
+							if (doesImprovementConnectBonus((ImprovementTypes)GC.getBuildInfo(eBuild).getImprovement(), eNonObsoleteBonus) && canBuild(pLoopPlot, eBuild))
+							{
+								iCount++;
+								break; // K-Mod!
 							}
 						}
 					}
@@ -4345,81 +4333,12 @@ int CvPlayer::countNumCitiesConnectedToCapital() const
 	return iCount;
 }
 
-
-int CvPlayer::countPotentialForeignTradeCities(CvArea* pIgnoreArea) const
+// K-Mod
+bool CvPlayer::doesImprovementConnectBonus(ImprovementTypes eImprovement, BonusTypes eBonus) const
 {
-	int iTempValue;
-	int iCount;
-	int iI;
-
-	iCount = 0;
-
-	for (iI = 0; iI < MAX_CIV_TEAMS; iI++)
-	{
-		if (GET_TEAM((TeamTypes)iI).isAlive())
-		{
-			if (iI != getTeam())
-			{
-				if (GET_TEAM(getTeam()).isFreeTrade((TeamTypes)iI))
-				{
-					iTempValue = GET_TEAM((TeamTypes)iI).getNumCities();
-
-					if (pIgnoreArea != NULL)
-					{
-						iTempValue -= GET_TEAM((TeamTypes)iI).countNumCitiesByArea(pIgnoreArea);
-					}
-
-					iCount += iTempValue;
-				}
-			}
-		}
-	}
-
-	return iCount;
+	return GET_TEAM(getTeam()).doesImprovementConnectBonus(eImprovement, eBonus);
 }
-
-
-int CvPlayer::countPotentialForeignTradeCitiesConnected() const
-{
-	CvCity* pCapitalCity;
-	CvCity* pLoopCity;
-	int iCount;
-	int iLoop;
-	int iI;
-
-	iCount = 0;
-
-	pCapitalCity = getCapitalCity();
-
-	if (pCapitalCity != NULL)
-	{
-		for (iI = 0; iI < MAX_CIV_PLAYERS; iI++)
-		{
-			if (GET_PLAYER((PlayerTypes)iI).isAlive())
-			{
-				if (GET_PLAYER((PlayerTypes)iI).getTeam() != getTeam())
-				{
-					if (GET_TEAM(getTeam()).isFreeTrade(GET_PLAYER((PlayerTypes)iI).getTeam()))
-					{
-						for (pLoopCity = GET_PLAYER((PlayerTypes)iI).firstCity(&iLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER((PlayerTypes)iI).nextCity(&iLoop))
-						{
-							FAssert(pLoopCity->getOwnerINLINE() != getID());
-							FAssert(pLoopCity->getTeam() != getTeam());
-
-							if (pLoopCity->plotGroup(getID()) == pCapitalCity->plotGroup(getID()))
-							{
-								iCount++;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return iCount;
-}
-
+// K-Mod end
 
 
 bool CvPlayer::canContact(PlayerTypes ePlayer) const
@@ -7310,9 +7229,29 @@ void CvPlayer::setGwPercentAnger(int iNewValue)
 ** K-Mod end
 */
 
-int CvPlayer::calculateUnitCost(int& iFreeUnits, int& iFreeMilitaryUnits, int& iPaidUnits, int& iPaidMilitaryUnits, int& iBaseUnitCost, int& iMilitaryCost, int& iExtraCost) const
+// K-Mod
+int CvPlayer::getUnitCostMultiplier() const
 {
-	int iSupport;
+	int iMultiplier = 100;
+	iMultiplier *= GC.getHandicapInfo(getHandicapType()).getUnitCostPercent();
+	iMultiplier /= 100;
+
+	if (!isHuman() && !isBarbarian())
+	{
+		iMultiplier *= GC.getHandicapInfo(GC.getGameINLINE().getHandicapType()).getAIUnitCostPercent();
+		iMultiplier /= 100;
+
+		iMultiplier *= std::max(0, ((GC.getHandicapInfo(GC.getGameINLINE().getHandicapType()).getAIPerEraModifier() * getCurrentEra()) + 100));
+		iMultiplier /= 100;
+	}
+
+	return iMultiplier;
+}
+// K-Mod end
+
+int CvPlayer::calculateUnitCost(int& iFreeUnits, int& iFreeMilitaryUnits, int& iPaidUnits, int& iPaidMilitaryUnits, int& iUnitCost, int& iMilitaryCost, int& iExtraCost) const
+{
+	//int iSupport;
 
 	iFreeUnits = GC.getHandicapInfo(getHandicapType()).getFreeUnits();
 
@@ -7322,12 +7261,7 @@ int CvPlayer::calculateUnitCost(int& iFreeUnits, int& iFreeMilitaryUnits, int& i
 	iFreeMilitaryUnits = getBaseFreeMilitaryUnits();
 	iFreeMilitaryUnits += ((getTotalPopulation() * getFreeMilitaryUnitsPopulationPercent()) / 100);
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      09/17/09                                jdog5000      */
-/*                                                                                              */
-/*                                                                                              */
-/************************************************************************************************/
-/* original BTS code
+	/* original BTS code
 	if (!isHuman())
 	{
 		if (GET_TEAM(getTeam()).hasMetHuman())
@@ -7335,18 +7269,14 @@ int CvPlayer::calculateUnitCost(int& iFreeUnits, int& iFreeMilitaryUnits, int& i
 			iFreeUnits += getNumCities(); // XXX
 			iFreeMilitaryUnits += getNumCities(); // XXX
 		}
-	}
-*/
-	// Removed hidden AI bonus
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
+	} */ // Hidden AI bonus removed by BBAI.
 
 	iPaidUnits = std::max(0, getNumUnits() - iFreeUnits);
 	iPaidMilitaryUnits = std::max(0, getNumMilitaryUnits() - iFreeMilitaryUnits);
 
-	iSupport = 0;
+	//iSupport = 0;
 
+	/* original bts code
 	iBaseUnitCost = iPaidUnits * getGoldPerUnit();
 	iMilitaryCost = iPaidMilitaryUnits * getGoldPerMilitaryUnit();
 	iExtraCost = getExtraUnitCost();
@@ -7363,7 +7293,17 @@ int CvPlayer::calculateUnitCost(int& iFreeUnits, int& iFreeMilitaryUnits, int& i
 
 		iSupport *= std::max(0, ((GC.getHandicapInfo(GC.getGameINLINE().getHandicapType()).getAIPerEraModifier() * getCurrentEra()) + 100));
 		iSupport /= 100;
-	}
+	}*/
+
+	// K-Mod. GoldPerUnit, etc, are now done as percentages.
+	// Also, "UnitCostPercent" handicap modifiers now apply directly to unit cost only, not military or extra cost.
+	// (iBaseUnitCost is no longer fed back to the caller. Only the modified cost is.)
+	iUnitCost = iPaidUnits * getGoldPerUnit() * getUnitCostMultiplier() / 10000;
+	iMilitaryCost = iPaidMilitaryUnits * getGoldPerMilitaryUnit() / 100;
+	iExtraCost = getExtraUnitCost() / 100;
+
+	int iSupport = iUnitCost + iMilitaryCost + iExtraCost;
+	// K-Mod end
 
 	FAssert(iSupport >= 0);
 
@@ -11995,14 +11935,24 @@ void CvPlayer::setCommercePercent(CommerceTypes eIndex, int iNewValue)
 
 		AI_makeAssignWorkDirty();
 
+		/* original bts code
 		if (getTeam() == GC.getGameINLINE().getActiveTeam())
 		{
 			gDLL->getInterfaceIFace()->setDirty(GameData_DIRTY_BIT, true);
 			gDLL->getInterfaceIFace()->setDirty(Score_DIRTY_BIT, true);
 			gDLL->getInterfaceIFace()->setDirty(CityScreen_DIRTY_BIT, true);
-			gDLL->getInterfaceIFace()->setDirty(CityInfo_DIRTY_BIT, true); // K-Mod
+			gDLL->getInterfaceIFace()->setDirty(Financial_Screen_DIRTY_BIT, true);
+		} */
+		// K-Mod
+		if (getTeam() == GC.getGameINLINE().getActiveTeam())
+			gDLL->getInterfaceIFace()->setDirty(GameData_DIRTY_BIT, true); // research turns left?
+
+		if (getID() == GC.getGameINLINE().getActivePlayer())
+		{
+			gDLL->getInterfaceIFace()->setDirty(CityInfo_DIRTY_BIT, true);
 			gDLL->getInterfaceIFace()->setDirty(Financial_Screen_DIRTY_BIT, true);
 		}
+		// K-Mod end
 	}
 }
 
@@ -14592,10 +14542,10 @@ int CvPlayer::getEspionageMissionBaseCost(EspionageMissionTypes eMission, Player
 					// maybe getReligionPopulation would be slightly better, but it's a bit slower.
 					int iCurrent = GET_PLAYER(eTargetPlayer).getHasReligionCount(eCurrentReligion);
 					int iNew = GET_PLAYER(eTargetPlayer).getHasReligionCount(eReligion);
-					int iTargetCities = GC.getWorldInfo(GC.getMapINLINE().getWorldSize()).getTargetNumCities();
+					int iCitiesTarget = GC.getWorldInfo(GC.getMapINLINE().getWorldSize()).getTargetNumCities();
 					FAssert(iCurrent > 0 && iNew > 0);
-					iMissionCost *= std::max(iCurrent, iNew) + iTargetCities;
-					iMissionCost /= iNew + iTargetCities;
+					iMissionCost *= std::max(iCurrent, iNew) + iCitiesTarget;
+					iMissionCost /= iNew + iCitiesTarget;
 				}
 				// K-Mod end
 			}
@@ -14881,6 +14831,8 @@ int CvPlayer::getEspionageMissionCostModifier(EspionageMissionTypes eMission, Pl
 		eTargetPlayer = getID();
 	}
 
+	const CvTeam& kTargetTeam = GET_TEAM(GET_PLAYER(eTargetPlayer).getTeam()); // (moved from the bottom of the function)
+
 	//if (pCity != NULL && kMission.isTargetsCity())
 	if (pCity != NULL && (eMission == NO_ESPIONAGEMISSION || GC.getEspionageMissionInfo(eMission).isTargetsCity()))
 	{
@@ -14962,21 +14914,27 @@ int CvPlayer::getEspionageMissionCostModifier(EspionageMissionTypes eMission, Pl
 	}
 
 	// My points VS. Your points to mod cost
-	int iTargetPoints = GET_TEAM(GET_PLAYER(eTargetPlayer).getTeam()).getEspionagePointsEver();
+	/* original bts code
+	int iTargetPoints = kTargetTeam.getEspionagePointsEver();
 	int iOurPoints = GET_TEAM(getTeam()).getEspionagePointsEver();
-	iModifier *= (GC.getDefineINT("ESPIONAGE_SPENDING_MULTIPLIER") * (2 * iTargetPoints + iOurPoints)) / std::max(1, iTargetPoints + 2 * iOurPoints);
+		iModifier *= (GC.getDefineINT("ESPIONAGE_SPENDING_MULTIPLIER") * (2 * iTargetPoints + iOurPoints)) / std::max(1, iTargetPoints + 2 * iOurPoints);
+		iModifier /= 100;
+	} */
+	// K-Mod. use the dedicated function that exists for this modifier, for consistency.
+	iModifier *= ::getEspionageModifier(getTeam(), kTargetTeam.getID());
 	iModifier /= 100;
+	// K-Mod end
 	
 	// Counterespionage Mission Mod
-	CvTeam& kTargetTeam = GET_TEAM(GET_PLAYER(eTargetPlayer).getTeam());
 	/* if (kTargetTeam.getCounterespionageModAgainstTeam(getTeam()) > 0)
 	{
 		iModifier *= kTargetTeam.getCounterespionageModAgainstTeam(getTeam());
 		iModifier /= 100;
 	} */
 	// K-Mod
-	iModifier *= (100 + std::max(-100, kTargetTeam.getCounterespionageModAgainstTeam(getTeam())));
+	iModifier *= 100 + std::max(-100, kTargetTeam.getCounterespionageModAgainstTeam(getTeam()));
 	iModifier /= 100;
+	// K-Mod end
 
 	return iModifier;
 }
@@ -15050,7 +15008,7 @@ bool CvPlayer::doEspionageMission(EspionageMissionTypes eMission, PlayerTypes eT
 				bSomethingHappened = true;
 				bShowExplosion = true;
 				// K-Mod
-				if (!isHuman())
+				if (!isHuman() || pCity->isProductionAutomated())
 					pCity->AI_setChooseProductionDirty(true);
 				// K-Mod end
 			}
@@ -15096,7 +15054,7 @@ bool CvPlayer::doEspionageMission(EspionageMissionTypes eMission, PlayerTypes eT
 				bSomethingHappened = true;
 				bShowExplosion = true;
 				// K-Mod
-				if (!isHuman())
+				if (!isHuman()) // not for automated cities
 					pCity->AI_setChooseProductionDirty(true);
 				// K-Mod end
 			}
@@ -17065,6 +17023,7 @@ void CvPlayer::processCivics(CivicTypes eCivic, int iChange)
 	changeNumCitiesMaintenanceModifier(GC.getCivicInfo(eCivic).getNumCitiesMaintenanceModifier() * iChange);
 	changeCorporationMaintenanceModifier(GC.getCivicInfo(eCivic).getCorporationMaintenanceModifier() * iChange);
 	changeExtraHealth(GC.getCivicInfo(eCivic).getExtraHealth() * iChange);
+	changeExtraHappiness(GC.getCivicInfo(eCivic).getExtraHappiness() * iChange); // K-Mod
 	changeFreeExperience(GC.getCivicInfo(eCivic).getFreeExperience() * iChange);
 	changeWorkerSpeedModifier(GC.getCivicInfo(eCivic).getWorkerSpeedModifier() * iChange);
 	changeImprovementUpgradeRateModifier(GC.getCivicInfo(eCivic).getImprovementUpgradeRateModifier() * iChange);
@@ -17233,6 +17192,13 @@ void CvPlayer::read(FDataStreamBase* pStream)
 	pStream->Read(&m_iFreeMilitaryUnitsPopulationPercent);
 	pStream->Read(&m_iGoldPerUnit);
 	pStream->Read(&m_iGoldPerMilitaryUnit);
+	// K-Mod
+	if (uiFlag < 3)
+	{
+		m_iGoldPerUnit *= 100;
+		m_iGoldPerMilitaryUnit *= 100;
+	}
+	// K-Mod end
 	pStream->Read(&m_iExtraUnitCost);
 	pStream->Read(&m_iNumMilitaryUnits);
 	pStream->Read(&m_iHappyPerMilitaryUnit);
@@ -17318,6 +17284,10 @@ void CvPlayer::read(FDataStreamBase* pStream)
 	pStream->Read(NUM_COMMERCE_TYPES, m_aiCapitalCommerceRateModifier);
 	pStream->Read(NUM_COMMERCE_TYPES, m_aiStateReligionBuildingCommerce);
 	pStream->Read(NUM_COMMERCE_TYPES, m_aiSpecialistExtraCommerce);
+	// Temporary K-Mod hack, to move from version v1.25 to v1.26. (this will be deleted in the next version)
+	if (m_aiSpecialistExtraCommerce[COMMERCE_RESEARCH] == 2 && GC.getNumCivicInfos() > 2 && GC.getCivicInfo((CivicTypes)2).getSpecialistExtraCommerce(COMMERCE_RESEARCH) == 3)
+		m_aiSpecialistExtraCommerce[COMMERCE_RESEARCH] = 3;
+	//
 	pStream->Read(NUM_COMMERCE_TYPES, m_aiCommerceFlexibleCount);
 	pStream->Read(MAX_PLAYERS, m_aiGoldPerTurnByPlayer);
 	pStream->Read(MAX_TEAMS, m_aiEspionageSpendingWeightAgainstTeam);
@@ -17655,7 +17625,7 @@ void CvPlayer::write(FDataStreamBase* pStream)
 {
 	int iI;
 
-	uint uiFlag = 2;
+	uint uiFlag = 3;
 	pStream->Write(uiFlag);		// flag for expansion
 
 	pStream->Write(m_iStartingX);

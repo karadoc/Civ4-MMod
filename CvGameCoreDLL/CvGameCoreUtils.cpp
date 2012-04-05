@@ -29,7 +29,7 @@
 #define PATH_TERRITORY_WEIGHT   (5) // was 3
 #define PATH_STEP_WEIGHT        (4) // was 2
 #define PATH_STRAIGHT_WEIGHT    (2) // was 1
-#define PATH_ASYMMETRY_WEIGHT   (1) // K-Mod
+//#define PATH_ASYMMETRY_WEIGHT   (1) // K-Mod
 
 // #define PATH_DAMAGE_WEIGHT      (500) // K-Mod (disabled because it isn't used)
 #define PATH_COMBAT_WEIGHT      (300) // K-Mod. penalty for having to fight along the way.
@@ -401,6 +401,7 @@ int getWonderScore(BuildingClassTypes eWonderClass)
 	}
 }
 
+/* original bts code
 ImprovementTypes finalImprovementUpgrade(ImprovementTypes eImprovement, int iCount)
 {
 	FAssertMsg(eImprovement != NO_IMPROVEMENT, "Improvement is not assigned a valid value");
@@ -418,7 +419,23 @@ ImprovementTypes finalImprovementUpgrade(ImprovementTypes eImprovement, int iCou
 	{
 		return eImprovement;
 	}
+} */
+// K-Mod
+ImprovementTypes finalImprovementUpgrade(ImprovementTypes eImprovement)
+{
+	if (eImprovement == NO_IMPROVEMENT)
+		return NO_IMPROVEMENT;
+
+	FAssert(eImprovement < GC.getNumImprovementInfos());
+
+	int iLoopDetector = GC.getNumImprovementInfos();
+
+	while (GC.getImprovementInfo(eImprovement).getImprovementUpgrade() != NO_IMPROVEMENT && --iLoopDetector > 0)
+		eImprovement = (ImprovementTypes)GC.getImprovementInfo(eImprovement).getImprovementUpgrade();
+
+	return iLoopDetector == 0 ? NO_IMPROVEMENT : eImprovement;
 }
+// K-Mod end
 
 int getWorldSizeMaxConscript(CivicTypes eCivic)
 {
@@ -926,14 +943,25 @@ int getEspionageModifier(TeamTypes eOurTeam, TeamTypes eTargetTeam)
 {
 	FAssert(eOurTeam != eTargetTeam);
 	FAssert(eOurTeam != BARBARIAN_TEAM);
-	FAssert(eTargetTeam != BARBARIAN_TEAM);
+	// FAssert(eTargetTeam != BARBARIAN_TEAM); // K-Mod note. This is possible for legitimate reasons (although, the result is never important...)
 
+	/* original bts code
 	int iTargetPoints = GET_TEAM(eTargetTeam).getEspionagePointsEver();
 	int iOurPoints = GET_TEAM(eOurTeam).getEspionagePointsEver();
 
 	int iModifier = GC.getDefineINT("ESPIONAGE_SPENDING_MULTIPLIER") * (2 * iTargetPoints + iOurPoints);
 	iModifier /= std::max(1, iTargetPoints + 2 * iOurPoints);
-	return iModifier;
+	return iModifier; */
+	// K-Mod. Scale the points modifier based on the teams' population. (Note ESPIONAGE_SPENDING_MULTIPLIER is 100 in the default xml.)
+	const CvTeam& kOurTeam = GET_TEAM(eOurTeam);
+	const CvTeam& kTargetTeam = GET_TEAM(eTargetTeam);
+
+	int iPopScale = 5 * GC.getWorldInfo(GC.getMapINLINE().getWorldSize()).getTargetNumCities();
+	int iTargetPoints = 10 * kTargetTeam.getEspionagePointsEver() / std::max(1, iPopScale + kTargetTeam.getTotalPopulation(false));
+	int iOurPoints = 10 * kOurTeam.getEspionagePointsEver() / std::max(1, iPopScale + kOurTeam.getTotalPopulation(false));
+
+	return GC.getDefineINT("ESPIONAGE_SPENDING_MULTIPLIER") * (2 * iTargetPoints + iOurPoints) / std::max(1, iTargetPoints + 2 * iOurPoints);
+	// K-Mod end
 }
 
 void setTradeItem(TradeData* pItem, TradeableItems eItemType, int iData)
@@ -1321,6 +1349,11 @@ bool PUF_isMissionAIType(const CvUnit* pUnit, int iData1, int iData2)
 {
 	return pUnit->getGroup()->AI_getMissionAIType() == iData1;
 }
+
+bool PUF_isAirIntercept(const CvUnit* pUnit, int iData1, int iData2)
+{
+	return pUnit->getDomainType() == DOMAIN_AIR && pUnit->getGroup()->getActivityType() == ACTIVITY_INTERCEPT;
+}
 // K-Mod end
 
 int potentialIrrigation(FAStarNode* parent, FAStarNode* node, int data, const void* pointer, FAStar* finder)
@@ -1358,21 +1391,13 @@ int changeIrrigated(FAStarNode* parent, FAStarNode* node, int data, const void* 
 	return 1;
 }
 
+// (edited by K-Mod)
 int pathDestValid(int iToX, int iToY, const void* pointer, FAStar* finder)
 {
 	PROFILE_FUNC();
 
-	CLLNode<IDInfo>* pUnitNode1;
-	CLLNode<IDInfo>* pUnitNode2;
-	//CvSelectionGroup* pSelectionGroup;
-	CvUnit* pLoopUnit1;
-	CvUnit* pLoopUnit2;
-	CvPlot* pToPlot;
-	bool bAIControl;
-	bool bValid;
-
-	pToPlot = GC.getMapINLINE().plotSorenINLINE(iToX, iToY);
-	FAssert(pToPlot != NULL);
+	CvPlot* pToPlot = GC.getMapINLINE().plotSorenINLINE(iToX, iToY);
+	FAssert(pToPlot);
 
 	//pSelectionGroup = ((CvSelectionGroup *)pointer);
 	// K-Mod
@@ -1381,16 +1406,12 @@ int pathDestValid(int iToX, int iToY, const void* pointer, FAStar* finder)
 	// K-Mod end
 
 	if (pSelectionGroup->atPlot(pToPlot))
-	{
 		return TRUE;
-	}
 
 	if (pSelectionGroup->getDomainType() == DOMAIN_IMMOBILE)
-	{
 		return FALSE;
-	}
 
-	bAIControl = pSelectionGroup->AI_isControlled();
+	bool bAIControl = pSelectionGroup->AI_isControlled();
 
 	if (bAIControl)
 	{
@@ -1435,22 +1456,22 @@ int pathDestValid(int iToX, int iToY, const void* pointer, FAStar* finder)
 	{
 		if (pSelectionGroup->isAmphibPlot(pToPlot))
 		{
-			pUnitNode1 = pSelectionGroup->headUnitNode();
+			CLLNode<IDInfo>* pUnitNode1 = pSelectionGroup->headUnitNode();
 
 			while (pUnitNode1 != NULL)
 			{
-				pLoopUnit1 = ::getUnit(pUnitNode1->m_data);
+				CvUnit* pLoopUnit1 = ::getUnit(pUnitNode1->m_data);
 				pUnitNode1 = pSelectionGroup->nextUnitNode(pUnitNode1);
 
 				if ((pLoopUnit1->getCargo() > 0) && (pLoopUnit1->domainCargo() == DOMAIN_LAND))
 				{
-					bValid = false;
+					bool bValid = false;
 
-					pUnitNode2 = pLoopUnit1->plot()->headUnitNode();
+					CLLNode<IDInfo>* pUnitNode2 = pLoopUnit1->plot()->headUnitNode();
 
 					while (pUnitNode2 != NULL)
 					{
-						pLoopUnit2 = ::getUnit(pUnitNode2->m_data);
+						CvUnit* pLoopUnit2 = ::getUnit(pUnitNode2->m_data);
 						pUnitNode2 = pLoopUnit1->plot()->nextUnitNode(pUnitNode2);
 
 						if (pLoopUnit2->getTransportUnit() == pLoopUnit1)
@@ -1458,7 +1479,7 @@ int pathDestValid(int iToX, int iToY, const void* pointer, FAStar* finder)
 							if (pLoopUnit2->isGroupHead())
 							{
 								//if (pLoopUnit2->getGroup()->canMoveOrAttackInto(pToPlot, (pSelectionGroup->AI_isDeclareWar(pToPlot) || (iFlags & MOVE_DECLARE_WAR))))
-								if (pLoopUnit2->getGroup()->canMoveOrAttackInto(pToPlot, iFlags & MOVE_DECLARE_WAR)) // K-Mod. The new AI must be explicit about declaring war.
+								if (pLoopUnit2->getGroup()->canMoveOrAttackInto(pToPlot, iFlags & MOVE_DECLARE_WAR, false, bAIControl)) // K-Mod. The new AI must be explicit about declaring war.
 								{
 									bValid = true;
 									break;
@@ -1479,7 +1500,7 @@ int pathDestValid(int iToX, int iToY, const void* pointer, FAStar* finder)
 		else
 		{
 			//if (!(pSelectionGroup->canMoveOrAttackInto(pToPlot, (pSelectionGroup->AI_isDeclareWar(pToPlot) || (iFlags & MOVE_DECLARE_WAR)))))
-			if (!pSelectionGroup->canMoveOrAttackInto(pToPlot, iFlags & MOVE_DECLARE_WAR)) // K-Mod. The new AI must be explicit about declaring war.
+			if (!pSelectionGroup->canMoveOrAttackInto(pToPlot, iFlags & MOVE_DECLARE_WAR, false, bAIControl)) // K-Mod. The new AI must be explicit about declaring war.
 			{
 				return FALSE;
 			}
@@ -1548,23 +1569,9 @@ int pathCost(FAStarNode* parent, FAStarNode* node, int data, const void* pointer
 
 	iWorstCost += PATH_STEP_WEIGHT;
 
-	// K-Mod note: it's actually marginally better strategy to move diagonally - for mapping reasons.
-	// So let the AI prefer diagonal movement.
-	// However, diagonal zig-zags will probably seem unnatural and weird to humans who are just trying to move in a straight line.
-	// So let the pathfinding for human groups prefer cardinal movement.
-	if (pSelectionGroup->AI_isControlled())
-	{
-		if (pFromPlot->getX_INLINE() == pToPlot->getX_INLINE() || pFromPlot->getY_INLINE() == pToPlot->getY_INLINE())
-			iWorstCost += PATH_STRAIGHT_WEIGHT;
-	}
-	else
-	{
-		if ((pFromPlot->getX_INLINE() != pToPlot->getX_INLINE()) && (pFromPlot->getY_INLINE() != pToPlot->getY_INLINE()))
-			iWorstCost += PATH_STRAIGHT_WEIGHT;
-	}
-
 	// symmetry breaking. This is meant to prevent two paths from having equal cost.
 	// (If two paths have equal cost, sometimes the interface shows one path and the units follow the other. This is bad.)
+	/* original K-Mod symmetry breaking. (extra cost for turning a corner)
 	if (parent->m_pParent)
 	{
 		const int map_width = GC.getMapINLINE().getGridWidthINLINE();
@@ -1599,7 +1606,33 @@ int pathCost(FAStarNode* parent, FAStarNode* node, int data, const void* pointer
 
 #undef WRAP_X
 #undef WRAP_Y
+	} */
+
+	// Unfortunately, the above code is not sufficient to fix the symmetry problem.
+	// Here's a new method, which combines symmetry breaking with the old "straight path" effect.
+	// Note: symmetry breaking is not important for AI controlled units.
+
+	// It's actually marginally better strategy to move diagonally - for mapping reasons.
+	// So let the AI prefer diagonal movement.
+	// However, diagonal zig-zags will probably seem unnatural and weird to humans who are just trying to move in a straight line.
+	// So let the pathfinding for human groups prefer cardinal movement.
+	if (pSelectionGroup->AI_isControlled())
+	{
+		if (pFromPlot->getX_INLINE() == pToPlot->getX_INLINE() || pFromPlot->getY_INLINE() == pToPlot->getY_INLINE())
+			iWorstCost += PATH_STRAIGHT_WEIGHT;
 	}
+	else
+	{
+		if ((pFromPlot->getX_INLINE() != pToPlot->getX_INLINE()) && (pFromPlot->getY_INLINE() != pToPlot->getY_INLINE()))
+			iWorstCost += PATH_STRAIGHT_WEIGHT * (1+(node->m_iX + node->m_iY)%2);
+		iWorstCost += (node->m_iX + node->m_iY+1)%3;
+	}
+	// unfortunately, this simple method may have problems at the world-wrap boundries.
+	// It's difficult to tell when to correct for wrap effects and when not to, because as soon as the
+	// unit starts moving, the start position of the path changes, and so it's no longer posible to tell
+	// whether or not the unit started on the other side of the boundry.  Drat.
+
+	// end symmetry breaking.
 
 	// lets try this without cheating, shall we?
 	if (!pToPlot->isRevealed(eTeam, false))
@@ -1676,7 +1709,11 @@ int pathCost(FAStarNode* parent, FAStarNode* node, int data, const void* pointer
 			if (pLoopUnit->canFight())
 			{
 				iDefenceCount++;
-				iDefenceMod += pLoopUnit->noDefensiveBonus() ? 0 : pToPlot->defenseModifier(eTeam, false);
+				if (pLoopUnit->canDefend(pToPlot))
+					iDefenceMod += pLoopUnit->noDefensiveBonus() ? 0 : pToPlot->defenseModifier(eTeam, false);
+				else
+					iDefenceMod -= 100; // we don't want to be here.
+
 				// K-Mod note. the above code doesn't count all defensive bonuses, unfortunately.
 				// We could count everything like this:
 				/*
@@ -1687,32 +1724,31 @@ int pathCost(FAStarNode* parent, FAStarNode* node, int data, const void* pointer
 				// but that seems like overkill. I'm worried it would be too slow.
 
 				// defence for units who stay behind after attacking an enemy.
-				//if (pSelectionGroup->AI_isControlled()) // let human players have this convenience...
-				if (pSelectionGroup->AI_isControlled() || parent->m_iKnownCost != 0) // but not for the first step.
+				if (iEnemies > 0)
 				{
-					if (pLoopUnit->canAttack())
+					// For human-controlled units, only apply the following effects for multi-step moves.
+					// (otherwise this might prevent the user from attacking from where they want to attack from.)
+					if (pSelectionGroup->AI_isControlled() || parent->m_iKnownCost != 0 || iFlags & MOVE_HAS_STEPPED)
 					{
-						if (iEnemies > 0)
+						iAttackCount++;
+						iFromDefenceMod += pLoopUnit->noDefensiveBonus() ? 0 : pFromPlot->defenseModifier(eTeam, false);
+
+						if (!pFromPlot->isCity())
 						{
-							iAttackCount++;
-							iFromDefenceMod += pLoopUnit->noDefensiveBonus() ? 0 : pFromPlot->defenseModifier(eTeam, false);
+							iAttackWeight += PATH_CITY_WEIGHT;
+							// it's done this way around rather than subtracting when in a city so that the overall adjustment can't be negative.
+						}
 
-							if (!pFromPlot->isCity())
-							{
-								iAttackWeight += PATH_CITY_WEIGHT;
-								// it's done this way around rather than subtracting when in a city so that the overall adjustment can't be negative.
-							}
-
-							if (pFromPlot->isRiverCrossing(directionXY(pFromPlot, pToPlot)))
-							{
-								if (!pLoopUnit->isRiver())
-								{
-									iAttackWeight -= PATH_RIVER_WEIGHT * GC.getRIVER_ATTACK_MODIFIER(); // Note, river modifier will be negative.
-									//iAttackMod -= (PATH_MOVEMENT_WEIGHT * iMovesLeft);
-								}
-							}
+						if (pLoopUnit->canAttack() && !pLoopUnit->isRiver() && pFromPlot->isRiverCrossing(directionXY(pFromPlot, pToPlot)))
+						{
+							iAttackWeight -= PATH_RIVER_WEIGHT * GC.getRIVER_ATTACK_MODIFIER(); // Note, river modifier will be negative.
+							//iAttackMod -= (PATH_MOVEMENT_WEIGHT * iMovesLeft);
 						}
 					}
+					// If this is a direct attack move from a human player, make sure it is the best value move possible. (This allows humans to choose which plot they attack from.)
+					// (note: humans have no way of ordering units to attack units en-route, so the fact that this is an attack move means we are at the destination.)
+					else if (pLoopUnit->canAttack()) // parent->m_iKnownCost == 0 && !(iFlags & MOVE_HAS_STEPPED) && !pSelectionGroup->AI_isControlled()
+						return PATH_STEP_WEIGHT; // DONE!
 				}
 			}
 		}
@@ -1873,7 +1909,7 @@ int pathValid_source(FAStarNode* parent, CvSelectionGroup* pSelectionGroup, int 
 		else
 		{
 			//if (!(pSelectionGroup->canMoveThrough(pFromPlot)))
-			if (!pSelectionGroup->canMoveThrough(pFromPlot, iFlags & MOVE_DECLARE_WAR && !pSelectionGroup->isHuman())) // K-Mod
+			if (!pSelectionGroup->canMoveThrough(pFromPlot, iFlags & MOVE_DECLARE_WAR && !pSelectionGroup->isHuman(), iFlags & MOVE_ASSUME_VISIBLE || !pSelectionGroup->isHuman())) // K-Mod
 			{
 				return FALSE;
 			}
@@ -2590,6 +2626,7 @@ void getMissionAIString(CvWString& szString, MissionAITypes eMissionAI)
 	case MISSIONAI_PICKUP: szString = L"MISSIONAI_PICKUP"; break;
 // K-Mod
 #define mission_string(x) case x: szString = L#x; break;
+	mission_string(MISSIONAI_GUARD_COAST)
 	mission_string(MISSIONAI_SPREAD_CORPORATION)
 	mission_string(MISSIONAI_RECON_SPY)
 	mission_string(MISSIONAI_JOIN)
@@ -2657,6 +2694,7 @@ void getUnitAIString(CvWString& szString, UnitAITypes eUnitAI)
 	case UNITAI_ATTACK_AIR: szString = L"attack air"; break;
 	case UNITAI_DEFENSE_AIR: szString = L"defense air"; break;
 	case UNITAI_CARRIER_AIR: szString = L"carrier air"; break;
+	case UNITAI_MISSILE_AIR: szString = L"missile air"; break; // K-Mod (this string was missing)
 	case UNITAI_PARADROP: szString = L"paradrop"; break;
 	case UNITAI_ATTACK_CITY_LEMMING: szString = L"attack city lemming"; break;
 
@@ -2664,12 +2702,7 @@ void getUnitAIString(CvWString& szString, UnitAITypes eUnitAI)
 	}
 }
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      02/21/10                                jdog5000      */
-/*                                                                                              */
-/* Efficiency                                                                                   */
-/************************************************************************************************/
-// From Lead From Behind by UncutDragon
+// Lead From Behind by UncutDragon
 typedef std::vector<int> LFBoddsAttOdds;
 typedef std::vector<LFBoddsAttOdds> LFBoddsDefRounds;
 typedef std::vector<LFBoddsDefRounds> LFBoddsAttRounds;
@@ -2802,7 +2835,8 @@ int LFBlookupCombatOdds(LFBoddsFirstStrike* pOdds, int iFSIndex, int iFirstStrik
 		int iMaxOdds = LFBlookupCombatOdds(pAttOdds, iMaxOddsIndex, iFirstStrikes, iNeededRoundsAttacker, iNeededRoundsDefender, iMaxOddsValue);
 		
 		// Do a simple weighted average on the two odds
-		iOdds += (((iAttackerOdds - iMinOddsValue) * (iMaxOdds - iOdds)) / LFB_ODDS_INTERVAL_SIZE);
+		//iOdds += (((iAttackerOdds - iMinOddsValue) * (iMaxOdds - iOdds)) / LFB_ODDS_INTERVAL_SIZE);
+		iOdds += ((iAttackerOdds - iMinOddsValue) * (iMaxOdds - iOdds) + LFB_ODDS_INTERVAL_SIZE/2) / LFB_ODDS_INTERVAL_SIZE; // K-Mod. (rounded rather than truncated)
 	}
 
 	return iOdds;
@@ -2983,6 +3017,4 @@ int LFBcalculateCombatOdds(int iFirstStrikes, int iNeededRoundsAttacker, int iNe
 
 	return iOdds;
 }
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
+// lfb end

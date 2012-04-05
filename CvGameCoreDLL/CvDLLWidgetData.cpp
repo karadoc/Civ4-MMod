@@ -938,6 +938,11 @@ bool CvDLLWidgetData::executeAltAction( CvWidgetDataStruct &widgetDataStruct )
 	case WIDGET_TECH_TREE:
 		doPediaTechJump(widgetDataStruct);
 		break;
+	// K-Mod
+	case WIDGET_CHANGE_PERCENT:
+		doChangePercentAlt(widgetDataStruct);
+		break;
+	// K-Mod end
 	case WIDGET_TRAIN:
 		doPediaTrainJump(widgetDataStruct);
 		break;
@@ -1146,7 +1151,8 @@ void CvDLLWidgetData::doTrain(CvWidgetDataStruct &widgetDataStruct)
 
 	if (widgetDataStruct.m_iData2 != FFreeList::INVALID_INDEX)
 	{
-		CvMessageControl::getInstance().sendPushOrder(widgetDataStruct.m_iData2, ORDER_TRAIN, eUnit, false, false, false);
+		//CvMessageControl::getInstance().sendPushOrder(widgetDataStruct.m_iData2, ORDER_TRAIN, eUnit, false, false, false);
+		CvMessageControl::getInstance().sendPushOrder(widgetDataStruct.m_iData2, ORDER_TRAIN, eUnit, false, true, 0);
 	}
 	else
 	{
@@ -1165,7 +1171,8 @@ void CvDLLWidgetData::doConstruct(CvWidgetDataStruct &widgetDataStruct)
 
 	if (widgetDataStruct.m_iData2 != FFreeList::INVALID_INDEX)
 	{
-		CvMessageControl::getInstance().sendPushOrder(widgetDataStruct.m_iData2, ORDER_CONSTRUCT, eBuilding, false, false, false);
+		//CvMessageControl::getInstance().sendPushOrder(widgetDataStruct.m_iData2, ORDER_CONSTRUCT, eBuilding, false, false, false);
+		CvMessageControl::getInstance().sendPushOrder(widgetDataStruct.m_iData2, ORDER_CONSTRUCT, eBuilding, false, true, 0);
 	}
 	else
 	{
@@ -1187,7 +1194,8 @@ void CvDLLWidgetData::doCreate(CvWidgetDataStruct &widgetDataStruct)
 {
 	if (widgetDataStruct.m_iData2 != FFreeList::INVALID_INDEX)
 	{
-		CvMessageControl::getInstance().sendPushOrder(widgetDataStruct.m_iData2, ORDER_CREATE, widgetDataStruct.m_iData1, false, false, false);
+		//CvMessageControl::getInstance().sendPushOrder(widgetDataStruct.m_iData2, ORDER_CREATE, widgetDataStruct.m_iData1, false, false, false);
+		CvMessageControl::getInstance().sendPushOrder(widgetDataStruct.m_iData2, ORDER_CREATE, widgetDataStruct.m_iData1, false, true, 0);
 	}
 	else
 	{
@@ -1202,7 +1210,8 @@ void CvDLLWidgetData::doMaintain(CvWidgetDataStruct &widgetDataStruct)
 {
 	if (widgetDataStruct.m_iData2 != FFreeList::INVALID_INDEX)
 	{
-		CvMessageControl::getInstance().sendPushOrder(widgetDataStruct.m_iData2, ORDER_MAINTAIN, widgetDataStruct.m_iData1, false, false, false);
+		//CvMessageControl::getInstance().sendPushOrder(widgetDataStruct.m_iData2, ORDER_MAINTAIN, widgetDataStruct.m_iData1, false, false, false);
+		CvMessageControl::getInstance().sendPushOrder(widgetDataStruct.m_iData2, ORDER_MAINTAIN, widgetDataStruct.m_iData1, false, true, 0);
 	}
 	else
 	{
@@ -1235,7 +1244,6 @@ void CvDLLWidgetData::doChangeSpecialist(CvWidgetDataStruct &widgetDataStruct)
 {
 	GC.getGameINLINE().selectedCitiesGameNetMessage(GAMEMESSAGE_DO_TASK, TASK_CHANGE_SPECIALIST, widgetDataStruct.m_iData1, widgetDataStruct.m_iData2);
 }
-
 
 void CvDLLWidgetData::doResearch(CvWidgetDataStruct &widgetDataStruct)
 {
@@ -1285,6 +1293,13 @@ void CvDLLWidgetData::doChangePercent(CvWidgetDataStruct &widgetDataStruct)
 {
 	CvMessageControl::getInstance().sendPercentChange(((CommerceTypes)widgetDataStruct.m_iData1), widgetDataStruct.m_iData2);
 }
+
+// K-Mod. Right click on "change percent" buttons will set them to min / max.
+void CvDLLWidgetData::doChangePercentAlt(CvWidgetDataStruct &widgetDataStruct)
+{
+	CvMessageControl::getInstance().sendPercentChange((CommerceTypes)widgetDataStruct.m_iData1, widgetDataStruct.m_iData2 * 100);
+}
+// K-Mod end
 
 void CvDLLWidgetData::doCityTab(CvWidgetDataStruct &widgetDataStruct)
 {
@@ -1454,7 +1469,8 @@ void CvDLLWidgetData::doSelected(CvWidgetDataStruct &widgetDataStruct)
 
 	if (pHeadSelectedCity != NULL)
 	{
-		GC.getGameINLINE().selectedCitiesGameNetMessage(GAMEMESSAGE_POP_ORDER, widgetDataStruct.m_iData1);
+		//GC.getGameINLINE().selectedCitiesGameNetMessage(GAMEMESSAGE_POP_ORDER, widgetDataStruct.m_iData1);
+		GC.getGameINLINE().selectedCitiesGameNetMessage(GAMEMESSAGE_POP_ORDER, widgetDataStruct.m_iData1, -1, -1, false, GC.altKey(), GC.shiftKey(), GC.ctrlKey());
 	}
 }
 
@@ -2786,9 +2802,10 @@ void CvDLLWidgetData::parseActionHelp(CvWidgetDataStruct &widgetDataStruct, CvWS
 				{
 					if (eBonus != NO_BONUS)
 					{
-						if (!GET_TEAM(pHeadSelectedUnit->getTeam()).isBonusObsolete(eBonus))
+						//if (!GET_TEAM(pHeadSelectedUnit->getTeam()).isBonusObsolete(eBonus))
+						if (GET_PLAYER(pHeadSelectedUnit->getOwnerINLINE()).doesImprovementConnectBonus(eImprovement, eBonus)) // K-Mod
 						{
-							if (GC.getImprovementInfo(eImprovement).isImprovementBonusTrade(eBonus))
+							//if (GC.getImprovementInfo(eImprovement).isImprovementBonusTrade(eBonus))
 							{
 								szBuffer.append(NEWLINE);
 								szBuffer.append(gDLL->getText("TXT_KEY_ACTION_PROVIDES_BONUS", GC.getBonusInfo(eBonus).getTextKeyWide()));
@@ -4250,8 +4267,12 @@ void CvDLLWidgetData::parseContactCivHelp(CvWidgetDataStruct &widgetDataStruct, 
 					szBuffer.append(gDLL->getText("TXT_KEY_MISC_CANNOT_DECLARE_WAR"));
 				}
 
-				szBuffer.append(NEWLINE);
-				szBuffer.append(gDLL->getText("TXT_KEY_MISC_SHIFT_ALT_PREPARE_WAR"));
+				// K-Mod. The BBAI war plan control currently is not implemented for multiplayer, and it is only relevant for team games.
+				if (!GC.getGameINLINE().isGameMultiPlayer() && kActiveTeam.getAliveCount() > 1)
+				{
+					szBuffer.append(NEWLINE);
+					szBuffer.append(gDLL->getText("TXT_KEY_MISC_SHIFT_ALT_PREPARE_WAR"));
+				}
 			}
 		}
 	}

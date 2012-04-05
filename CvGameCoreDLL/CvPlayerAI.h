@@ -91,7 +91,7 @@ public:
 		bool bExpansive; // willing to place cities further apart. (not based on the expansive trait)
 		bool bAllSeeing; // doesn't need vision of a plot to know what's there.
 	};
-	short AI_foundValueBulk(int iX, int iY, const CvFoundSettings& kSet) const;
+	short AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet) const;
 	// K-Mod end
 
 	bool AI_isAreaAlone(CvArea* pArea) const;
@@ -109,7 +109,7 @@ public:
 /*                                                                                              */
 /*                                                                                              */
 /************************************************************************************************/
-	bool AI_getAnyPlotDanger(CvPlot* pPlot, int iRange = -1, bool bTestMoves = true) const;
+	bool AI_getAnyPlotDanger(CvPlot* pPlot, int iRange = -1, bool bTestMoves = true, bool bCheckBorder = true) const; // K-Mod added bCheckBorder
 	int AI_getPlotDanger(CvPlot* pPlot, int iRange = -1, bool bTestMoves = true) const;
 	//int AI_getUnitDanger(CvUnit* pUnit, int iRange = -1, bool bTestMoves = true, bool bAnyDanger = true) const;
 /************************************************************************************************/
@@ -182,7 +182,7 @@ public:
 	DllExport int AI_maxGoldPerTurnTrade(PlayerTypes ePlayer) const;
 	int AI_goldPerTurnTradeVal(int iGoldPerTurn) const;
 
-	int AI_bonusVal(BonusTypes eBonus, int iChange = 1) const;
+	int AI_bonusVal(BonusTypes eBonus, int iChange, bool bAssumeEnabled = false) const; // K-Mod added bAssumeEnabled
 	int AI_baseBonusVal(BonusTypes eBonus) const;
 	int AI_bonusTradeVal(BonusTypes eBonus, PlayerTypes ePlayer, int iChange) const;
 	DenialTypes AI_bonusTrade(BonusTypes eBonus, PlayerTypes ePlayer) const;
@@ -213,6 +213,8 @@ public:
 	int AI_neededExecutives(CvArea* pArea, CorporationTypes eCorporation) const;
 	int AI_unitCostPerMil() const; // K-Mod
 	int AI_maxUnitCostPerMil(CvArea* pArea = 0, int iBuildProb = -1) const; // K-Mod
+	int AI_nukeWeight() const; // K-Mod
+	bool AI_isLandWar(CvArea* pArea) const; // K-Mod
 
 	int AI_missionaryValue(CvArea* pArea, ReligionTypes eReligion, PlayerTypes* peBestPlayer = NULL) const;
 	int AI_executiveValue(CvArea* pArea, CorporationTypes eCorporation, PlayerTypes* peBestPlayer = NULL, bool bSpreadOnly = false) const;
@@ -240,16 +242,7 @@ public:
 	int AI_unitTargetMissionAIs(CvUnit* pUnit, MissionAITypes* aeMissionAI, int iMissionAICount, CvSelectionGroup* pSkipSelectionGroup, int iMaxPathTurns) const;
 // BBAI end
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      07/19/09                                jdog5000      */
-/*                                                                                              */
-/* Civic AI                                                                                     */
-/************************************************************************************************/
-	CivicTypes AI_bestCivic(CivicOptionTypes eCivicOption, int* iBestValue) const;
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
-	CivicTypes AI_bestCivic(CivicOptionTypes eCivicOption) const;
+	CivicTypes AI_bestCivic(CivicOptionTypes eCivicOption, int* iBestValue = 0) const;
 	int AI_civicValue(CivicTypes eCivic) const;
 
 	ReligionTypes AI_bestReligion() const;
@@ -320,23 +313,23 @@ public:
 	int AI_getMemoryCount(PlayerTypes eIndex1, MemoryTypes eIndex2) const;
 	void AI_changeMemoryCount(PlayerTypes eIndex1, MemoryTypes eIndex2, int iChange);
 
-	int AI_calculateGoldenAgeValue() const;
+	int AI_calculateGoldenAgeValue(bool bConsiderRevolution = true) const;
 
 	void AI_doCommerce();
 
 	EventTypes AI_chooseEvent(int iTriggeredId) const;
 	virtual void AI_launch(VictoryTypes eVictory);
 
-	int AI_getCultureVictoryStage() const;
+	int AI_calculateCultureVictoryStage() const;
 /************************************************************************************************/
 /* BETTER_BTS_AI_MOD                      03/17/10                                jdog5000      */
 /*                                                                                              */
-/* Victory Strategy AI                                                                          */
+/* Victory Strategy AI       (functions renamed and edited for K-Mod)                           */
 /************************************************************************************************/
-	int AI_getSpaceVictoryStage() const;
-	int AI_getConquestVictoryStage() const;
-	int AI_getDominationVictoryStage() const;
-	int AI_getDiplomacyVictoryStage() const;
+	int AI_calculateSpaceVictoryStage() const;
+	int AI_calculateConquestVictoryStage() const;
+	int AI_calculateDominationVictoryStage() const;
+	int AI_calculateDiplomacyVictoryStage() const;
 	bool AI_isDoVictoryStrategy(int iVictoryStrategy) const;
 	bool AI_isDoVictoryStrategyLevel4() const;
 	bool AI_isDoVictoryStrategyLevel3() const;
@@ -349,7 +342,6 @@ public:
 /************************************************************************************************/		
 
 	bool AI_isDoStrategy(int iStrategy) const;
-	//void AI_forceUpdateStrategies(); // obsolete function from Original BtS
 
 	void AI_updateGreatPersonWeights(); // K-Mod
 	int AI_getGreatPersonWeight(UnitClassTypes eGreatPerson) const; // K-Mod
@@ -357,11 +349,6 @@ public:
 	void AI_nowHasTech(TechTypes eTech);
 
 	int AI_countDeadlockedBonuses(CvPlot* pPlot) const;
-
-	/* original bts code
-	int AI_getOurPlotStrength(CvPlot* pPlot, int iRange, bool bDefensiveBonuses, bool bTestMoves) const;
-	int AI_getEnemyPlotStrength(CvPlot* pPlot, int iRange, bool bDefensiveBonuses, bool bTestMoves) const; */
-	// The above two functions have been disabled by K-Mod. They are no longer used - to reduce code duplication.
 
 	//int AI_goldToUpgradeAllUnits(int iExpThreshold = 0) const;
 	// K-Mod
@@ -413,6 +400,7 @@ public:
 	CvPlot* AI_getCitySite(int iIndex) const;
 
 	bool AI_deduceCitySite(CvCity* pCity) const; // K-Mod
+	int AI_countPotentialForeignTradeCities(bool bCheckConnected = true, bool bCheckForeignTradePolicy = true, CvArea* pIgnoreArea = 0) const; // K-Mod
 
 	int AI_bestAreaUnitAIValue(UnitAITypes eUnitAI, CvArea* pArea, UnitTypes* peBestUnitType = NULL) const;
 	int AI_bestCityUnitAIValue(UnitAITypes eUnitAI, CvCity* pCity, UnitTypes* peBestUnitType = NULL) const;

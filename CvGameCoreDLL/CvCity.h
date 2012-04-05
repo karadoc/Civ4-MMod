@@ -929,7 +929,8 @@ public:
 	void updateTradeRoutes();
 
 	void clearOrderQueue();																														// Exposed to Python
-	void pushOrder(OrderTypes eOrder, int iData1, int iData2, bool bSave, bool bPop, bool bAppend, bool bForce = false);		// Exposed to Python
+	//void pushOrder(OrderTypes eOrder, int iData1, int iData2, bool bSave, bool bPop, bool bAppend, bool bForce = false);		// Exposed to Python
+	void pushOrder(OrderTypes eOrder, int iData1, int iData2 = -1, bool bSave = false, bool bPop = false, int iPosition = 0, bool bForce = false); // K-Mod. (the old version is still exposed to Python)
 	void popOrder(int iNum, bool bFinish = false, bool bChoose = false);		// Exposed to Python
 	void startHeadOrder();
 	void stopHeadOrder();
@@ -957,7 +958,7 @@ public:
 	DllExport bool getProductionBarPercentages(std::vector<float>& afPercentages) const;
 	DllExport NiColorA getBarBackgroundColor() const;
 	DllExport bool isStarCity() const;
-	
+
 	// Exposed to Python
 	DllExport void setWallOverridePoints(const std::vector< std::pair<float, float> >& kPoints); /* points are given in world space ... i.e. PlotXToPointX, etc */
 	DllExport const std::vector< std::pair<float, float> >& getWallOverridePoints() const;
@@ -1002,8 +1003,9 @@ public:
 	virtual void AI_doTurn() = 0;
 	virtual void AI_assignWorkingPlots() = 0;
 	virtual void AI_updateAssignWork() = 0;
-	virtual bool AI_avoidGrowth() = 0;											// Exposed to Python
-	virtual int AI_specialistValue(SpecialistTypes eSpecialist, bool bAvoidGrowth, bool bRemove) const = 0;
+	//virtual bool AI_avoidGrowth() = 0; // disabled by K-Mod (was exposed to python)
+	//virtual int AI_specialistValue(SpecialistTypes eSpecialist, bool bAvoidGrowth, bool bRemove) const = 0;
+	virtual int AI_specialistValue(SpecialistTypes eSpecialist, bool bRemove, bool bIgnoreFood, int iGrowthValue) const = 0; // K-Mod
 	virtual int AI_permanentSpecialistValue(SpecialistTypes eSpecialist) const = 0; // K-Mod
 	virtual void AI_chooseProduction() = 0;
 	virtual UnitTypes AI_bestUnit(bool bAsync = false, AdvisorTypes eIgnoreAdvisor = NO_ADVISOR, UnitAITypes* peBestUnitAI = NULL) = 0;
@@ -1042,8 +1044,8 @@ public:
 	// K-Mod note: the following functions were originally created by jdog5000 for debugging BBAI. I've adopted them and changed them.
 	virtual int AI_getTargetPopulation() const = 0;
 	virtual int AI_getGoodTileCount() const = 0;
-	virtual int AI_getImprovementValue(CvPlot* pPlot, ImprovementTypes eImprovement, int iFoodPriority, int iProductionPriority, int iCommercePriority, int iFoodChange, int iClearFeatureValue = 0, bool bEmphasizeIrrigation = false, BuildTypes* peBestBuild = 0) const = 0;
 	virtual void AI_getYieldMultipliers( int &iFoodMultiplier, int &iProductionMultiplier, int &iCommerceMultiplier, int &iDesiredFoodChange ) const = 0;
+	virtual int AI_getImprovementValue(CvPlot* pPlot, ImprovementTypes eImprovement, int iFoodPriority, int iProductionPriority, int iCommercePriority, int iDesiredFoodChange, int iClearFeatureValue = 0, bool bEmphasizeIrrigation = false, BuildTypes* peBestBuild = 0) const = 0;
 	// K-Mod end
 	virtual int AI_totalBestBuildValue(CvArea* pArea) = 0;
 	virtual int AI_countBestBuilds(CvArea* pArea) const = 0;													// Exposed to Python

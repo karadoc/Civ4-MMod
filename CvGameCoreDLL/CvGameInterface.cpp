@@ -297,12 +297,12 @@ void CvGame::updateColoredPlots()
 
 					if (pCity != NULL)
 					{
-						if (pHeadSelectedUnit->AI_bestCityBuild(pCity, &pBestPlot))
+						if (pHeadSelectedUnit->AI_bestCityBuild(pCity, &pBestPlot) && pCity->AI_getBestBuildValue(plotCityXY(pCity, pBestPlot)) > 1)
 						{
 							FAssert(pBestPlot != NULL);
 							gDLL->getEngineIFace()->addColoredPlot(pBestPlot->getX_INLINE(), pBestPlot->getY_INLINE(), GC.getColorInfo((ColorTypes)GC.getInfoTypeForString("COLOR_HIGHLIGHT_TEXT")).getColor(), PLOT_STYLE_CIRCLE, PLOT_LANDSCAPE_LAYER_RECOMMENDED_PLOTS);
 
-							if (pHeadSelectedUnit->AI_bestCityBuild(pCity, &pNextBestPlot, NULL, pBestPlot))
+							if (pHeadSelectedUnit->AI_bestCityBuild(pCity, &pNextBestPlot, NULL, pBestPlot) && pCity->AI_getBestBuildValue(plotCityXY(pCity, pNextBestPlot)) > 1)
 							{
 								FAssert(pNextBestPlot != NULL);
 								gDLL->getEngineIFace()->addColoredPlot(pNextBestPlot->getX_INLINE(), pNextBestPlot->getY_INLINE(), GC.getColorInfo((ColorTypes)GC.getInfoTypeForString("COLOR_HIGHLIGHT_TEXT")).getColor(), PLOT_STYLE_CIRCLE, PLOT_LANDSCAPE_LAYER_RECOMMENDED_PLOTS);
@@ -1102,6 +1102,7 @@ void CvGame::selectionListGameNetMessage(int eMessage, int iData2, int iData3, i
 
 				if (eMessage == GAMEMESSAGE_PUSH_MISSION)
 				{
+					// K-Mod todo: move the BUTTONPOPUP_DECLAREWARMOVE stuff to here, so that it can catch left-click moves as well as right-click moves.
 					CvMessageControl::getInstance().sendPushMission(pHeadSelectedUnit->getID(), ((MissionTypes)iData2), iData3, iData4, iFlags, bShift);
 				}
 				else
@@ -1141,11 +1142,32 @@ void CvGame::selectedCitiesGameNetMessage(int eMessage, int iData2, int iData3, 
 					break;
 
 				case GAMEMESSAGE_POP_ORDER:
-					//if (pSelectedCity->getOrderQueueLength() > 1)
-					if (pSelectedCity->getOrderQueueLength() > 1 || pSelectedCity->isProductionAutomated()) // K-Mod. (automated cities will choose their production at the end of the turn)
+					/* original bts code
+					if (pSelectedCity->getOrderQueueLength() > 1)
 					{
 						CvMessageControl::getInstance().sendPopOrder(pSelectedCity->getID(), iData2);
+					} */
+					// K-Mod. Some additional controls
+					if (bAlt || (bShift != bCtrl))
+					{
+						// bCtrl moves the order up, bShift moves the order down.
+						// bAlt toggles bSave (ie. repeat)
+						int iNewPos = iData2 + (bShift ? 1 : 0) + (bCtrl ? -1 : 0);
+						if (pSelectedCity->getOrderQueueLength() > iNewPos && iNewPos >= 0)
+						{
+							OrderData order = pSelectedCity->getOrderData(iData2);
+							if (order.eOrderType != NO_ORDER && (bShift || bCtrl || order.eOrderType == ORDER_TRAIN))
+							{
+								order.bSave = order.bSave != (bAlt && order.eOrderType == ORDER_TRAIN);
+								CvMessageControl::getInstance().sendPopOrder(pSelectedCity->getID(), iData2);
+								CvMessageControl::getInstance().sendPushOrder(pSelectedCity->getID(), order.eOrderType, order.iData1, order.bSave, false, iNewPos);
+							}
+						}
 					}
+					// Allow us to cancel the final order for automated cities. (The governor can choose production at the end of the turn.)
+					else if (pSelectedCity->getOrderQueueLength() > 1 || pSelectedCity->isProductionAutomated())
+						CvMessageControl::getInstance().sendPopOrder(pSelectedCity->getID(), iData2);
+					// K-Mod end
 					break;
 
 				case GAMEMESSAGE_DO_TASK:
@@ -2300,7 +2322,8 @@ void CvGame::applyFlyoutMenu(const CvFlyoutMenuData& kItem)
 				{
 					CvUnit* pLoopUnit = ::getUnit(pUnitNode->m_data);
 					pUnitNode = pPlot->nextUnitNode(pUnitNode);
-					if (pLoopUnit->isGroupHead())
+					//if (pLoopUnit->isGroupHead())
+					if (pLoopUnit->isGroupHead() && pLoopUnit->getOwnerINLINE() == getActivePlayer()) // K-Mod
 					{
 						CvMessageControl::getInstance().sendDoCommand(pLoopUnit->getID(), COMMAND_WAKE, -1, -1, false);
 					}
@@ -2316,7 +2339,7 @@ void CvGame::applyFlyoutMenu(const CvFlyoutMenuData& kItem)
 				{
 					CvUnit* pLoopUnit = ::getUnit(pUnitNode->m_data);
 					pUnitNode = pPlot->nextUnitNode(pUnitNode);
-					if (pLoopUnit->isGroupHead())
+					if (pLoopUnit->isGroupHead() && pLoopUnit->getOwnerINLINE() == getActivePlayer()) // K-Mod
 					{
 						CvMessageControl::getInstance().sendPushMission(pLoopUnit->getID(), ((pLoopUnit->isFortifyable()) ? MISSION_FORTIFY : MISSION_SLEEP), -1, -1, 0, false);
 					}

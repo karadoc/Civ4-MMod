@@ -5321,6 +5321,7 @@ m_iDistanceMaintenanceModifier(0),
 m_iNumCitiesMaintenanceModifier(0),
 m_iCorporationMaintenanceModifier(0),
 m_iExtraHealth(0),
+m_iExtraHappiness(0), // K-Mod
 m_iFreeExperience(0),
 m_iWorkerSpeedModifier(0),
 m_iImprovementUpgradeRateModifier(0),
@@ -5789,6 +5790,8 @@ void CvCivicInfo::read(FDataStreamBase* stream)
 	stream->Read(&m_iNumCitiesMaintenanceModifier);					
 	stream->Read(&m_iCorporationMaintenanceModifier);					
 	stream->Read(&m_iExtraHealth);
+	if (uiFlag >= 2)
+		stream->Read(&m_iExtraHappiness);
 	stream->Read(&m_iFreeExperience);
 	stream->Read(&m_iWorkerSpeedModifier);
 	stream->Read(&m_iImprovementUpgradeRateModifier);
@@ -5797,8 +5800,15 @@ void CvCivicInfo::read(FDataStreamBase* stream)
 	stream->Read(&m_iBaseFreeMilitaryUnits);								
 	stream->Read(&m_iFreeUnitsPopulationPercent);						
 	stream->Read(&m_iFreeMilitaryUnitsPopulationPercent);			
-	stream->Read(&m_iGoldPerUnit);												
-	stream->Read(&m_iGoldPerMilitaryUnit);									
+	stream->Read(&m_iGoldPerUnit);
+	stream->Read(&m_iGoldPerMilitaryUnit);
+	// K-Mod
+	if (uiFlag < 1)
+	{
+		m_iGoldPerUnit *= 100;
+		m_iGoldPerMilitaryUnit *= 100;
+	}
+	// K-Mod end
 	stream->Read(&m_iHappyPerMilitaryUnit);
 	stream->Read(&m_iLargestCityHappiness);
 	stream->Read(&m_iWarWearinessModifier);
@@ -5897,7 +5907,7 @@ void CvCivicInfo::write(FDataStreamBase* stream)
 {
 	CvInfoBase::write(stream);
 
-	uint uiFlag=0;
+	uint uiFlag=2;
 	stream->Write(uiFlag);		// flag for expansion
 
 	stream->Write(m_iCivicOptionType);
@@ -5912,6 +5922,7 @@ void CvCivicInfo::write(FDataStreamBase* stream)
 	stream->Write(m_iNumCitiesMaintenanceModifier);					
 	stream->Write(m_iCorporationMaintenanceModifier);					
 	stream->Write(m_iExtraHealth);
+	stream->Write(m_iExtraHappiness); // K-Mod, uiFlag >= 2
 	stream->Write(m_iFreeExperience);
 	stream->Write(m_iWorkerSpeedModifier);
 	stream->Write(m_iImprovementUpgradeRateModifier);
@@ -6003,6 +6014,7 @@ bool CvCivicInfo::read(CvXMLLoadUtility* pXML)
 	pXML->GetChildXmlValByName(&m_iNumCitiesMaintenanceModifier, "iNumCitiesMaintenanceModifier");
 	pXML->GetChildXmlValByName(&m_iCorporationMaintenanceModifier, "iCorporationMaintenanceModifier");
 	pXML->GetChildXmlValByName(&m_iExtraHealth, "iExtraHealth");
+	pXML->GetChildXmlValByName(&m_iExtraHappiness, "iExtraHappiness"); // K-Mod
 	pXML->GetChildXmlValByName(&m_iFreeExperience, "iFreeExperience");
 	pXML->GetChildXmlValByName(&m_iWorkerSpeedModifier, "iWorkerSpeedModifier");
 	pXML->GetChildXmlValByName(&m_iImprovementUpgradeRateModifier, "iImprovementUpgradeRateModifier");

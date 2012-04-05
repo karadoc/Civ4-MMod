@@ -198,8 +198,9 @@ public:
 	int countCityFeatures(FeatureTypes eFeature) const;																										// Exposed to Python
 	int countNumBuildings(BuildingTypes eBuilding) const;																									// Exposed to Python
 	DllExport int countNumCitiesConnectedToCapital() const;																								// Exposed to Python
-	int countPotentialForeignTradeCities(CvArea* pIgnoreArea = NULL) const;																// Exposed to Python
-	int countPotentialForeignTradeCitiesConnected() const;																								// Exposed to Python
+	/* int countPotentialForeignTradeCities(CvArea* pIgnoreArea = NULL) const;
+	int countPotentialForeignTradeCitiesConnected() const; */ // K-Mod: These functions were used exclusively for AI.  I've moved them to CvPlayerAI.
+	bool doesImprovementConnectBonus(ImprovementTypes eImprovement, BonusTypes eBonus) const; // K-Mod
 
 	DllExport bool canContact(PlayerTypes ePlayer) const;																									// Exposed to Python
 	DllExport bool canContactAndTalk(PlayerTypes ePlayer) const; // K-Mod. this checks willingness to talk on both sides
@@ -271,7 +272,8 @@ public:
 	int getGwPercentAnger() const; // K-Mod, Exposed to Python
 	void setGwPercentAnger(int iNewValue); // K-Mod
 
-	int calculateUnitCost(int& iFreeUnits, int& iFreeMilitaryUnits, int& iPaidUnits, int& iPaidMilitaryUnits, int& iBaseUnitCost, int& iMilitaryCost, int& iExtraCost) const;
+	int getUnitCostMultiplier() const; // K-Mod
+	int calculateUnitCost(int& iFreeUnits, int& iFreeMilitaryUnits, int& iPaidUnits, int& iPaidMilitaryUnits, int& iUnitCost, int& iMilitaryCost, int& iExtraCost) const; // (K-Mod changed iBaseUnitCost to iUnitCost)
 	int calculateUnitCost() const;																																				// Exposed to Python
 	int calculateUnitSupply(int& iPaidUnits, int& iBaseSupplyCost) const;																	// Exposed to Python
 	int calculateUnitSupply() const;																																			// Exposed to Python
@@ -484,9 +486,9 @@ public:
 	int getFreeMilitaryUnitsPopulationPercent() const;																										// Exposed to Python
 	void changeFreeMilitaryUnitsPopulationPercent(int iChange);											
 
-	// K-Mod
-	int getTypicalUnitValue(UnitAITypes eUnitAI) const;
+	int getTypicalUnitValue(UnitAITypes eUnitAI) const; // K-Mod
 
+	// K-Mod note: GoldPerUnit and GoldPerMilitaryUnit are now in units of 1/100 gold.
 	int getGoldPerUnit() const;																																								// Exposed to Python
 	void changeGoldPerUnit(int iChange);															
 
@@ -1086,7 +1088,7 @@ public:
 	virtual int AI_dealVal(PlayerTypes ePlayer, const CLinkList<TradeData>* pList, bool bIgnoreAnnual = false, int iExtra = 0) const = 0;
 	virtual bool AI_considerOffer(PlayerTypes ePlayer, const CLinkList<TradeData>* pTheirList, const CLinkList<TradeData>* pOurList, int iChange = 1) const = 0;
 	virtual bool AI_counterPropose(PlayerTypes ePlayer, const CLinkList<TradeData>* pTheirList, const CLinkList<TradeData>* pOurList, CLinkList<TradeData>* pTheirInventory, CLinkList<TradeData>* pOurInventory, CLinkList<TradeData>* pTheirCounter, CLinkList<TradeData>* pOurCounter) const = 0;
-	virtual int AI_bonusVal(BonusTypes eBonus, int iChange = 0) const = 0;
+	virtual int AI_bonusVal(BonusTypes eBonus, int iChange, bool bAssumeEnabled = false) const = 0; // K-Mod added bAssumeEnabled
 	virtual int AI_bonusTradeVal(BonusTypes eBonus, PlayerTypes ePlayer, int iChange = 0) const = 0;
 	virtual DenialTypes AI_bonusTrade(BonusTypes eBonus, PlayerTypes ePlayer) const = 0;
 	virtual int AI_cityTradeVal(CvCity* pCity) const = 0;

@@ -1621,14 +1621,14 @@ void CvUnit::checkRemoveSelectionAfterAttack()
 
 bool CvUnit::isActionRecommended(int iAction)
 {
-	CvCity* pWorkingCity;
-	CvPlot* pPlot;
-	ImprovementTypes eImprovement;
-	ImprovementTypes eFinalImprovement;
-	BuildTypes eBuild;
-	RouteTypes eRoute;
-	BonusTypes eBonus;
-	int iIndex;
+	//CvCity* pWorkingCity;
+	//CvPlot* pPlot;
+	//ImprovementTypes eImprovement;
+	//ImprovementTypes eFinalImprovement;
+	//BuildTypes eBuild;
+	//RouteTypes eRoute;
+	//BonusTypes eBonus;
+	//int iIndex;
 
 	if (getOwnerINLINE() != GC.getGameINLINE().getActivePlayer())
 	{
@@ -1652,7 +1652,7 @@ bool CvUnit::isActionRecommended(int iAction)
 		return true;
 	}
 
-	pPlot = gDLL->getInterfaceIFace()->getGotoPlot();
+	CvPlot* pPlot = gDLL->getInterfaceIFace()->getGotoPlot();
 
 	if (pPlot == NULL)
 	{
@@ -1710,7 +1710,7 @@ bool CvUnit::isActionRecommended(int iAction)
 	{
 		if (pPlot->getOwnerINLINE() == getOwnerINLINE())
 		{
-			eBuild = ((BuildTypes)(GC.getActionInfo(iAction).getMissionData()));
+			BuildTypes eBuild = (BuildTypes)GC.getActionInfo(iAction).getMissionData();
 			FAssert(eBuild != NO_BUILD);
 			FAssertMsg(eBuild < GC.getNumBuildInfos(), "Invalid Build");
 
@@ -1721,45 +1721,55 @@ bool CvUnit::isActionRecommended(int iAction)
 					return true;
 				// K-Mod end
 
-				eImprovement = ((ImprovementTypes)(GC.getBuildInfo(eBuild).getImprovement()));
-				eRoute = ((RouteTypes)(GC.getBuildInfo(eBuild).getRoute()));
+				ImprovementTypes eImprovement = (ImprovementTypes)GC.getBuildInfo(eBuild).getImprovement();
+				RouteTypes eRoute = (RouteTypes)(GC.getBuildInfo(eBuild).getRoute());
 				//eBonus = pPlot->getBonusType(getTeam());
-				eBonus = pPlot->getNonObsoleteBonusType(getTeam()); // K-Mod
-				pWorkingCity = pPlot->getWorkingCity();
+				BonusTypes eBonus = pPlot->getNonObsoleteBonusType(getTeam()); // K-Mod
+				CvCity* pWorkingCity = pPlot->getWorkingCity();
 
 				// if (pPlot->getImprovementType() == NO_IMPROVEMENT) // Disabled by K-Mod (this looks like a bug to me)
 				{
-					if (pWorkingCity != NULL)
+					BuildTypes eBestBuild = NO_BUILD; // K-Mod. (I use this again later.)
+					if (pWorkingCity)
 					{
-						iIndex = pWorkingCity->getCityPlotIndex(pPlot);
+						int iIndex = pWorkingCity->getCityPlotIndex(pPlot);
+						FAssert(iIndex != -1); // K-Mod. this use to be an if statement in the release code
 
-						if (iIndex != -1)
-						{
-							if (pWorkingCity->AI_getBestBuild(iIndex) == eBuild)
-							{
-								return true;
-							}
-						}
+						eBestBuild = pWorkingCity->AI_getBestBuild(iIndex);
+
+						if (eBestBuild == eBuild)
+							return true;
 					}
 
 					if (eImprovement != NO_IMPROVEMENT)
 					{
+						/* original code
 						if (eBonus != NO_BONUS)
 						{
 							if (GC.getImprovementInfo(eImprovement).isImprovementBonusTrade(eBonus))
 							{
 								return true;
 							}
-						}
+						} */
+
 						// K-Mod
-						if (pPlot->getImprovementType() == NO_IMPROVEMENT && pWorkingCity == NULL)
+						if (eBonus != NO_BONUS &&
+							!GET_PLAYER(getOwnerINLINE()).doesImprovementConnectBonus(pPlot->getImprovementType(), eBonus) &&
+							GET_PLAYER(getOwnerINLINE()).doesImprovementConnectBonus(eImprovement, eBonus) &&
+							(eBestBuild == NO_BUILD || !GET_PLAYER(getOwnerINLINE()).doesImprovementConnectBonus((ImprovementTypes)GC.getBuildInfo(eBestBuild).getImprovement(), eBonus)))
 						{
-							if (!(pPlot->isIrrigated()) && pPlot->isIrrigationAvailable(true))
+							return true;
+						}
+
+						if (pPlot->getImprovementType() == NO_IMPROVEMENT && eBonus == NO_BONUS && pWorkingCity == NULL)
+						{
+							if (pPlot->getFeatureType() == NO_FEATURE || !GC.getBuildInfo(eBuild).isFeatureRemove((FeatureTypes)pPlot->getFeatureType()))
 							{
-								if (GC.getImprovementInfo(eImprovement).isCarriesIrrigation())
-								{
+								if (GC.getImprovementInfo(eImprovement).isCarriesIrrigation() && !pPlot->isIrrigated() && pPlot->isIrrigationAvailable(true))
 									return true;
-								}
+
+								if (pPlot->getFeatureType() != NO_FEATURE && GC.getImprovementInfo(eImprovement).getFeatureGrowthProbability() > 0)
+									return true;
 							}
 						}
 						// K-Mod end
@@ -1819,12 +1829,16 @@ bool CvUnit::isActionRecommended(int iAction)
 						}
 					}
 
+					/* original bts code
 					eFinalImprovement = eImprovement;
 
 					if (eFinalImprovement == NO_IMPROVEMENT)
 					{
 						eFinalImprovement = pPlot->getImprovementType();
-					}
+					} */
+					// K-Mod
+					ImprovementTypes eFinalImprovement = finalImprovementUpgrade(eImprovement != NO_IMPROVEMENT ? eImprovement : pPlot->getImprovementType());
+					// K-Mod end
 
 					if (eFinalImprovement != NO_IMPROVEMENT)
 					{
@@ -1849,11 +1863,6 @@ bool CvUnit::isActionRecommended(int iAction)
 }
 
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      02/21/10                                jdog5000      */
-/*                                                                                              */
-/* Efficiency, Lead From Behind                                                                 */
-/************************************************************************************************/
 // From Lead From Behind by UncutDragon
 // original
 //bool CvUnit::isBetterDefenderThan(const CvUnit* pDefender, const CvUnit* pAttacker) const
@@ -1943,23 +1952,13 @@ bool CvUnit::isBetterDefenderThan(const CvUnit* pDefender, const CvUnit* pAttack
 	{
 		if (!(pAttacker->immuneToFirstStrikes()))
 		{
-			// UncutDragon
-			// original
-			//iOurDefense *= ((((firstStrikes() * 2) + chanceFirstStrikes()) * ((GC.getDefineINT("COMBAT_DAMAGE") * 2) / 5)) + 100);
-			// modified
-			iOurDefense *= ((((firstStrikes() * 2) + chanceFirstStrikes()) * ((GC.getCOMBAT_DAMAGE() * 2) / 5)) + 100);
-			// /UncutDragon
+			iOurDefense *= 100 + (firstStrikes() * 2 + chanceFirstStrikes()) * GC.getCOMBAT_DAMAGE() * 2 / 5;
 			iOurDefense /= 100;
 		}
 
 		if (immuneToFirstStrikes())
 		{
-			// UncutDragon
-			// original
-			//iOurDefense *= ((((pAttacker->firstStrikes() * 2) + pAttacker->chanceFirstStrikes()) * ((GC.getDefineINT("COMBAT_DAMAGE") * 2) / 5)) + 100);
-			// modified
-			iOurDefense *= ((((pAttacker->firstStrikes() * 2) + pAttacker->chanceFirstStrikes()) * ((GC.getCOMBAT_DAMAGE() * 2) / 5)) + 100);
-			// /UncutDragon
+			iOurDefense *= 100 + (pAttacker->firstStrikes() * 2 + pAttacker->chanceFirstStrikes()) * GC.getCOMBAT_DAMAGE() * 2 / 5;
 			iOurDefense /= 100;
 		}
 	}
@@ -1998,23 +1997,13 @@ bool CvUnit::isBetterDefenderThan(const CvUnit* pDefender, const CvUnit* pAttack
 	{
 		if (!(pAttacker->immuneToFirstStrikes()))
 		{
-			// UncutDragon
-			// original
-			//iTheirDefense *= ((((pDefender->firstStrikes() * 2) + pDefender->chanceFirstStrikes()) * ((GC.getDefineINT("COMBAT_DAMAGE") * 2) / 5)) + 100);
-			// modified
-			iTheirDefense *= ((((pDefender->firstStrikes() * 2) + pDefender->chanceFirstStrikes()) * ((GC.getCOMBAT_DAMAGE() * 2) / 5)) + 100);
-			// /UncutDragon
+			iTheirDefense *= 100 + (pDefender->firstStrikes() * 2 + pDefender->chanceFirstStrikes()) * GC.getCOMBAT_DAMAGE() * 2 / 5;
 			iTheirDefense /= 100;
 		}
 
 		if (pDefender->immuneToFirstStrikes())
 		{
-			// UncutDragon
-			// original
-			//iTheirDefense *= ((((pAttacker->firstStrikes() * 2) + pAttacker->chanceFirstStrikes()) * ((GC.getDefineINT("COMBAT_DAMAGE") * 2) / 5)) + 100);
-			// modified
-			iTheirDefense *= ((((pAttacker->firstStrikes() * 2) + pAttacker->chanceFirstStrikes()) * ((GC.getCOMBAT_DAMAGE() * 2) / 5)) + 100);
-			// /UncutDragon
+			iTheirDefense *= 100 + (pAttacker->firstStrikes() * 2 + pAttacker->chanceFirstStrikes()) * GC.getCOMBAT_DAMAGE() * 2 / 5;
 			iTheirDefense /= 100;
 		}
 	}
@@ -2046,10 +2035,6 @@ bool CvUnit::isBetterDefenderThan(const CvUnit* pDefender, const CvUnit* pAttack
 
 	return (iOurDefense > iTheirDefense);
 }
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
-
 
 bool CvUnit::canDoCommand(CommandTypes eCommand, int iData1, int iData2, bool bTestVisible, bool bTestBusy)
 {
@@ -2378,7 +2363,7 @@ TeamTypes CvUnit::getDeclareWarMove(const CvPlot* pPlot) const
 			{
 				//if (canMoveInto(pPlot, true, true, true))
 				// K-Mod. Don't give the "declare war" popup unless we need war to move into the plot.
-				if (canMoveInto(pPlot, true, true, true) && !canMoveInto(pPlot))
+				if (canMoveInto(pPlot, true, true, true, false) && !canMoveInto(pPlot, false, false, false, false))
 				// K-Mod end
 				{
 					pUnit = pPlot->plotCheck(PUF_canDeclareWar, getOwnerINLINE(), isAlwaysHostile(pPlot), NO_PLAYER, NO_TEAM, PUF_isVisible, getOwnerINLINE());
@@ -2416,7 +2401,8 @@ bool CvUnit::willRevealByMove(const CvPlot* pPlot) const
 	return false;
 }
 
-bool CvUnit::canMoveInto(const CvPlot* pPlot, bool bAttack, bool bDeclareWar, bool bIgnoreLoad) const
+// K-Mod. I've rearranged a few things to make the function slightly faster, and added "bAssumeVisible" which signals that we should check for units on the plot regardless of whether we can actually see.
+bool CvUnit::canMoveInto(const CvPlot* pPlot, bool bAttack, bool bDeclareWar, bool bIgnoreLoad, bool bAssumeVisible) const
 {
 	PROFILE_FUNC();
 
@@ -2427,12 +2413,9 @@ bool CvUnit::canMoveInto(const CvPlot* pPlot, bool bAttack, bool bDeclareWar, bo
 		return false;
 	}
 
-	if (pPlot->isImpassable())
+	if (!m_pUnitInfo->isCanMoveImpassable() && pPlot->isImpassable())
 	{
-		if (!canMoveImpassable())
-		{
-			return false;
-		}
+		return false;
 	}
 
 	// Cannot move around in unrevealed land freely
@@ -2441,14 +2424,11 @@ bool CvUnit::canMoveInto(const CvPlot* pPlot, bool bAttack, bool bDeclareWar, bo
 		return false;
 	}
 
-	if (GC.getUSE_SPIES_NO_ENTER_BORDERS())
+	if (m_pUnitInfo->isSpy() && GC.getUSE_SPIES_NO_ENTER_BORDERS())
 	{
-		if (isSpy() && NO_PLAYER != pPlot->getOwnerINLINE())
+		if (pPlot->getOwnerINLINE() != NO_PLAYER && !GET_PLAYER(getOwnerINLINE()).canSpiesEnterBorders(pPlot->getOwnerINLINE()))
 		{
-			if (!GET_PLAYER(getOwnerINLINE()).canSpiesEnterBorders(pPlot->getOwnerINLINE()))
-			{
-				return false;
-			}
+			return false;
 		}
 	}
 
@@ -2471,30 +2451,17 @@ bool CvUnit::canMoveInto(const CvPlot* pPlot, bool bAttack, bool bDeclareWar, bo
 				}
 			}
 		}
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                       09/17/09                         TC01 & jdog5000      */
-/*                                                                                              */
-/* Bugfix				                                                                        */
-/************************************************************************************************/
-/* original bts code
-		else
-*/
-		// always check terrain also
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                        END                                                  */
-/************************************************************************************************/
+
+		if (m_pUnitInfo->getTerrainImpassable(pPlot->getTerrainType()))
 		{
-			if (m_pUnitInfo->getTerrainImpassable(pPlot->getTerrainType()))
+			TechTypes eTech = (TechTypes)m_pUnitInfo->getTerrainPassableTech(pPlot->getTerrainType());
+			if (NO_TECH == eTech || !GET_TEAM(getTeam()).isHasTech(eTech))
 			{
-				TechTypes eTech = (TechTypes)m_pUnitInfo->getTerrainPassableTech(pPlot->getTerrainType());
-				if (NO_TECH == eTech || !GET_TEAM(getTeam()).isHasTech(eTech))
+				if (DOMAIN_SEA != getDomainType() || pPlot->getTeam() != getTeam())  // sea units can enter impassable in own cultural borders
 				{
-					if (DOMAIN_SEA != getDomainType() || pPlot->getTeam() != getTeam())  // sea units can enter impassable in own cultural borders
+					if (bIgnoreLoad || !canLoad(pPlot))
 					{
-						if (bIgnoreLoad || !canLoad(pPlot)) 
-						{ 
-							return false;
-						}
+						return false;
 					}
 				}
 			}
@@ -2632,7 +2599,7 @@ bool CvUnit::canMoveInto(const CvPlot* pPlot, bool bAttack, bool bDeclareWar, bo
 	// made a previous attack or paradrop
 	if (bAttack)
 	{
-		if (isMadeAttack() && !isBlitz() && (pPlot->getNumVisibleEnemyDefenders(this) > 0))
+		if (isMadeAttack() && !isBlitz() && pPlot->isVisibleEnemyDefender(this))
 		{
 			return false;
 		}
@@ -2657,7 +2624,8 @@ bool CvUnit::canMoveInto(const CvPlot* pPlot, bool bAttack, bool bDeclareWar, bo
 		{
 			if (bAttack || !canCoexistWithEnemyUnit(NO_TEAM))
 			{
-				if (!isHuman() || (pPlot->isVisible(getTeam(), false)))
+				//if (!isHuman() || (pPlot->isVisible(getTeam(), false)))
+				if (bAssumeVisible || pPlot->isVisible(getTeam(), false))
 				{
 					if (pPlot->isVisibleEnemyUnit(this) != bAttack)
 					{
@@ -2677,44 +2645,18 @@ bool CvUnit::canMoveInto(const CvPlot* pPlot, bool bAttack, bool bDeclareWar, bo
 
 			if (bAttack)
 			{
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      06/14/10                                jdog5000      */
-/*                                                                                              */
-/* Efficiency                                                                                   */
-/************************************************************************************************/
-/*
-** K-Mod, 25/dec/10, karadoc
-** 'original' code restored, but I don't know if this code is bts code or LFB code.
-*/
-				// From Lead From Behind by UncutDragon
-				// original
-				CvUnit* pDefender = pPlot->getBestDefender(NO_PLAYER, getOwnerINLINE(), this, true);
+				/* CvUnit* pDefender = pPlot->getBestDefender(NO_PLAYER, getOwnerINLINE(), this, true);
 				if (NULL != pDefender)
 				{
 					if (!canAttack(*pDefender))
 					{
 						return false;
 					}
-				}
-				// modified
-				//if( combatLimit() < 100 )
-				//{
-				//	CvUnit* pDefender = pPlot->getBestDefender(NO_PLAYER, getOwnerINLINE(), this, true);
-				//	if (NULL != pDefender)
-				//	{
-				//		if (!canAttack(*pDefender))
-				//		{
-				//			return false;
-				//		}
-				//	}
-				//}
-				//else if (!pPlot->hasDefender(true, NO_PLAYER, getOwnerINLINE(), this, true))
-				//{
-				//	return false;
-				//}
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
+				} */
+				// K-Mod. (this is much faster.)
+				if (!pPlot->hasDefender(true, NO_PLAYER, getOwnerINLINE(), this, true))
+					return false;
+				// K-Mod end
 			}
 		}
 		else
@@ -2726,7 +2668,8 @@ bool CvUnit::canMoveInto(const CvPlot* pPlot, bool bAttack, bool bDeclareWar, bo
 
 			if (!canCoexistWithEnemyUnit(NO_TEAM))
 			{
-				if (!isHuman() || pPlot->isVisible(getTeam(), false))
+				//if (!isHuman() || pPlot->isVisible(getTeam(), false))
+				if (bAssumeVisible || pPlot->isVisible(getTeam(), false)) // K-Mod
 				{
 					if (pPlot->isEnemyCity(*this))
 					{
@@ -2741,7 +2684,7 @@ bool CvUnit::canMoveInto(const CvPlot* pPlot, bool bAttack, bool bDeclareWar, bo
 			}
 		}
 
-		if (isHuman())
+		if (isHuman()) // (should this be !bAssumeVisible? It's a bit different to the other isHuman() checks)
 		{
 			ePlotTeam = pPlot->getRevealedTeam(getTeam(), false);
 			bCanEnterArea = canEnterArea(ePlotTeam, pPlotArea);
@@ -2822,10 +2765,10 @@ bool CvUnit::canMoveOrAttackInto(const CvPlot* pPlot, bool bDeclareWar) const
 }
 
 
-bool CvUnit::canMoveThrough(const CvPlot* pPlot, bool bDeclareWar) const
+/* bool CvUnit::canMoveThrough(const CvPlot* pPlot, bool bDeclareWar) const
 {
 	return canMoveInto(pPlot, false, bDeclareWar, true);
-}
+}*/
 
 
 void CvUnit::attack(CvPlot* pPlot, bool bQuick)
@@ -3183,9 +3126,14 @@ void CvUnit::automate(AutomateTypes eAutomate)
 	}
 
 	getGroup()->setAutomateType(eAutomate);
-	// K-Mod
-	FAssert(GET_PLAYER(getOwnerINLINE()).isTurnActive());
-	getGroup()->AI_update();
+	// K-Mod. I'd like for the unit to automate immediately after the command is given, just so that the UI seems responsive. But doing so is potentially problematic.
+	if (GET_PLAYER(getOwnerINLINE()).isTurnActive() && getGroup()->readyToMove())
+	{
+		// unfortunately, CvSelectionGroup::AI_update can kill the unit, and CvUnit::automate currently isn't allowed to kill the unit.
+		// CvUnit::AI_update should be ok; but using it here makes me a bit uncomfortable because it doesn't include all the checks and conditions of the group update.
+		// ...too bad.
+		AI_update();
+	}
 	// K-Mod end
 }
 
@@ -3992,10 +3940,7 @@ bool CvUnit::canAirliftAt(const CvPlot* pPlot, int iX, int iY) const
 
 	pTargetPlot = GC.getMapINLINE().plotINLINE(iX, iY);
 
-	if (!canMoveInto(pTargetPlot))
-	{
-		return false;
-	}
+	// canMoveInto use to be here
 
 	pTargetCity = pTargetPlot->getPlotCity();
 
@@ -4010,6 +3955,11 @@ bool CvUnit::canAirliftAt(const CvPlot* pPlot, int iX, int iY) const
 	}
 
 	if (pTargetCity->getTeam() != getTeam() && !GET_TEAM(pTargetCity->getTeam()).isVassal(getTeam()))
+	{
+		return false;
+	}
+
+	if (!canMoveInto(pTargetPlot)) // moved by K-Mod
 	{
 		return false;
 	}
@@ -6827,9 +6777,21 @@ int CvUnit::getSpyInterceptPercent(TeamTypes eTargetTeam) const
 
 	int iSuccess = 0;
 
+	/* original bts code
 	int iTargetPoints = GET_TEAM(eTargetTeam).getEspionagePointsEver();
 	int iOurPoints = GET_TEAM(getTeam()).getEspionagePointsEver();
-	iSuccess += (GC.getDefineINT("ESPIONAGE_INTERCEPT_SPENDING_MAX") * iTargetPoints) / std::max(1, iTargetPoints + iOurPoints);
+	iSuccess += (GC.getDefineINT("ESPIONAGE_INTERCEPT_SPENDING_MAX") * iTargetPoints) / std::max(1, iTargetPoints + iOurPoints); */
+	// K-Mod. Scale based on the teams' population.
+	{
+		const CvTeam& kTeam = GET_TEAM(getTeam());
+		const CvTeam& kTargetTeam = GET_TEAM(eTargetTeam);
+
+		int iPopScale = 5 * GC.getWorldInfo(GC.getMapINLINE().getWorldSize()).getTargetNumCities();
+		int iTargetPoints = 10 * kTargetTeam.getEspionagePointsEver() / std::max(1, iPopScale + kTargetTeam.getTotalPopulation(false));
+		int iOurPoints = 10 * kTeam.getEspionagePointsEver() / std::max(1, iPopScale + kTeam.getTotalPopulation(false));
+		iSuccess += GC.getDefineINT("ESPIONAGE_INTERCEPT_SPENDING_MAX") * iTargetPoints / std::max(1, iTargetPoints + iOurPoints);
+	}
+	// K-Mod end
 
 	if (plot()->isEspionageCounterSpy(eTargetTeam))
 	{
@@ -9375,7 +9337,7 @@ bool CvUnit::hasCargo() const
 }
 
 
-bool CvUnit::canCargoAllMove() const
+/* bool CvUnit::canCargoAllMove() const
 {
 	CLLNode<IDInfo>* pUnitNode;
 	CvUnit* pLoopUnit;
@@ -9403,7 +9365,7 @@ bool CvUnit::canCargoAllMove() const
 	}
 
 	return true;
-}
+} */
 
 bool CvUnit::canCargoEnterArea(TeamTypes eTeam, const CvArea* pArea, bool bIgnoreRightOfPassage) const
 {
@@ -9542,110 +9504,93 @@ bool CvUnit::canJoinGroup(const CvPlot* pPlot, CvSelectionGroup* pSelectionGroup
 	return true;
 }
 
-
+// K-Mod has edited this function to increase readability and robustness
 void CvUnit::joinGroup(CvSelectionGroup* pSelectionGroup, bool bRemoveSelected, bool bRejoin)
 {
-	CvSelectionGroup* pOldSelectionGroup;
-	CvSelectionGroup* pNewSelectionGroup;
-	CvPlot* pPlot;
+	CvSelectionGroup* pOldSelectionGroup = GET_PLAYER(getOwnerINLINE()).getSelectionGroup(getGroupID());
 
-	pOldSelectionGroup = GET_PLAYER(getOwnerINLINE()).getSelectionGroup(getGroupID());
+	if (pOldSelectionGroup && pSelectionGroup == pOldSelectionGroup)
+		return; // attempting to join the group we are already in
 
-	if ((pSelectionGroup != pOldSelectionGroup) || (pOldSelectionGroup == NULL))
+	CvPlot* pPlot = plot();
+	CvSelectionGroup* pNewSelectionGroup = pSelectionGroup;
+
+	if (pNewSelectionGroup == NULL && bRejoin)
 	{
-		pPlot = plot();
+		pNewSelectionGroup = GET_PLAYER(getOwnerINLINE()).addSelectionGroup();
+		pNewSelectionGroup->init(pNewSelectionGroup->getID(), getOwnerINLINE());
+	}
 
-		if (pSelectionGroup != NULL)
+	if (pNewSelectionGroup == NULL || canJoinGroup(pPlot, pNewSelectionGroup))
+	{
+		if (pOldSelectionGroup != NULL)
 		{
-			pNewSelectionGroup = pSelectionGroup;
+			bool bWasHead = false;
+			if (!isHuman())
+			{
+				if (pOldSelectionGroup->getNumUnits() > 1)
+				{
+					if (pOldSelectionGroup->getHeadUnit() == this)
+					{
+						bWasHead = true;
+					}
+				}
+			}
+
+			pOldSelectionGroup->removeUnit(this);
+
+			// if we were the head, if the head unitAI changed, then force the group to separate (non-humans)
+			if (bWasHead)
+			{
+				FAssert(pOldSelectionGroup->getHeadUnit() != NULL);
+				if (pOldSelectionGroup->getHeadUnit()->AI_getUnitAIType() != AI_getUnitAIType())
+				{
+					pOldSelectionGroup->AI_setForceSeparate();
+				}
+			}
+		}
+
+		if ((pNewSelectionGroup != NULL) && pNewSelectionGroup->addUnit(this, false))
+		{
+			m_iGroupID = pNewSelectionGroup->getID();
 		}
 		else
 		{
-			if (bRejoin)
+			m_iGroupID = FFreeList::INVALID_INDEX;
+		}
+
+		if (getGroup() != NULL)
+		{
+			if (getGroup()->getNumUnits() > 1)
 			{
-				pNewSelectionGroup = GET_PLAYER(getOwnerINLINE()).addSelectionGroup();
-				pNewSelectionGroup->init(pNewSelectionGroup->getID(), getOwnerINLINE());
+				// K-Mod - to avoid AI deadlocks, where they just keep grouping and ungroup indefinitely...
+				if (getGroup()->AI_getMissionAIType() == MISSIONAI_GROUP || getLastMoveTurn() == GC.getGameINLINE().getTurnSlice())
+				// K-Mod end
+					getGroup()->setActivityType(ACTIVITY_AWAKE);
 			}
 			else
 			{
-				pNewSelectionGroup = NULL;
+				GET_PLAYER(getOwnerINLINE()).updateGroupCycle(this);
 			}
 		}
 
-		if ((pNewSelectionGroup == NULL) || canJoinGroup(pPlot, pNewSelectionGroup))
+		if (getTeam() == GC.getGameINLINE().getActiveTeam())
 		{
-			if (pOldSelectionGroup != NULL)
+			if (pPlot != NULL)
 			{
-				bool bWasHead = false;
-				if (!isHuman())
-				{
-					if (pOldSelectionGroup->getNumUnits() > 1)
-					{
-						if (pOldSelectionGroup->getHeadUnit() == this)
-						{
-							bWasHead = true;
-						}
-					}
-				}
-
-				pOldSelectionGroup->removeUnit(this);
-
-				// if we were the head, if the head unitAI changed, then force the group to separate (non-humans)
-				if (bWasHead)
-				{
-					FAssert(pOldSelectionGroup->getHeadUnit() != NULL);
-					if (pOldSelectionGroup->getHeadUnit()->AI_getUnitAIType() != AI_getUnitAIType())
-					{
-						pOldSelectionGroup->AI_makeForceSeparate();
-					}
-				}
-			}
-
-			if ((pNewSelectionGroup != NULL) && pNewSelectionGroup->addUnit(this, false))
-			{
-				m_iGroupID = pNewSelectionGroup->getID();
-			}
-			else
-			{
-				m_iGroupID = FFreeList::INVALID_INDEX;
-			}
-
-			if (getGroup() != NULL)
-			{
-				if (getGroup()->getNumUnits() > 1)
-				{
-					// K-Mod - to avoid AI deadlocks, where they just keep grouping and ungroup indefinitely...
-					if (getGroup()->AI_getMissionAIType() == MISSIONAI_GROUP || getLastMoveTurn() == GC.getGameINLINE().getTurnSlice())
-					// K-Mod end
-						getGroup()->setActivityType(ACTIVITY_AWAKE);
-				}
-				else
-				{
-					GET_PLAYER(getOwnerINLINE()).updateGroupCycle(this);
-				}
-			}
-
-			if (getTeam() == GC.getGameINLINE().getActiveTeam())
-			{
-				if (pPlot != NULL)
-				{
-					pPlot->setFlagDirty(true);
-				}
-			}
-
-			if (pPlot == gDLL->getInterfaceIFace()->getSelectionPlot())
-			{
-				gDLL->getInterfaceIFace()->setDirty(PlotListButtons_DIRTY_BIT, true);
+				pPlot->setFlagDirty(true);
 			}
 		}
 
-		if (bRemoveSelected)
+		if (pPlot == gDLL->getInterfaceIFace()->getSelectionPlot())
 		{
-			if (IsSelected())
-			{
-				gDLL->getInterfaceIFace()->removeFromSelectionList(this);
-			}
+			gDLL->getInterfaceIFace()->setDirty(PlotListButtons_DIRTY_BIT, true);
 		}
+	}
+
+	if (bRemoveSelected && IsSelected())
+	{
+		gDLL->getInterfaceIFace()->removeFromSelectionList(this);
 	}
 }
 
@@ -9749,7 +9694,7 @@ void CvUnit::setXY(int iX, int iY, bool bGroup, bool bUpdate, bool bShow, bool b
 	// K-Mod. I've adjusted the code to allow cargo units to stay in their groups when possible.
 	bShow = bShow && bGroup && !isCargo();
 	if (!bGroup)
-		joinGroup(NULL, true);
+		joinGroup(0, true);
 	// K-Mod end
 
 	pNewPlot = GC.getMapINLINE().plotINLINE(iX, iY);
@@ -9997,7 +9942,8 @@ void CvUnit::setXY(int iX, int iY, bool bGroup, bool bUpdate, bool bShow, bool b
 			GET_PLAYER(getOwnerINLINE()).changeNumOutsideUnits(1);
 		}
 
-		if (shouldLoadOnMove(pNewPlot))
+		//if (shouldLoadOnMove(pNewPlot))
+		if (pOldPlot && shouldLoadOnMove(pNewPlot)) // K-Mod. (don't load units during the unit initialization process.)
 		{
 			load();
 		}
@@ -10122,6 +10068,7 @@ void CvUnit::setXY(int iX, int iY, bool bGroup, bool bUpdate, bool bShow, bool b
 				FAssert(pCargoGroup);
 				pUnitNode = pCargoGroup->headUnitNode();
 				ActivityTypes eOldActivityType = pCargoGroup->getActivityType();
+
 				while (pUnitNode)
 				{
 					pLoopUnit = ::getUnit(pUnitNode->m_data);
@@ -10136,6 +10083,9 @@ void CvUnit::setXY(int iX, int iY, bool bGroup, bool bUpdate, bool bShow, bool b
 							pLoopUnit->getGroup()->setActivityType(eOldActivityType);
 						}
 					}
+					// while we're here, update the air-circling animation for fighter-planes
+					else if (eOldActivityType == ACTIVITY_INTERCEPT)
+						pLoopUnit->airCircle(true);
 				}
 			}
 			// K-Mod end
@@ -10793,7 +10743,8 @@ int CvUnit::getExtraWithdrawal() const
 void CvUnit::changeExtraWithdrawal(int iChange)															
 {
 	m_iExtraWithdrawal += iChange;
-	FAssert(getExtraWithdrawal() >= 0);
+	//FAssert(getExtraWithdrawal() >= 0);
+	FAssert(withdrawalProbability() >= 0); // K-Mod. (the 'extra' can be negative during sea-patrol battles.)
 }
 
 int CvUnit::getExtraCollateralDamage() const
@@ -11479,7 +11430,19 @@ void CvUnit::setTransportUnit(CvUnit* pTransportUnit)
 		{
 			FAssertMsg(pTransportUnit->cargoSpaceAvailable(getSpecialUnitType(), getDomainType()) > 0, "Cargo space is expected to be available");
 
-			joinGroup(NULL, true); // Because what if a group of 3 tries to get in a transport which can hold 2...
+			//joinGroup(NULL, true); // Because what if a group of 3 tries to get in a transport which can hold 2...
+
+			// K-Mod
+			if (getGroup()->getNumUnits() > 1) // we could use > cargoSpace, I suppose. But maybe some quirks of game mechanics rely on this group split.
+				joinGroup(NULL, true);
+			else
+			{
+				getGroup()->clearMissionQueue();
+				if (IsSelected())
+					gDLL->getInterfaceIFace()->removeFromSelectionList(this);
+			}
+			FAssert(getGroup()->headMissionQueueNode() == 0); // we don't want them jumping off the boat to complete some unfinished mission!
+			// K-Mod end
 
 			m_transportUnit = pTransportUnit->getIDInfo();
 
@@ -11503,19 +11466,6 @@ void CvUnit::setTransportUnit(CvUnit* pTransportUnit)
 			if (getGroup()->getActivityType() != ACTIVITY_MISSION) // K-Mod. (the unit might be trying to walk somewhere.)
 				getGroup()->setActivityType(ACTIVITY_AWAKE);
 		}
-
-#ifdef _DEBUG
-		std::vector<CvUnit*> aCargoUnits;
-		if (pOldTransportUnit != NULL)
-		{
-			pOldTransportUnit->getCargoUnits(aCargoUnits);
-		}
-		if (pTransportUnit != NULL)
-		{
-			pTransportUnit->getCargoUnits(aCargoUnits);
-		}
-#endif
-
 	}
 }
 
@@ -13641,6 +13591,7 @@ int CvUnit::LFBgetDefenderOdds(const CvUnit* pAttacker) const
 	{
 		// This part is taken directly from the standard method
 		// Reduces value if a unit is carrying other units
+		/* (disabled by K-Mod)
 		int iAssetValue = std::max(1, getUnitInfo().getAssetValue());
 		int iCargoAssetValue = 0;
 		std::vector<CvUnit*> aCargoUnits;
@@ -13649,7 +13600,14 @@ int CvUnit::LFBgetDefenderOdds(const CvUnit* pAttacker) const
 		{
 			iCargoAssetValue += aCargoUnits[i]->getUnitInfo().getAssetValue();
 		}
-		iDefense = iDefense * iAssetValue / std::max(1, iAssetValue + iCargoAssetValue);
+		iDefense = iDefense * iAssetValue / std::max(1, iAssetValue + iCargoAssetValue); */
+
+		// K-Mod. The above code does not achieve the goal, which is to protect cargo-carrying ships from being killed first.
+		// The problem with the code is that when the odds of winning are very small, the artificial reduction is also very small;
+		// on the other hand, when the odds of winning are very great, the artificial reduction is huge. This is the opposite of what we want!
+		// We want to let the boats fight if they are going to win anyway, but give them protection if they would lose.
+
+		// I've added my own version of the value adjustment to LFBgetValueAdjustedOdds.
 	}
 
 	return iDefense;
@@ -13684,6 +13642,22 @@ int CvUnit::LFBgetValueAdjustedOdds(int iOdds, bool bDefender) const
 	int iRank = iOdds + iValueAdj + 10000;
 	// Note that the +10000 is just to try keeping it > 0 - doesn't really matter, other than that -1
 	// would be interpreted later as not computed yet, which would cause us to compute it again each time
+
+	// K-Mod. If this unit is a transport, reduce the value based on the risk of losing the cargo.
+	// (This replaces the adjustment from LFBgetDefenderOdds. For more info, see the comments in that function.)
+	if (hasCargo())
+	{
+		int iAssetValue = std::max(1, getUnitInfo().getAssetValue());
+		int iCargoAssetValue = 0;
+		std::vector<CvUnit*> aCargoUnits;
+		getCargoUnits(aCargoUnits);
+		for (uint i = 0; i < aCargoUnits.size(); ++i)
+		{
+			iCargoAssetValue += aCargoUnits[i]->getUnitInfo().getAssetValue();
+		}
+		iRank -= 2 * (1000 - iOdds) * iCargoAssetValue / std::max(1, iAssetValue + iCargoAssetValue);
+	}
+	// K-Mod end
 
 	return iRank;
 }
@@ -13728,6 +13702,8 @@ int CvUnit::LFBgetRelativeValueRating() const
 	return iValueRating;
 }
 
+// K-Mod. unit value adjustment based on how many defensive promotions are active on this plot.
+// (The purpose of this is to encourage experienced units to fight when their promotions are especially suited to the plot they are defending.)
 int CvUnit::LFGgetDefensiveValueAdjustment() const
 {
 	int iValue = 0;
@@ -13779,6 +13755,7 @@ int CvUnit::LFGgetDefensiveValueAdjustment() const
 
 	return iValue;
 }
+// K-Mod end
 
 int CvUnit::LFBgetDefenderCombatOdds(const CvUnit* pAttacker) const
 {

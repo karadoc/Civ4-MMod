@@ -46,8 +46,8 @@ public:
 	int AI_sumStrength(const CvPlot* pAttackedPlot = NULL, DomainTypes eDomainType = NO_DOMAIN, bool bCheckCanAttack = false) const;
 	// K-Mod end
 	void AI_queueGroupAttack(int iX, int iY);
-	void AI_cancelGroupAttack();
-	bool AI_isGroupAttack();
+	inline void AI_cancelGroupAttack() { m_bGroupAttack = false; } // K-Mod (made inline)
+	inline bool AI_isGroupAttack() const { return m_bGroupAttack; } // K-Mod (made inline)
 
 	bool AI_isControlled();
 	bool AI_isDeclareWar(const CvPlot* pPlot = NULL);
@@ -55,7 +55,8 @@ public:
 	CvPlot* AI_getMissionAIPlot();
 
 	bool AI_isForceSeparate();
-	void AI_makeForceSeparate();
+	//void AI_makeForceSeparate();
+	inline void AI_setForceSeparate(bool bNewValue = true) { m_bForceSeparate = bNewValue; } // K-Mod
 
 	MissionAITypes AI_getMissionAIType() const;
 	void AI_setMissionAI(MissionAITypes eNewMissionAI, CvPlot* pNewPlot, CvUnit* pNewUnit);

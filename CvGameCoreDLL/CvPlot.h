@@ -155,12 +155,12 @@ public:
 /*                                                                                              */
 /* Efficiency                                                                                   */
 /************************************************************************************************/
-	// Plot danger cache
-	bool isActivePlayerNoDangerCache() const;
-	bool isTeamBorderCache( TeamTypes eTeam ) const;
-	void setIsActivePlayerNoDangerCache( bool bNewValue );
-	void setIsTeamBorderCache( TeamTypes eTeam, bool bNewValue );
-	void invalidateIsTeamBorderCache();
+	// Plot danger cache (renamed and edited for K-Mod)
+	bool getActivePlayerNoDangerCache() const;
+	void setActivePlayerNoDangerCache( bool bNewValue );
+	inline bool getBorderDangerCache(TeamTypes eTeam) const { return m_abBorderDangerCache[eTeam]; }
+	inline void setBorderDangerCache(TeamTypes eTeam, bool bNewValue) { m_abBorderDangerCache[eTeam] = bNewValue; }
+	void invalidateBorderDangerCache();
 /************************************************************************************************/
 /* BETTER_BTS_AI_MOD                       END                                                  */
 /************************************************************************************************/
@@ -279,7 +279,7 @@ public:
 	void changeForceUnownedTimer(int iChange);																												// Exposed to Python
 
 	int getCityRadiusCount() const;																																		// Exposed to Python
-	int isCityRadius() const;																																					// Exposed to Python
+	bool isCityRadius() const; // Exposed to Python (K-Mod changed to bool)
 	void changeCityRadiusCount(int iChange);
 
 	bool isStartingPlot() const;																																			// Exposed to Python
@@ -339,7 +339,7 @@ public:
 	DllExport void resetFeatureModel();
 
 	DllExport BonusTypes getBonusType(TeamTypes eTeam = NO_TEAM) const;																							// Exposed to Python
-	BonusTypes getNonObsoleteBonusType(TeamTypes eTeam = NO_TEAM, bool bCheckImprovement = false) const;																	// Exposed to Python
+	BonusTypes getNonObsoleteBonusType(TeamTypes eTeam = NO_TEAM, bool bCheckConnected = false) const;																	// Exposed to Python
 	void setBonusType(BonusTypes eNewValue);																															// Exposed to Python
 
 	DllExport ImprovementTypes getImprovementType() const;																													// Exposed to Python
@@ -402,15 +402,6 @@ public:
 
 	int countNumAirUnits(TeamTypes eTeam) const;																					// Exposed to Python
 	int airUnitSpaceAvailable(TeamTypes eTeam) const;
-/********************************************************************************/
-/* 	BETTER_BTS_AI_MOD						10/17/08		jdog5000		*/
-/* 																			*/
-/* 	Air AI																	*/
-/********************************************************************************/
-	int countAirInterceptorsActive(TeamTypes eTeam) const;
-/********************************************************************************/
-/* 	BETTER_BTS_AI_MOD						END								*/
-/********************************************************************************/
 
 	int getFoundValue(PlayerTypes eIndex);							// Exposed to Python
 	bool isBestAdjacentFound(PlayerTypes eIndex);						// Exposed to Python
@@ -584,8 +575,8 @@ protected:
 /* Efficiency                                                                                   */
 /************************************************************************************************/
 	// Plot danger cache
-	bool m_bIsActivePlayerNoDangerCache;
-	bool* m_abIsTeamBorderCache;
+	bool m_bActivePlayerNoDangerCache;
+	bool* m_abBorderDangerCache;
 /************************************************************************************************/
 /* BETTER_BTS_AI_MOD                       END                                                  */
 /************************************************************************************************/

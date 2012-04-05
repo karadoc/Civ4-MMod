@@ -136,6 +136,7 @@ protected:
 	bool AI_guardCityMinDefender(bool bSearch = true);
 	bool AI_guardCity(bool bLeave = false, bool bSearch = false, int iMaxPath = MAX_INT, int iFlags = 0);
 	bool AI_guardCityAirlift();
+	bool AI_guardCoast(bool bPrimaryOnly = false, int iFlags = 0, int iMaxPath = -1); // K-Mod
 	bool AI_guardBonus(int iMinValue = 0);
 	int AI_getPlotDefendersNeeded(CvPlot* pPlot, int iExtra);
 	bool AI_guardFort(bool bSearch = true);
@@ -238,7 +239,7 @@ protected:
 	bool AI_airDefensiveCity();
 	bool AI_airCarrier();
 	bool AI_missileLoad(UnitAITypes eTargetUnitAI, int iMaxOwnUnitAI = -1, bool bStealthOnly = false);
-	bool AI_airStrike(); // K-Mod note. this function now handles bombing defences, and defensive strikes.
+	bool AI_airStrike(int iThreshold = 0); // K-Mod note. this function now handles bombing defences, and defensive strikes.
 /********************************************************************************/
 /* 	BETTER_BTS_AI_MOD						9/26/08				jdog5000	    */
 /* 																			    */
@@ -307,7 +308,7 @@ protected:
 	int AI_stackOfDoomExtra() const;
 
 	//bool AI_stackAttackCity(int iRange, int iPowerThreshold, bool bFollow = true);
-	bool AI_stackAttackCity(int iPowerThreshold); // K-Mod. used for adjacent cities only.
+	bool AI_stackAttackCity(int iPowerThreshold = -1); // K-Mod. used for adjacent cities only. Negative threshold means 'automatic'.
 	bool AI_moveIntoCity(int iRange);
 
 	bool AI_groupMergeRange(UnitAITypes eUnitAI, int iRange, bool bBiggerOnly = true, bool bAllowRegrouping = false, bool bIgnoreFaster = false);
@@ -330,17 +331,9 @@ protected:
 	// added so under cheat mode we can call protected functions for testing
 	friend class CvGameTextMgr;
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      02/21/10                                jdog5000      */
-/*                                                                                              */
-/* Lead From Behind                                                                             */
-/************************************************************************************************/
-// From Lead From Behind by UncutDragon
+// Lead From Behind by UncutDragon
 public:
 	void LFBgetBetterAttacker(CvUnit** ppAttacker, const CvPlot* pPlot, bool bPotentialEnemy, int& iAIAttackOdds, int& iAttackerValue) const;
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 };
 
 #endif

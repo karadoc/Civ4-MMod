@@ -5,6 +5,26 @@
 <!-- -->
 <!-- Game Text Infos -->
 <Civ4GameText xmlns="http://www.firaxis.com">
+
+	<!-- The word "obsolete", used to describe bonuses after they are made obsolete. -->
+	<TEXT>
+		<Tag>TXT_KEY_BONUS_OBSOLETE</Tag>
+		<English>[COLOR_LIGHT_GREY][SPACE](Obsolete)[SPACE][COLOR_REVERT]</English>
+		<French>[SPACE](Obsolète)[SPACE]</French>
+		<German>[SPACE](Obsolet)[SPACE]</German>
+		<Italian>[SPACE](Obsoleto)[SPACE]</Italian>
+		<Spanish>[SPACE](Obsoleto)[SPACE]</Spanish>
+	</TEXT>
+	<!-- tag line for yield changes for bonuses -->
+	<TEXT>
+		<Tag>TXT_KEY_BONUS_ON_PLOT</Tag>
+		<English>[SPACE]on plot</English>
+		<French>[SPACE]sur le case</French>
+		<German>[SPACE]auf geländefeld</German>
+		<Italian>[SPACE]su casella</Italian>
+		<Spanish>[SPACE]en la casilla</Spanish>
+	</TEXT>
+
 	<TEXT>
 		<Tag>TXT_KEY_PER</Tag>
 		<English>[SPACE]per[SPACE]</English>
@@ -38,7 +58,8 @@
 		<Italian>[ICON_BULLET]%s1[ICON_CULTURE] dalla [ICON_TRADE]</Italian>
 		<Spanish>[ICON_BULLET]%s1[ICON_CULTURE] por [ICON_TRADE]</Spanish>
 	</TEXT>
-	<!-- a replacement for the standard game text... for some minor things that have been bothering me -->
+	<!-- ** Replacements for standard game text ** -->
+	<!-- removed the word "to" at the end -->
 	<TEXT>
 		<Tag>TXT_KEY_TRANSFER_GAME_DATA_TITLE</Tag>
 		<English>Transferring Game Data</English>
@@ -47,6 +68,50 @@
 		<Italian>Trasferimento dati</Italian>
 		<Spanish>Transfiriendo datos de la partida</Spanish>
 	</TEXT>
+	<!-- a couple of minor language adjustments to the unit cost text -->
+	<TEXT>
+		<Tag>TXT_KEY_FINANCE_ADVISOR_UNIT_COST</Tag>
+		<English>[NEWLINE]%d3[ICON_GOLD]: Unit cost for %d1 [NUM1:unit:units] (free support for %d2)</English>
+		<French>[NEWLINE]%d3[ICON_GOLD] : Coût unitaire pour %d1 [NUM1:unité:unités] (gratuit pour %d2)</French>
+		<German>[NEWLINE]%d3[ICON_GOLD]: Einheitenkosten f&#252;r %d1 [NUM1:Einheit:Einheiten] (freier Unterhalt f&#252;r %d2)</German>
+		<Italian>[NEWLINE]%d3[ICON_GOLD]: Costo per %d1 unit&#224; (supporto gratuito per %d2)</Italian>
+		<Spanish>[NEWLINE]%d3 [ICON_GOLD]: coste unitario de %d1 [NUM1:unidad:unidades] (abastecimiento gratis para %d2)</Spanish>
+	</TEXT>
+	<TEXT>
+		<Tag>TXT_KEY_FINANCE_ADVISOR_UNIT_COST_2</Tag>
+		<English>[NEWLINE]%d3[ICON_GOLD]: Military Supply cost for %d1 [NUM1:unit:units] (free support for %d2)</English>
+		<French>[NEWLINE]%d3[ICON_GOLD] : Co&#251;t de ravitaillement pour %d1 unités militaires (gratuit pour %d2)</French>
+		<German>[NEWLINE]%d3[ICON_GOLD]: Milit&#228;rkosten f&#252;r %d1 Einheiten (freier Unterhalt f&#252;r %d2)</German>
+		<Italian>[NEWLINE]%d3[ICON_GOLD]: Costo per %d1 unit&#224; militari (supporto gratuito per %d2)</Italian>
+		<Spanish>[NEWLINE]%d3 [ICON_GOLD]: coste unitario de %d1 [NUM1:unidad militar:unidades militares] (abastecimiento gratis para %d2)</Spanish>
+	</TEXT>
+	<!-- unit support costs use to be gold per unit, now they are 1/100 gold per unit - so the text needs to be changed to be more flexible. I've removed the bullet, the number, and the icon. Those will now be in the dll. -->
+	<TEXT>
+		<Tag>TXT_KEY_CIVIC_SUPPORT_COSTS</Tag>
+		<English>Support Cost per Unit</English>
+		<French>Co&#251;t d'entretien par unit&#233;</French>
+		<German>Unterhaltskosten pro Einheit</German>
+		<Italian>Costo di supporto per unit&#224;</Italian>
+		<Spanish>de coste de abastecimiento por cada unidad</Spanish>
+	</TEXT>
+	<TEXT>
+		<Tag>TXT_KEY_CIVIC_MILITARY_SUPPORT_COSTS</Tag>
+		<English>Support Cost per Military Unit</English>
+		<French>Co&#251;t de ravitaillement par unit&#233; militaire</French>
+		<German>Unterhaltskosten pro Milit&#228;reinheit</German>
+		<Italian>Costo di supporto per le unit&#224; militari</Italian>
+		<Spanish>de coste de abastecimiento por cada unidad militar</Spanish>
+	</TEXT>
+	<!-- highlight leader name in the contact string -->
+	<TEXT>
+		<Tag>TXT_KEY_MISC_CONTACT_LEADER</Tag>
+		<English>Contact [COLOR_HIGHLIGHT_TEXT]%s1_PlyrName of %s2_CivName[COLOR_REVERT]</English>
+		<French>Contacter [COLOR_HIGHLIGHT_TEXT]%s1_PlyrName des %s2_CivName[COLOR_REVERT]</French>
+		<German>[COLOR_HIGHLIGHT_TEXT]%s1_PlyrName[COLOR_REVERT] von der Zivilisation [COLOR_HIGHLIGHT_TEXT]%s2_CivName[COLOR_REVERT] kontaktieren</German>
+		<Italian>Contatta il giocatore [COLOR_HIGHLIGHT_TEXT]%s1_PlyrName della civilt&#224; %s2:2_CivName[COLOR_REVERT]</Italian>
+		<Spanish>Contactar con [COLOR_HIGHLIGHT_TEXT]%s1_PlyrName del %s2_CivName[COLOR_REVERT]</Spanish>
+	</TEXT>
+
 	<!-- "-X% strength to opposing city defenders"?
 	<TEXT>
 		<Tag>TXT_KEY_PROMOTION_CITY_ATTACK_TEXT</Tag>

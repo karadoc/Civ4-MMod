@@ -5801,6 +5801,8 @@ int CvCity::getMaintenanceTimes100() const
 
 void CvCity::updateMaintenance()
 {
+	PROFILE_FUNC();
+
 	int iOldMaintenance;
 	int iNewMaintenance;
 
@@ -6092,6 +6094,7 @@ int CvCity::calculateCorporationMaintenanceTimes100(CorporationTypes eCorporatio
 	}
 
 	FAssert(iMaintenance >= 0);
+	// K-Mod note. This assert (and others like it) can fail sometimes during the process or updating plot groups; because the # of bonuses can be temporarily negative.
 
 	return iMaintenance;
 }
@@ -10259,6 +10262,16 @@ void CvCity::setName(const wchar* szNewValue, bool bFound)
 {
 	CvWString szName(szNewValue);
 	gDLL->stripSpecialCharacters(szName);
+	// K-Mod. stripSpecialCharacters apparently doesn't count '%' as a special characater
+	// however, strings with '%' in them will cause the game to crash. So I'm going to strip them out.
+	for (CvWString::iterator it = szName.begin(); it != szName.end(); )
+	{
+		if (*it == '%')
+			it = szName.erase(it);
+		else
+			++it;
+	}
+	// K-Mod end
 
 	if (!szName.empty())
 	{
@@ -11969,9 +11982,9 @@ void CvCity::clearOrderQueue()
 }
 
 
-void CvCity::pushOrder(OrderTypes eOrder, int iData1, int iData2, bool bSave, bool bPop, bool bAppend, bool bForce)
+void CvCity::pushOrder(OrderTypes eOrder, int iData1, int iData2, bool bSave, bool bPop, int iPosition, bool bForce)
 {
-  OrderData order;
+	OrderData order;
 	bool bValid;
 	bool bBuildingUnit = false;
 	bool bBuildingBuilding = false;
@@ -11983,8 +11996,8 @@ void CvCity::pushOrder(OrderTypes eOrder, int iData1, int iData2, bool bSave, bo
 
 	bValid = false;
 
-  switch (eOrder)
-  {
+	switch (eOrder)
+	{
 	case ORDER_TRAIN:
 		if (canTrain((UnitTypes)iData1) || bForce)
 		{
@@ -12001,22 +12014,14 @@ void CvCity::pushOrder(OrderTypes eOrder, int iData1, int iData2, bool bSave, bo
 			bValid = true;
 			bBuildingUnit = true;
 			CvEventReporter::getInstance().cityBuildingUnit(this, (UnitTypes)iData1);
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      10/02/09                                jdog5000      */
-/*                                                                                              */
-/* AI logging                                                                                   */
-/************************************************************************************************/
 			if( gCityLogLevel >= 1 )
 			{
 				CvWString szString;
 				getUnitAIString(szString, (UnitAITypes)iData2);
 				logBBAI("    City %S pushes production of unit %S with UNITAI %S", getName().GetCString(), GC.getUnitInfo((UnitTypes) iData1).getDescription(), szString.GetCString() );
 			}
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 		}
-    break;
+		break;
 
 	case ORDER_CONSTRUCT:
 		if (canConstruct((BuildingTypes)iData1) || bForce)
@@ -12026,18 +12031,8 @@ void CvCity::pushOrder(OrderTypes eOrder, int iData1, int iData2, bool bSave, bo
 			bValid = true;
 			bBuildingBuilding = true;
 			CvEventReporter::getInstance().cityBuildingBuilding(this, (BuildingTypes)iData1);
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      10/02/09                                jdog5000      */
-/*                                                                                              */
-/* AI logging                                                                                   */
-/************************************************************************************************/
 			if( gCityLogLevel >= 1 )
-			{
 				logBBAI("    City %S pushes production of building %S", getName().GetCString(), GC.getBuildingInfo((BuildingTypes)iData1).getDescription() );
-			}
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 		}
 		break;
 
@@ -12047,18 +12042,8 @@ void CvCity::pushOrder(OrderTypes eOrder, int iData1, int iData2, bool bSave, bo
 			GET_TEAM(getTeam()).changeProjectMaking(((ProjectTypes)iData1), 1);
 
 			bValid = true;
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      10/02/09                                jdog5000      */
-/*                                                                                              */
-/* AI logging                                                                                   */
-/************************************************************************************************/
 			if( gCityLogLevel >= 1 )
-			{
 				logBBAI("    City %S pushes production of project %S", getName().GetCString(), GC.getProjectInfo((ProjectTypes)iData1).getDescription() );
-			}
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 		}
 		break;
 
@@ -12066,36 +12051,27 @@ void CvCity::pushOrder(OrderTypes eOrder, int iData1, int iData2, bool bSave, bo
 		if (canMaintain((ProcessTypes)iData1) || bForce)
 		{
 			bValid = true;
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      10/02/09                                jdog5000      */
-/*                                                                                              */
-/* AI logging                                                                                   */
-/************************************************************************************************/
 			if( gCityLogLevel >= 1 )
-			{
 				logBBAI("    City %S pushes production of process %S", getName().GetCString(), GC.getProcessInfo((ProcessTypes)iData1).getDescription() );
-			}
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 		}
 		break;
 
-  default:
-    FAssertMsg(false, "iOrder did not match a valid option");
-    break;
-  }
+	default:
+		FAssertMsg(false, "iOrder did not match a valid option");
+		break;
+	}
 
 	if (!bValid)
 	{
 		return;
 	}
 
-  order.eOrderType = eOrder;
+	order.eOrderType = eOrder;
 	order.iData1 = iData1;
 	order.iData2 = iData2;
 	order.bSave = bSave;
 
+	/* original bts code
 	if (bAppend)
 	{
 		m_orderQueue.insertAtEnd(order);
@@ -12109,7 +12085,19 @@ void CvCity::pushOrder(OrderTypes eOrder, int iData1, int iData2, bool bSave, bo
 	if (!bAppend || (getOrderQueueLength() == 1))
 	{
 		startHeadOrder();
+	} */
+	// K-Mod
+	if (iPosition == 0 || getOrderQueueLength() == 0)
+	{
+		stopHeadOrder();
+		m_orderQueue.insertAtBeginning(order);
+		startHeadOrder();
 	}
+	else if (iPosition < 0 || iPosition >= getOrderQueueLength())
+		m_orderQueue.insertAtEnd(order);
+	else
+		m_orderQueue.insertBefore(order, m_orderQueue.nodeNum(iPosition));
+	// K-Mod end
 
 	// Why does this cause a crash???
 
@@ -12186,7 +12174,8 @@ void CvCity::popOrder(int iNum, bool bFinish, bool bChoose)
 
 	if (bFinish && pOrderNode->m_data.bSave)
 	{
-		pushOrder(pOrderNode->m_data.eOrderType, pOrderNode->m_data.iData1, pOrderNode->m_data.iData2, true, false, true);
+		//pushOrder(pOrderNode->m_data.eOrderType, pOrderNode->m_data.iData1, pOrderNode->m_data.iData2, true, false, true);
+		pushOrder(pOrderNode->m_data.eOrderType, pOrderNode->m_data.iData1, pOrderNode->m_data.iData2, true, false, -1);
 	}
 
 	eTrainUnit = NO_UNIT;
@@ -12819,11 +12808,10 @@ void CvCity::doCulture()
 }
 
 
-//void CvCity::doPlotCulture(bool bUpdate, PlayerTypes ePlayer, int iCultureRate, bool bCityCulture)
-void CvCity::doPlotCultureTimes100(bool bUpdate, PlayerTypes ePlayer, int iCultureRateTimes100, bool bCityCulture) //K-Mod
+// This function has essentially been rewriten for K-Mod. (and it use to not be 'times 100')
+// A note about scale: the city plot itself gets roughly 10x culture. The outer edges of the cultural influence get 1x culture (ie. the influence that extends beyond the borders).
+void CvCity::doPlotCultureTimes100(bool bUpdate, PlayerTypes ePlayer, int iCultureRateTimes100, bool bCityCulture)
 {
-	CvPlot* pLoopPlot;
-	int iDX, iDY;
 	CultureLevelTypes eCultureLevel = (CultureLevelTypes)0;
 
 	if (GC.getUSE_DO_PLOT_CULTURE_CALLBACK()) // K-Mod. block unused python callbacks
@@ -12863,48 +12851,10 @@ void CvCity::doPlotCultureTimes100(bool bUpdate, PlayerTypes ePlayer, int iCultu
 	}
 
 /**
-*** K-Mod, 26/sep/10, 6/nov/10, Karadoc
-*** the value and effect of 'free city culture' has been changed.
-**/
-	/* original bts code
-	int iFreeCultureRate = GC.getDefineINT("CITY_FREE_CULTURE_GROWTH_FACTOR");
-	*/
-/*
-** K-Mod end
-*/
-
-/**
 *** K-Mod, 30/oct/10, Karadoc
 *** increased culture range, added a percentage based distance bonus (decreasing the importance flat rate bonus).
 **/
-	/* original bts code. (note: the original code is not designed for iCultureRate to be x100)
-	if (getCultureTimes100(ePlayer) > 0)
-	{
-		if (eCultureLevel != NO_CULTURELEVEL)
-		{
-			for (iDX = -eCultureLevel; iDX <= eCultureLevel; iDX++)
-			{
-				for (iDY = -eCultureLevel; iDY <= eCultureLevel; iDY++)
-				{
-					iCultureRange = cultureDistance(iDX, iDY);
-
-					if (iCultureRange <= eCultureLevel)
-					{
-						pLoopPlot = plotXY(getX_INLINE(), getY_INLINE(), iDX, iDY);
-
-						if (pLoopPlot != NULL)
-						{
-							if (pLoopPlot->isPotentialCityWorkForArea(area()))
-							{
-								pLoopPlot->changeCulture(ePlayer, (((eCultureLevel - iCultureRange) * iFreeCultureRate) + iCultureRate + 1), (bUpdate || !(pLoopPlot->isOwned())));
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	*/
+	// (original bts code deleted)
 
 	// Experimental culture profile...
 	// Ae^(-bx). A = 10 (no effect), b = log(full_range_ratio)/range
@@ -12921,15 +12871,15 @@ void CvCity::doPlotCultureTimes100(bool bUpdate, PlayerTypes ePlayer, int iCultu
 	// note, original code had "if (getCultureTimes100(ePlayer) > 0)". I took that part out.
 	if (eCultureLevel != NO_CULTURELEVEL &&	(iCultureRateTimes100*iScale >= 100 || bCityCulture))
 	{
-		for (iDX = -iCultureRange; iDX <= iCultureRange; iDX++)
+		for (int iDX = -iCultureRange; iDX <= iCultureRange; iDX++)
 		{
-			for (iDY = -iCultureRange; iDY <= iCultureRange; iDY++)
+			for (int iDY = -iCultureRange; iDY <= iCultureRange; iDY++)
 			{
 				int iDistance = cultureDistance(iDX, iDY);
 
 				if (iDistance <= iCultureRange)
 				{
-					pLoopPlot = plotXY(getX_INLINE(), getY_INLINE(), iDX, iDY);
+					CvPlot* pLoopPlot = plotXY(getX_INLINE(), getY_INLINE(), iDX, iDY);
 
 					if (pLoopPlot != NULL)
 					{
