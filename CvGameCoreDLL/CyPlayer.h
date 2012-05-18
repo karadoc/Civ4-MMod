@@ -154,7 +154,7 @@ public:
 	int calculateResearchModifier(int /*TechTypes*/ eTech);
 	int calculatePollution(int iTypes) const; // K-Mod
 	int getGwPercentAnger() const; // K-Mod
-	int calculateBaseNetResearch();
+	// int calculateBaseNetResearch();
 	bool isResearch();
 	bool canEverResearch(int /*TechTypes*/ eTech);
 	bool canResearch(int /*TechTypes*/ eTech, bool bTrade);
@@ -162,6 +162,9 @@ public:
 	bool isCurrentResearchRepeat();
 	bool isNoResearchAvailable();
 	int getResearchTurnsLeft(int /*TechTypes*/ eTech, bool bOverflow);
+
+	bool canSeeResearch(int /*PlayerTypes*/ ePlayer) const; // K-Mod
+	bool canSeeDemographics(int /*PlayerTypes*/ ePlayer) const; // K-Mod
 
 	bool isCivic(int /*CivicTypes*/ eCivic);
 	bool canDoCivics(int /*CivicTypes*/ eCivic);

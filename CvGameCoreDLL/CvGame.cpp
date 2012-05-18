@@ -628,6 +628,7 @@ void CvGame::reset(HandicapTypes eHandicap, bool bConstructorCall)
 	{
 		AI_reset();
 	}
+	m_ActivePlayerCycledGroups.clear(); // K-Mod
 }
 
 
@@ -2387,7 +2388,7 @@ void CvGame::cityPushOrder(CvCity* pCity, OrderTypes eOrder, int iData, bool bAl
 	else
 	{
 		//CvMessageControl::getInstance().sendPushOrder(pCity->getID(), eOrder, iData, bAlt, bShift, bCtrl);
-		CvMessageControl::getInstance().sendPushOrder(pCity->getID(), eOrder, iData, bAlt, !(bShift || bCtrl), bCtrl ? 0 : -1);
+		CvMessageControl::getInstance().sendPushOrder(pCity->getID(), eOrder, iData, bAlt, !(bShift || bCtrl), bShift ? -1 : 0);
 	}
 }
 
@@ -2457,13 +2458,16 @@ void CvGame::selectUnit(CvUnit* pUnit, bool bClear, bool bToggle, bool bSound) c
 }
 
 
+// K-Mod. I've made an ugly hack to change the functionality of double-click from select-all to wake-all. Here's how it works:
+// if this function is called with only bAlt == true, but without the alt key actually down, then wake-all is triggered rather than select-all.
+// To achieve the select-all functionality without the alt key, call the function with bCtrl && bAlt.
 void CvGame::selectGroup(CvUnit* pUnit, bool bShift, bool bCtrl, bool bAlt) const
 {
 	PROFILE_FUNC();
 
 	FAssertMsg(pUnit != NULL, "pUnit == NULL unexpectedly");
-	// K-Mod. A hack to change the functionality of double-click from select all to wake all.
-	if (bAlt && !bShift && !bCtrl && !GC.altKey())
+	// K-Mod. the hack (see above)
+	if (bAlt && !bShift && !bCtrl && !GC.altKey() && !gDLL->altKey()) // (using gDLL->altKey, to better match the state of bAlt)
 	{
 		// the caller says alt is pressed, but the computer says otherwise. Lets assume this is a double-click.
 		CvPlot* pUnitPlot = pUnit->plot();
@@ -2553,7 +2557,8 @@ void CvGame::selectAll(CvPlot* pPlot) const
 
 	if (pSelectUnit != NULL)
 	{
-		gDLL->getInterfaceIFace()->selectGroup(pSelectUnit, false, false, true);
+		//gDLL->getInterfaceIFace()->selectGroup(pSelectUnit, false, false, true);
+		gDLL->getInterfaceIFace()->selectGroup(pSelectUnit, false, true, true); // K-Mod
 	}
 }
 
@@ -5976,6 +5981,7 @@ void CvGame::doTurn()
 	doUpdateCacheOnTurn();
 
 	CvSelectionGroup::path_finder.Reset(); // K-Mod. (one of the few manual resets we need)
+	m_ActivePlayerCycledGroups.clear(); // K-Mod
 	// K-Mod - fixing a problem from the CAR mod.
 	// (CvTeamAI::AI_doCounter has a couple of things which invalidate the cache without clearing it. So I'm clearing the cache here to avoid OOS errors.)
 	for (iI = 0; iI < MAX_PLAYERS; iI++)
@@ -7052,7 +7058,20 @@ void CvGame::createBarbarianUnits()
 
 							if (eBestUnit != NO_UNIT)
 							{
-								GET_PLAYER(BARBARIAN_PLAYER).initUnit(eBestUnit, pPlot->getX_INLINE(), pPlot->getY_INLINE(), eBarbUnitAI);
+								CvUnit* pNewUnit = GET_PLAYER(BARBARIAN_PLAYER).initUnit(eBestUnit, pPlot->getX_INLINE(), pPlot->getY_INLINE(), eBarbUnitAI);
+								// K-Mod. Give a combat penalty to barbarian boats.
+								if (pNewUnit && pPlot->isWater())
+								{
+									// find the "disorganized" promotion. (is there a better way to do this?)
+									PromotionTypes eDisorganized = (PromotionTypes)GC.getInfoTypeForString("PROMOTION_DISORGANIZED", true);
+
+									if (eDisorganized != NO_PROMOTION)
+									{
+										// sorry, barbarians. Free boats are just too dangerous for real civilizations to defend against.
+										pNewUnit->setHasPromotion(eDisorganized, true);
+									}
+								}
+								// K-Mod end
 							}
 						}
 					}
@@ -7248,6 +7267,9 @@ void CvGame::updateMoves()
 								break;
 							}
 						}
+						// Refresh the gorup cycle for human players.
+						// Non-human players can wait for their units to wake up, or regain moves - group cycle isn't very important for them anyway.
+						player.refreshGroupCycleList();
 					}
 					// K-Mod end
 

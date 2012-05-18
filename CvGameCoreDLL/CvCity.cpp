@@ -485,16 +485,6 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 	m_bLayoutDirty = false;
 	m_bPlundered = false;
 
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                       12/07/09                         denev & jdog5000     */
-/*                                                                                              */
-/* Bugfix                                                                                       */
-/************************************************************************************************/
-	m_bPopProductionProcess = false;
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                        END                                                  */
-/************************************************************************************************/
-
 	m_eOwner = eOwner;
 	m_ePreviousOwner = NO_PLAYER;
 	m_eOriginalOwner = eOwner;
@@ -947,7 +937,7 @@ void CvCity::doTurn()
 	doCulture();
 
 	//doPlotCulture(false, getOwnerINLINE(), getCommerceRate(COMMERCE_CULTURE));
-	doPlotCultureTimes100(false, getOwnerINLINE(), getCommerceRateTimes100(COMMERCE_CULTURE)); // K-Mod
+	doPlotCultureTimes100(false, getOwnerINLINE(), getCommerceRateTimes100(COMMERCE_CULTURE), true); // K-Mod
 
 	doProduction(bAllowNoProduction);
 
@@ -5011,7 +5001,7 @@ int CvCity::cultureGarrison(PlayerTypes ePlayer) const
 int CvCity::culturePressureFactor() const
 {
 	int iAnswer = 0;
-	const int iDivisor = 62;
+	const int iDivisor = 60;
 
 	for (int iI = 0; iI < NUM_CITY_PLOTS; iI++)
 	{
@@ -5037,10 +5027,12 @@ int CvCity::culturePressureFactor() const
 		}
 	}
 	// dull the effects in the late-game.
-	iAnswer *= GC.getNumEraInfos();
-	iAnswer /= GET_PLAYER(getOwnerINLINE()).getCurrentEra() + GC.getNumEraInfos();
+	/*iAnswer *= GC.getNumEraInfos();
+	iAnswer /= GET_PLAYER(getOwnerINLINE()).getCurrentEra() + GC.getNumEraInfos();*/
+	iAnswer *= GC.getGameINLINE().getEstimateEndTurn();
+	iAnswer /= GC.getGameINLINE().getGameTurn() + GC.getGameINLINE().getEstimateEndTurn();
 
-	return std::min(400, 100 + iAnswer / iDivisor); // capped to avoid overly distorting the value of buildings and great people points.
+	return std::min(500, 100 + iAnswer / iDivisor); // capped to avoid overly distorting the value of buildings and great people points.
 }
 
 int CvCity::getNumBuilding(BuildingTypes eIndex) const
@@ -8147,10 +8139,10 @@ void CvCity::setProductionAutomated(bool bNewValue, bool bClear)
 				clearOrderQueue();
 			}
 		}
-		
+
 		if (!isProduction())
 		{
-		    AI_chooseProduction();		    
+			AI_chooseProduction();
 		}
 	}
 }
@@ -8353,36 +8345,14 @@ void CvCity::setCultureLevel(CultureLevelTypes eNewValue, bool bUpdatePlotGroups
 				CvEventReporter::getInstance().cultureExpansion(this, getOwnerINLINE());
 				
 				//Stop Build Culture
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                       12/07/09                         denev & jdog5000     */
-/*                                                                                              */
-/* Bugfix, Odd behavior                                                                         */
-/************************************************************************************************/
-/* original BTS code
+				/* original BTS code
 				if (isProductionProcess())
 				{
 					if (GC.getProcessInfo(getProductionProcess()).getProductionToCommerceModifier(COMMERCE_CULTURE) > 0)
 					{
 						popOrder(0, false, true);						
 					}
-				}
-*/
-				// For AI this is completely unnecessary.  Timing also appears to cause bug with overflow production, 
-				// giving extra hammers innappropriately.
-				if( isHuman() && !isProductionAutomated() )
-				{
-					if (isProductionProcess())
-					{
-						if (GC.getProcessInfo(getProductionProcess()).getProductionToCommerceModifier(COMMERCE_CULTURE) > 0)
-						{
-							//popOrder(0, false, true);
-							m_bPopProductionProcess = true;
-						}
-					}
-				}
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                        END                                                  */
-/************************************************************************************************/
+				} */ // K-Mod does this in a different way, to avoid an overflow bug. (And a different way to the Unofficial Patch, to avoid OOS)
 			}
 		}
 	}
@@ -10025,7 +9995,7 @@ void CvCity::setCultureTimes100(PlayerTypes eIndex, int iNewValue, bool bPlots, 
 	*/
 	int iOldValue = getCultureTimes100(eIndex);
 
-	if (iNewValue > iOldValue)
+	if (iNewValue != iOldValue)
 	{
 		m_aiCulture[eIndex] = iNewValue;
 		FAssert(getCultureTimes100(eIndex) >= 0);
@@ -10040,6 +10010,8 @@ void CvCity::setCultureTimes100(PlayerTypes eIndex, int iNewValue, bool bPlots, 
 			//doPlotCulture(true, eIndex, (iNewValue-iOldValue)/100);
 			doPlotCultureTimes100(true, eIndex, (iNewValue-iOldValue), false);
 			// note: this function no longer applies free city culture.
+			// also, note that if a city's culture is decreased to zero, there will probably still be some residual plot culture around the city
+			// this is because the culture level on the way up will be higher than it is on the way down.
 		}
 	}
 /*
@@ -12051,6 +12023,14 @@ void CvCity::pushOrder(OrderTypes eOrder, int iData1, int iData2, bool bSave, bo
 		if (canMaintain((ProcessTypes)iData1) || bForce)
 		{
 			bValid = true;
+			// K-Mod. For culture processes, use iData2 to flag the current culture level so that we know when to stop.
+			// We could do a similar thing with research processes and tech... but lets not.
+			if (isHuman() && GC.getProcessInfo((ProcessTypes)iData1).getProductionToCommerceModifier(COMMERCE_CULTURE) > 0)
+			{
+				FAssert(iData2 == -1);
+				iData2 = getCultureLevel();
+			}
+			// K-Mod end
 			if( gCityLogLevel >= 1 )
 				logBBAI("    City %S pushes production of process %S", getName().GetCString(), GC.getProcessInfo((ProcessTypes)iData1).getDescription() );
 		}
@@ -12866,10 +12846,10 @@ void CvCity::doPlotCultureTimes100(bool bUpdate, PlayerTypes ePlayer, int iCultu
 	//const double iB = log((double)iOuterRatio)/iCultureRange;
 
 	// free culture bonus for cities
-	iCultureRateTimes100+=(bCityCulture)?600 :0;
+	iCultureRateTimes100+=(bCityCulture && iCultureRateTimes100 > 0)?600 :0;
 
 	// note, original code had "if (getCultureTimes100(ePlayer) > 0)". I took that part out.
-	if (eCultureLevel != NO_CULTURELEVEL &&	(iCultureRateTimes100*iScale >= 100 || bCityCulture))
+	if (eCultureLevel != NO_CULTURELEVEL &&	(std::abs(iCultureRateTimes100*iScale) >= 100 || bCityCulture))
 	{
 		for (int iDX = -iCultureRange; iDX <= iCultureRange; iDX++)
 		{
@@ -13074,19 +13054,14 @@ void CvCity::doProduction(bool bAllowNoProduction)
 
 	if (isProductionProcess())
 	{
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                       12/07/09                         denev & jdog5000     */
-/*                                                                                              */
-/* Bugfix, Odd behavior                                                                         */
-/************************************************************************************************/
-		if (m_bPopProductionProcess)
+		// K-Mod. End the culture process if our borders have expanded.
+		// (This function is called after "doResearch" etc.)
+		const OrderData& order = headOrderQueueNode()->m_data;
+		if (order.iData2 > 0 && GC.getProcessInfo((ProcessTypes)order.iData1).getProductionToCommerceModifier(COMMERCE_CULTURE) > 0 && getCultureLevel() > order.iData2)
 		{
 			popOrder(0, false, true);
-			m_bPopProductionProcess = false;
 		}
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                        END                                                  */
-/************************************************************************************************/
+		// K-Mod end
 		return;
 	}
 
@@ -13415,47 +13390,8 @@ void CvCity::doMeltdown()
 					{
 						setNumRealBuilding(((BuildingTypes)iI), 0);
 					}
-/**
-*** K-Mod, 31/08/10, karadoc
-*** Reduced damage from meltdowns
-**/
-					/* orginal bts code
-					plot()->nukeExplosion(1);
-					*/
-					// Instead of a full nuclear explosion, we'll just scatter some fallout.
-					int iDX, iDY;
-					const int iRange = 1;
-					CvPlot* pLoopPlot;
-
-					for (iDX = -(iRange); iDX <= iRange; iDX++)
-					{
-						for (iDY = -(iRange); iDY <= iRange; iDY++)
-						{
-							pLoopPlot	= plotXY(getX_INLINE(), getY_INLINE(), iDX, iDY);
-
-							if (pLoopPlot != NULL)
-							{
-								// Skip the city square
-								if (pLoopPlot->getPlotCity() != NULL)
-									continue;
-
-								if (!(pLoopPlot->isWater()) && !(pLoopPlot->isImpassable()))
-								{
-									if (NO_FEATURE == pLoopPlot->getFeatureType() || !GC.getFeatureInfo(pLoopPlot->getFeatureType()).isNukeImmune())
-									{
-										if (GC.getGameINLINE().getSorenRandNum(100, "Nuke Fallout") < GC.getDefineINT("NUKE_FALLOUT_PROB"))
-										{
-											pLoopPlot->setImprovementType(NO_IMPROVEMENT);
-											pLoopPlot->setFeatureType((FeatureTypes)(GC.getDefineINT("NUKE_FEATURE")));
-										}
-									}
-								}
-							}
-						}// iDY loop
-					}// iDX loop
-/*
-** K-Mod END
-*/
+					//plot()->nukeExplosion(1);
+					plot()->nukeExplosion(1, 0, false); // K-Mod
 
 					szBuffer = gDLL->getText("TXT_KEY_MISC_MELTDOWN_CITY", getNameKey());
 					gDLL->getInterfaceIFace()->addHumanMessage(getOwnerINLINE(), false, GC.getEVENT_MESSAGE_TIME(), szBuffer, "AS2D_MELTDOWN", MESSAGE_TYPE_MINOR_EVENT, ARTFILEMGR.getInterfaceArtInfo("INTERFACE_UNHEALTHY_PERSON")->getPath(), (ColorTypes)GC.getInfoTypeForString("COLOR_RED"), getX_INLINE(), getY_INLINE(), true, true);
@@ -13637,7 +13573,10 @@ void CvCity::read(FDataStreamBase* pStream)
 	pStream->Read(GC.getNumReligionInfos(), m_paiReligionInfluence);
 	pStream->Read(GC.getNumReligionInfos(), m_paiStateReligionHappiness);
 	pStream->Read(GC.getNumUnitCombatInfos(), m_paiUnitCombatFreeExperience);
-	pStream->Read(GC.getNumPromotionInfos(), m_paiFreePromotionCount);
+	// K-Mod. Temporary compatibilty fix for the adding of the "disorganized" promotion
+	//pStream->Read(GC.getNumPromotionInfos(), m_paiFreePromotionCount);
+	pStream->Read(GC.getNumPromotionInfos() - (uiFlag < 1 ? 1 : 0), m_paiFreePromotionCount);
+	// K-Mod end
 	pStream->Read(GC.getNumBuildingInfos(), m_paiNumRealBuilding);
 	pStream->Read(GC.getNumBuildingInfos(), m_paiNumFreeBuilding);
 
@@ -13716,7 +13655,7 @@ void CvCity::write(FDataStreamBase* pStream)
 {
 	int iI;
 
-	uint uiFlag=0;
+	uint uiFlag=1;
 	pStream->Write(uiFlag);		// flag for expansion
 
 	pStream->Write(m_iID);

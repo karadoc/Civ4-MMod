@@ -141,7 +141,7 @@ void CyPlayerPythonInterface1(python::class_<CyPlayer>& x)
 		.def("calculateResearchRate", &CyPlayer::calculateResearchRate, "int (int /*TechTypes*/ eTech)")
 		.def("calculatePollution", &CyPlayer::calculatePollution, "int (int /*PollutionFlags*/ iTypes)") // K-Mod
 		.def("getGwPercentAnger", &CyPlayer::getGwPercentAnger, "int ()") // K-Mod
-		.def("calculateBaseNetResearch", &CyPlayer::calculateBaseNetResearch, "int ()")
+		//.def("calculateBaseNetResearch", &CyPlayer::calculateBaseNetResearch, "int ()")
 		.def("calculateResearchModifier", &CyPlayer::calculateResearchModifier, "int (int /*TechTypes*/ eTech)")
 		.def("isResearch", &CyPlayer::isResearch, "bool ()")
 		.def("canEverResearch", &CyPlayer::canEverResearch, "bool (int /*TechTypes*/ iIndex)")
@@ -150,6 +150,9 @@ void CyPlayerPythonInterface1(python::class_<CyPlayer>& x)
 		.def("isCurrentResearchRepeat", &CyPlayer::isCurrentResearchRepeat, "bool ()")
 		.def("isNoResearchAvailable", &CyPlayer::isNoResearchAvailable, "bool ()")
 		.def("getResearchTurnsLeft", &CyPlayer::getResearchTurnsLeft, "int (int /*TechTypes*/ eTech, bool bOverflow)")
+
+		.def("canSeeResearch", &CyPlayer::canSeeResearch, "bool (int /*PlayerTypes*/ ePlayer)") // K-Mod
+		.def("canSeeDemographics", &CyPlayer::canSeeDemographics, "bool (int /*PlayerTypes*/ ePlayer)") // K-Mod
 
 		.def("isCivic", &CyPlayer::isCivic, "bool (int (CivicTypes) eCivic)")
 		.def("canDoCivics", &CyPlayer::canDoCivics, "bool (int (CivicTypes) eCivic)")

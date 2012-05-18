@@ -208,10 +208,10 @@ bool isBeforeUnitCycle(const CvUnit* pFirstUnit, const CvUnit* pSecondUnit)
 		return (pFirstUnit->getDomainType() < pSecondUnit->getDomainType());
 	}
 
-	if (pFirstUnit->baseCombatStr() != pSecondUnit->baseCombatStr())
+	/* if (pFirstUnit->baseCombatStr() != pSecondUnit->baseCombatStr())
 	{
 		return (pFirstUnit->baseCombatStr() > pSecondUnit->baseCombatStr());
-	}
+	} */ // disabled by K-Mod
 
 	if (pFirstUnit->getUnitType() != pSecondUnit->getUnitType())
 	{
@@ -230,6 +230,70 @@ bool isBeforeUnitCycle(const CvUnit* pFirstUnit, const CvUnit* pSecondUnit)
 
 	return (pFirstUnit->getID() < pSecondUnit->getID());
 }
+
+// K-Mod
+bool isBeforeUnitOnPlot(const CvUnit* pFirstUnit, const CvUnit* pSecondUnit)
+{
+	FAssert(pFirstUnit && pSecondUnit);
+	FAssert(pFirstUnit != pSecondUnit);
+	FAssert(pFirstUnit->plot() == pSecondUnit->plot());
+
+	CvPlot* pPlot = pFirstUnit->plot();
+
+	CLLNode<IDInfo>* pUnitNode = pPlot->headUnitNode();
+	while (pUnitNode)
+	{
+		if (pFirstUnit->getIDInfo() == pUnitNode->m_data)
+			return true;
+		if (pSecondUnit->getIDInfo() == pUnitNode->m_data)
+			return false;
+		pUnitNode = pPlot->nextUnitNode(pUnitNode);
+	}
+
+	FAssertMsg(false, "neither unit found on plot in isBeforeUnitOnPlot");
+	return false;
+}
+
+int groupCycleDistance(const CvSelectionGroup* pFirstGroup, const CvSelectionGroup* pSecondGroup)
+{
+	FAssert(pFirstGroup && pSecondGroup && pFirstGroup != pSecondGroup);
+
+	CvUnit* pFirstHead = pFirstGroup->getHeadUnit();
+	CvUnit* pSecondHead = pSecondGroup->getHeadUnit();
+
+	FAssert(pFirstHead && pSecondHead);
+
+	const int iBaseScale = 4;
+	int iPenalty = 0;
+	if (pFirstHead->getUnitType() != pSecondHead->getUnitType())
+	{
+		if (pFirstHead->canFight() != pSecondHead->canFight())
+			iPenalty += 4;
+		else
+		{
+			if (pFirstHead->canFight())
+			{
+				if (pFirstHead->getUnitCombatType() != pSecondHead->getUnitCombatType())
+					iPenalty += 2;
+				if (pFirstHead->canAttack() != pSecondHead->canAttack())
+					iPenalty += 1;
+			}
+			else
+				iPenalty += 2;
+		}
+	}
+
+	int iDistance = plotDistance(pFirstHead->getX_INLINE(), pFirstHead->getY_INLINE(), pSecondHead->getX_INLINE(), pSecondHead->getY_INLINE());
+	iPenalty = std::min(5, iPenalty * (1+iDistance) / iBaseScale);
+
+	// For human players, use the unit order that the plot actually has, not the order it _should_ have.
+	// For AI players, use the preferred ordering, because it's slightly faster.
+	if (iDistance == 0 && !(pFirstHead->isHuman() ? isBeforeUnitOnPlot(pFirstHead, pSecondHead) : isBeforeUnitCycle(pFirstHead, pSecondHead)))
+		iPenalty += iPenalty > 0 ? 1 : 5;
+
+	return iDistance + iPenalty;
+}
+// K-Mod end
 
 bool isPromotionValid(PromotionTypes ePromotion, UnitTypes eUnit, bool bLeader)
 {

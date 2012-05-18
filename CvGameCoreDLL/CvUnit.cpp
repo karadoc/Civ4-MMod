@@ -454,11 +454,16 @@ void CvUnit::convert(CvUnit* pUnit)
 	setLeaderUnitType(pUnit->getLeaderUnitType());
 
 	CvUnit* pTransportUnit = pUnit->getTransportUnit();
-	if (pTransportUnit != NULL)
+	/* if (pTransportUnit != NULL)
 	{
 		pUnit->setTransportUnit(NULL);
 		setTransportUnit(pTransportUnit);
-	}
+	} */
+	// K-Mod
+	if (pTransportUnit != NULL)
+		pUnit->setTransportUnit(NULL);
+	setTransportUnit(pTransportUnit);
+	// K-Mod end
 
 	std::vector<CvUnit*> aCargoUnits;
 	pUnit->getCargoUnits(aCargoUnits);
@@ -1132,8 +1137,22 @@ void CvUnit::updateAirCombat(bool bQuick)
 	}
 }
 
-void CvUnit::resolveCombat(CvUnit* pDefender, CvPlot* pPlot, CvBattleDefinition& kBattle)
+// K-Mod. I've edited this function so that it handles the battle planning internally rather than feeding details back to the caller.
+void CvUnit::resolveCombat(CvUnit* pDefender, CvPlot* pPlot, bool bVisible)
 {
+	// K-Mod. Initialize battle info.
+	// Note: kBattle is only relevant if we are going to show the battle animation.
+	CvBattleDefinition kBattle;
+	if (bVisible)
+	{
+		kBattle.setUnit(BATTLE_UNIT_ATTACKER, this);
+		kBattle.setUnit(BATTLE_UNIT_DEFENDER, pDefender);
+		kBattle.setDamage(BATTLE_UNIT_ATTACKER, BATTLE_TIME_BEGIN, getDamage());
+		kBattle.setDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_BEGIN, pDefender->getDamage());
+	}
+	std::vector<int> combat_log; // positive number for attacker hitting the defender, negative numbers for defender hitting the attacker.
+	// K-Mod end
+
 	CombatDetails cdAttackerDetails;
 	CombatDetails cdDefenderDetails;
 
@@ -1161,19 +1180,7 @@ void CvUnit::resolveCombat(CvUnit* pDefender, CvPlot* pPlot, CvBattleDefinition&
 
 	while (true)
 	{
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      02/21/10                                jdog5000      */
-/*                                                                                              */
-/* Lead From Behind                                                                             */
-/************************************************************************************************/
-		// From Lead From Behind by UncutDragon
-		// original
-		//if (GC.getGameINLINE().getSorenRandNum(GC.getDefineINT("COMBAT_DIE_SIDES"), "Combat") < iDefenderOdds)
-		// modified
 		if (GC.getGameINLINE().getSorenRandNum(GC.getCOMBAT_DIE_SIDES(), "Combat") < iDefenderOdds)
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 		{
 			if (getCombatFirstStrikes() == 0)
 			{
@@ -1186,12 +1193,17 @@ void CvUnit::resolveCombat(CvUnit* pDefender, CvPlot* pPlot, CvBattleDefinition&
 				}
 
 				changeDamage(iAttackerDamage, pDefender->getOwnerINLINE());
+				combat_log.push_back(-iAttackerDamage); // K-Mod
 
-				if (pDefender->getCombatFirstStrikes() > 0 && pDefender->isRanged())
+				/* if (pDefender->getCombatFirstStrikes() > 0 && pDefender->isRanged())
 				{
 					kBattle.addFirstStrikes(BATTLE_UNIT_DEFENDER, 1);
 					kBattle.addDamage(BATTLE_UNIT_ATTACKER, BATTLE_TIME_RANGED, iAttackerDamage);
-				}
+				} */
+				// K-Mod. (I don't think this stuff is actually used, but I want to do it my way, just in case.)
+				if (pDefender->getCombatFirstStrikes() > 0)
+					kBattle.addFirstStrikes(BATTLE_UNIT_DEFENDER, 1);
+				// K-Mod end
 
 				cdAttackerDetails.iCurrHitPoints = currHitPoints();
 
@@ -1205,6 +1217,10 @@ void CvUnit::resolveCombat(CvUnit* pDefender, CvPlot* pPlot, CvBattleDefinition&
 					CvEventReporter::getInstance().genericEvent("combatLogHit", pyArgs.makeFunctionArgs());
 				}
 			}
+			// K-Mod. Track the free-strike misses, to use for choreographing the battle animation.
+			else if (bVisible && !combat_log.empty())
+				combat_log.push_back(0);
+			// K-Mod end
 		}
 		else
 		{
@@ -1213,17 +1229,23 @@ void CvUnit::resolveCombat(CvUnit* pDefender, CvPlot* pPlot, CvBattleDefinition&
 				if (std::min(GC.getMAX_HIT_POINTS(), pDefender->getDamage() + iDefenderDamage) > combatLimit())
 				{
 					changeExperience(GC.getDefineINT("EXPERIENCE_FROM_WITHDRAWL"), pDefender->maxXPValue(), true, pPlot->getOwnerINLINE() == getOwnerINLINE(), !pDefender->isBarbarian());
+					combat_log.push_back(combatLimit() - pDefender->getDamage()); // K-Mod
 					pDefender->setDamage(combatLimit(), getOwnerINLINE());
 					break;
 				}
 
 				pDefender->changeDamage(iDefenderDamage, getOwnerINLINE());
+				combat_log.push_back(iDefenderDamage); // K-Mod
 
-				if (getCombatFirstStrikes() > 0 && isRanged())
+				/* if (getCombatFirstStrikes() > 0 && isRanged())
 				{
 					kBattle.addFirstStrikes(BATTLE_UNIT_ATTACKER, 1);
 					kBattle.addDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_RANGED, iDefenderDamage);
-				}
+				} */
+				// K-Mod
+				if (getCombatFirstStrikes() > 0)
+					kBattle.addFirstStrikes(BATTLE_UNIT_ATTACKER, 1);
+				// K-Mod end
 
 				cdDefenderDetails.iCurrHitPoints=pDefender->currHitPoints();
 
@@ -1237,6 +1259,10 @@ void CvUnit::resolveCombat(CvUnit* pDefender, CvPlot* pPlot, CvBattleDefinition&
 					CvEventReporter::getInstance().genericEvent("combatLogHit", pyArgs.makeFunctionArgs());
 				}
 			}
+			// K-Mod
+			else if (bVisible && !combat_log.empty())
+				combat_log.push_back(0);
+			// K-Mod end
 		}
 
 		if (getCombatFirstStrikes() > 0)
@@ -1269,6 +1295,28 @@ void CvUnit::resolveCombat(CvUnit* pDefender, CvPlot* pPlot, CvBattleDefinition&
 			}
 
 			break;
+		}
+	}
+
+	// K-Mod. Finalize battle info and start the animation.
+	if (bVisible)
+	{
+		kBattle.setDamage(BATTLE_UNIT_ATTACKER, BATTLE_TIME_END, getDamage());
+		kBattle.setDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_END, pDefender->getDamage());
+		kBattle.setAdvanceSquare(canAdvance(pPlot, 1));
+
+		// note: BATTLE_TIME_RANGED damage is now set inside planBattle; (not that it actually does anything...)
+
+		int iTurns = planBattle(kBattle, combat_log);
+		kBattle.setMissionTime(iTurns * gDLL->getSecsPerTurn());
+		setCombatTimer(iTurns);
+
+		GC.getGameINLINE().incrementTurnTimer(getCombatTimer()); // additional time for multiplayer turn timer.
+
+		if (pPlot->isActiveVisible(false))
+		{
+			ExecuteMove(0.5f, true);
+			gDLL->getEntityIFace()->AddMission(&kBattle);
 		}
 	}
 }
@@ -1431,47 +1479,12 @@ void CvUnit::updateCombat(bool bQuick)
 		}
 		else
 		{
-			CvBattleDefinition kBattle;
-			kBattle.setUnit(BATTLE_UNIT_ATTACKER, this);
-			kBattle.setUnit(BATTLE_UNIT_DEFENDER, pDefender);
-			kBattle.setDamage(BATTLE_UNIT_ATTACKER, BATTLE_TIME_BEGIN, getDamage());
-			kBattle.setDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_BEGIN, pDefender->getDamage());
-
-			resolveCombat(pDefender, pPlot, kBattle);
+			resolveCombat(pDefender, pPlot, bVisible);
 
 			if (!bVisible)
-			{
 				bFinish = true;
-			}
-			else
-			{
-				kBattle.setDamage(BATTLE_UNIT_ATTACKER, BATTLE_TIME_END, getDamage());
-				kBattle.setDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_END, pDefender->getDamage());
-				kBattle.setAdvanceSquare(canAdvance(pPlot, 1));
 
-				if (isRanged() && pDefender->isRanged())
-				{
-					kBattle.setDamage(BATTLE_UNIT_ATTACKER, BATTLE_TIME_RANGED, kBattle.getDamage(BATTLE_UNIT_ATTACKER, BATTLE_TIME_END));
-					kBattle.setDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_RANGED, kBattle.getDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_END));
-				}
-				else
-				{
-					kBattle.addDamage(BATTLE_UNIT_ATTACKER, BATTLE_TIME_RANGED, kBattle.getDamage(BATTLE_UNIT_ATTACKER, BATTLE_TIME_BEGIN));
-					kBattle.addDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_RANGED, kBattle.getDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_BEGIN));
-				}
-
-				int iTurns = planBattle( kBattle);
-				kBattle.setMissionTime(iTurns * gDLL->getSecsPerTurn());
-				setCombatTimer(iTurns);
-
-				GC.getGameINLINE().incrementTurnTimer(getCombatTimer());
-
-				if (pPlot->isActiveVisible(false))
-				{
-					ExecuteMove(0.5f, true);
-					gDLL->getEntityIFace()->AddMission(&kBattle);
-				}
-			}
+			// Note: K-Mod has moved the bulk of this block into resolveCombat.
 		}
 	}
 
@@ -2634,7 +2647,8 @@ bool CvUnit::canMoveInto(const CvPlot* pPlot, bool bAttack, bool bDeclareWar, bo
 						if (!bDeclareWar || (pPlot->isVisibleOtherUnit(getOwnerINLINE()) != bAttack && !(bAttack && pPlot->getPlotCity() && !isNoCapture()))) */
 						// K-Mod. I'm not entirely sure I understand what they were trying to do here. But I'm pretty sure it's wrong.
 						// I think the rule should be that bAttack means we have to actually fight an enemy unit. Capturing an undefended city doesn't not count.
-						if (!bAttack || !bDeclareWar || pPlot->getNumVisiblePotentialEnemyDefenders(this) == 0)
+						// (there is no "isVisiblePotentialEnemyUnit" function, so I just wrote the code directly.)
+						if (!bAttack || !bDeclareWar || !pPlot->isVisiblePotentialEnemyUnit(getOwnerINLINE()))
 						// K-Mod end
 						{
 							return false;
@@ -2891,10 +2905,21 @@ void CvUnit::attackForDamage(CvUnit *pDefender, int attackerDamageChange, int de
 		kBattle.setDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_END, pDefender->getDamage());
 		kBattle.setAdvanceSquare(canAdvance(pPlot, 1));
 
+		/* original bts code
 		kBattle.addDamage(BATTLE_UNIT_ATTACKER, BATTLE_TIME_RANGED, kBattle.getDamage(BATTLE_UNIT_ATTACKER, BATTLE_TIME_BEGIN));
-		kBattle.addDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_RANGED, kBattle.getDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_BEGIN));
+		kBattle.addDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_RANGED, kBattle.getDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_BEGIN)); */
+		// K-Mod. (the original code looks wrong to me.)
+		kBattle.setDamage(BATTLE_UNIT_ATTACKER, BATTLE_TIME_RANGED, kBattle.getDamage(BATTLE_UNIT_ATTACKER, BATTLE_TIME_BEGIN));
+		kBattle.setDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_RANGED, kBattle.getDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_BEGIN));
+		// K-Mod end
 
-		int iTurns = planBattle( kBattle);
+		//int iTurns = planBattle( kBattle);
+		// K-Mod
+		std::vector<int> combat_log;
+		combat_log.push_back(defenderDamageChange);
+		combat_log.push_back(-attackerDamageChange);
+		int iTurns = planBattle(kBattle, combat_log);
+		// K-Mod end
 		kBattle.setMissionTime(iTurns * gDLL->getSecsPerTurn());
 		setCombatTimer(iTurns);
 
@@ -3127,7 +3152,7 @@ void CvUnit::automate(AutomateTypes eAutomate)
 
 	getGroup()->setAutomateType(eAutomate);
 	// K-Mod. I'd like for the unit to automate immediately after the command is given, just so that the UI seems responsive. But doing so is potentially problematic.
-	if (GET_PLAYER(getOwnerINLINE()).isTurnActive() && getGroup()->readyToMove())
+	if (isGroupHead() && GET_PLAYER(getOwnerINLINE()).isTurnActive() && getGroup()->readyToMove())
 	{
 		// unfortunately, CvSelectionGroup::AI_update can kill the unit, and CvUnit::automate currently isn't allowed to kill the unit.
 		// CvUnit::AI_update should be ok; but using it here makes me a bit uncomfortable because it doesn't include all the checks and conditions of the group update.
@@ -3686,34 +3711,13 @@ void CvUnit::airCircle(bool bStart)
 bool CvUnit::canHeal(const CvPlot* pPlot) const
 {
 	if (!isHurt())
-	{
 		return false;
-	}
 
 	if (isWaiting())
-	{
 		return false;
-	}
 
-/*************************************************************************************************/
-/* UNOFFICIAL_PATCH                       06/30/10                           LunarMongoose       */
-/*                                                                                               */
-/* Bugfix                                                                                        */
-/*************************************************************************************************/
-/* original bts code
-	if (healRate(pPlot) <= 0)
-	{
-		return false;
-	}
-*/
-	// Mongoose FeatureDamageFix
 	if (healTurns(pPlot) == MAX_INT)
-	{
 		return false;
-	}
-/*************************************************************************************************/
-/* UNOFFICIAL_PATCH                         END                                                  */
-/*************************************************************************************************/
 
 	return true;
 }
@@ -3844,15 +3848,10 @@ int CvUnit::healRate(const CvPlot* pPlot, bool bLocation, bool bUnits) const
 
 int CvUnit::healTurns(const CvPlot* pPlot) const
 {
-	int iHeal;
-	int iTurns;
-
 	if (!isHurt())
-	{
 		return 0;
-	}
 
-	iHeal = healRate(pPlot);
+	int iHeal = healRate(pPlot);
 
 /*************************************************************************************************/
 /* UNOFFICIAL_PATCH                       06/02/10                           LunarMongoose       */
@@ -3871,14 +3870,15 @@ int CvUnit::healTurns(const CvPlot* pPlot) const
 
 	if (iHeal > 0)
 	{
-		iTurns = (getDamage() / iHeal);
+		/*iTurns = (getDamage() / iHeal);
 
 		if ((getDamage() % iHeal) != 0)
 		{
 			iTurns++;
 		}
 
-		return iTurns;
+		return iTurns; */
+		return (getDamage() + iHeal-1) / iHeal; // K-Mod (same, but faster)
 	}
 	else
 	{
@@ -3995,7 +3995,9 @@ bool CvUnit::airlift(int iX, int iY)
 
 	finishMoves();
 
+	AutomateTypes eAuto = getGroup()->getAutomateType(); // K-Mod
 	setXY(pTargetPlot->getX_INLINE(), pTargetPlot->getY_INLINE());
+	getGroup()->setAutomateType(eAuto); // K-Mod. (automated workers sometimes airlift themselves. They should stay automated.)
 
 	return true;
 }
@@ -7536,9 +7538,8 @@ CvUnit* CvUnit::upgrade(UnitTypes eUnit) // K-Mod: this now returns the new unit
 
 	FAssertMsg(pUpgradeUnit != NULL, "UpgradeUnit is not assigned a valid value");
 
-	pUpgradeUnit->joinGroup(getGroup());
-
 	pUpgradeUnit->convert(this);
+	pUpgradeUnit->joinGroup(getGroup()); // K-Mod, swapped order with convert. (otherwise units on boats would be ungrouped.)
 
 	pUpgradeUnit->finishMoves();
 
@@ -9561,17 +9562,35 @@ void CvUnit::joinGroup(CvSelectionGroup* pSelectionGroup, bool bRemoveSelected, 
 
 		if (getGroup() != NULL)
 		{
+			// K-Mod
+			if (isGroupHead())
+				GET_PLAYER(getOwnerINLINE()).updateGroupCycle(getGroup());
+			// K-Mod end
 			if (getGroup()->getNumUnits() > 1)
 			{
-				// K-Mod - to avoid AI deadlocks, where they just keep grouping and ungroup indefinitely...
-				if (getGroup()->AI_getMissionAIType() == MISSIONAI_GROUP || getLastMoveTurn() == GC.getGameINLINE().getTurnSlice())
-				// K-Mod end
+				/* original bts code
+				getGroup()->setActivityType(ACTIVITY_AWAKE); */
+				// K-Mod
+				// For the AI, only wake the group in particular circumstances. This is to avoid AI deadlocks where they just keep grouping and ungroup indefinitely.
+				// If the activity type is not changed at all, then that would enable exploits such as adding new units to air patrol groups to bypass the movement conditions.
+				if (isHuman())
+				{
+					getGroup()->setAutomateType(NO_AUTOMATE);
 					getGroup()->setActivityType(ACTIVITY_AWAKE);
+					// I'm not going to clear the mission queue. I'm just going to change to rules so that "automoves" won't start while the group is selected.
+					//getGroup()->clearMissionQueue();
+				}
+				else if (getGroup()->AI_getMissionAIType() == MISSIONAI_GROUP || getLastMoveTurn() == GC.getGameINLINE().getTurnSlice())
+					getGroup()->setActivityType(ACTIVITY_AWAKE);
+				else if (getGroup()->getActivityType() != ACTIVITY_AWAKE)
+					getGroup()->setActivityType(ACTIVITY_HOLD); // don't let them cheat.
+				// K-Mod end
 			}
+			/* original bts code
 			else
 			{
 				GET_PLAYER(getOwnerINLINE()).updateGroupCycle(this);
-			}
+			} */
 		}
 
 		if (getTeam() == GC.getGameINLINE().getActiveTeam())
@@ -9942,21 +9961,23 @@ void CvUnit::setXY(int iX, int iY, bool bGroup, bool bUpdate, bool bShow, bool b
 			GET_PLAYER(getOwnerINLINE()).changeNumOutsideUnits(1);
 		}
 
-		//if (shouldLoadOnMove(pNewPlot))
-		if (pOldPlot && shouldLoadOnMove(pNewPlot)) // K-Mod. (don't load units during the unit initialization process.)
+		if (shouldLoadOnMove(pNewPlot))
 		{
 			load();
 		}
 
-		for (iI = 0; iI < MAX_CIV_TEAMS; iI++)
+		if (!alwaysInvisible() && !m_pUnitInfo->isHiddenNationality()) // K-Mod (just this condition)
 		{
-			if (GET_TEAM((TeamTypes)iI).isAlive())
+			for (iI = 0; iI < MAX_CIV_TEAMS; iI++)
 			{
-				if (!isInvisible(((TeamTypes)iI), false))
+				if (GET_TEAM((TeamTypes)iI).isAlive())
 				{
-					if (pNewPlot->isVisible((TeamTypes)iI, false))
+					if (!isInvisible(((TeamTypes)iI), false))
 					{
-						GET_TEAM((TeamTypes)iI).meet(getTeam(), true);
+						if (pNewPlot->isVisible((TeamTypes)iI, false))
+						{
+							GET_TEAM((TeamTypes)iI).meet(getTeam(), true);
+						}
 					}
 				}
 			}
@@ -10108,7 +10129,11 @@ void CvUnit::setXY(int iX, int iY, bool bGroup, bool bUpdate, bool bShow, bool b
 	}
 
 	FAssert(pOldPlot != pNewPlot);
-	GET_PLAYER(getOwnerINLINE()).updateGroupCycle(this);
+	//GET_PLAYER(getOwnerINLINE()).updateGroupCycle(this);
+	// K-Mod. Only update the group cycle here if we are placing this unit on the map for the first time.
+	if (!pOldPlot)
+		GET_PLAYER(getOwnerINLINE()).updateGroupCycle(getGroup());
+	// K-Mod end
 
 	setInfoBarDirty(true);
 
@@ -12059,7 +12084,10 @@ void CvUnit::read(FDataStreamBase* pStream)
 	pStream->ReadString(m_szName);
 	pStream->ReadString(m_szScriptData);
 
-	pStream->Read(GC.getNumPromotionInfos(), m_pabHasPromotion);
+	// K-Mod. Temporary compatibilty fix for the adding of the "disorganized" promotion
+	//pStream->Read(GC.getNumPromotionInfos(), m_pabHasPromotion);
+	pStream->Read(GC.getNumPromotionInfos() - (uiFlag < 3 ? 1 : 0), m_pabHasPromotion);
+	// K-Mod end
 
 	pStream->Read(GC.getNumTerrainInfos(), m_paiTerrainDoubleMoveCount);
 	pStream->Read(GC.getNumFeatureInfos(), m_paiFeatureDoubleMoveCount);
@@ -12073,7 +12101,7 @@ void CvUnit::read(FDataStreamBase* pStream)
 
 void CvUnit::write(FDataStreamBase* pStream)
 {
-	uint uiFlag=2;
+	uint uiFlag=3;
 	pStream->Write(uiFlag);		// flag for expansion
 
 	pStream->Write(m_iID);
@@ -12194,59 +12222,32 @@ bool CvUnit::canAdvance(const CvPlot* pPlot, int iThreshold) const
 	return true;
 }
 
-
+// K-Mod, I've rewritten this function just to make it a bit easier to understand, a bit more efficient, and a bit more robust.
+// For example, the original code used a std::map<CvUnit*, int>; if the random number in the map turned out to be the same, it could potentially have led to OOS.
+// The actual game mechanics are only very slightly changed. (I've removed the targets cap of "visible units - 1". That seemed like a silly limitation.)
 void CvUnit::collateralCombat(const CvPlot* pPlot, CvUnit* pSkipUnit)
 {
-	CLLNode<IDInfo>* pUnitNode;
-	CvUnit* pLoopUnit;
-	CvUnit* pBestUnit;
-	CvWString szBuffer;
-	int iTheirStrength;
-	int iStrengthFactor;
-	int iCollateralDamage;
-	int iUnitDamage;
-	int iDamageCount;
-	int iPossibleTargets;
-	int iCount;
-	int iValue;
-	int iBestValue;
-	std::map<CvUnit*, int> mapUnitDamage;
-	std::map<CvUnit*, int>::iterator it;
+	std::vector<std::pair<int, IDInfo> > targetUnits;
 
 	int iCollateralStrength = (getDomainType() == DOMAIN_AIR ? airBaseCombatStr() : baseCombatStr()) * collateralDamage() / 100;
-	// UNOFFICIAL_PATCH Start
-	// * Barrage promotions made working again on Tanks and other units with no base collateral ability
+
 	if (iCollateralStrength == 0 && getExtraCollateralDamage() == 0)
-	// UNOFFICIAL_PATCH End
-	{
 		return;
-	}
 
-	iPossibleTargets = std::min((pPlot->getNumVisibleEnemyDefenders(this) - 1), collateralDamageMaxUnits());
-
-	pUnitNode = pPlot->headUnitNode();
+	CLLNode<IDInfo>* pUnitNode = pPlot->headUnitNode();
 
 	while (pUnitNode != NULL)
 	{
-		pLoopUnit = ::getUnit(pUnitNode->m_data);
+		CvUnit* pLoopUnit = ::getUnit(pUnitNode->m_data);
 		pUnitNode = pPlot->nextUnitNode(pUnitNode);
 
-		if (pLoopUnit != pSkipUnit)
+		if (pLoopUnit != pSkipUnit && isEnemy(pLoopUnit->getTeam(), pPlot) && pLoopUnit->canDefend() && !pLoopUnit->isInvisible(getTeam(), false))
 		{
-			if (isEnemy(pLoopUnit->getTeam(), pPlot))
-			{
-				if (!(pLoopUnit->isInvisible(getTeam(), false)))
-				{
-					if (pLoopUnit->canDefend())
-					{
-						iValue = (1 + GC.getGameINLINE().getSorenRandNum(10000, "Collateral Damage"));
+			// This value thing is a bit bork. It's directly from the original code...
+			int iValue = (1 + GC.getGameINLINE().getSorenRandNum(10000, "Collateral Damage"));
+			iValue *= pLoopUnit->currHitPoints();
 
-						iValue *= pLoopUnit->currHitPoints();
-
-						mapUnitDamage[pLoopUnit] = iValue;
-					}
-				}
-			}
+			targetUnits.push_back(std::make_pair(iValue, pLoopUnit->getIDInfo()));
 		}
 	}
 
@@ -12256,71 +12257,51 @@ void CvUnit::collateralCombat(const CvPlot* pPlot, CvUnit* pSkipUnit)
 		pCity = pPlot->getPlotCity();
 	}
 
-	iDamageCount = 0;
-	iCount = 0;
+	int iPossibleTargets = std::min((int)targetUnits.size(), collateralDamageMaxUnits());
+	std::partial_sort(targetUnits.begin(), targetUnits.begin() + iPossibleTargets, targetUnits.end(), std::greater<std::pair<int, IDInfo> >());
 
-	while (iCount < iPossibleTargets)
+	int iDamageCount = 0;
+
+	for (int i = 0; i < iPossibleTargets; i++)
 	{
-		iBestValue = 0;
-		pBestUnit = NULL;
+		CvUnit* pTargetUnit = ::getUnit(targetUnits[i].second);
+		FAssert(pTargetUnit);
 
-		for (it = mapUnitDamage.begin(); it != mapUnitDamage.end(); it++)
+		if (NO_UNITCOMBAT == getUnitCombatType() || !pTargetUnit->getUnitInfo().getUnitCombatCollateralImmune(getUnitCombatType()))
 		{
-			if (it->second > iBestValue)
+			int iTheirStrength = pTargetUnit->baseCombatStr();
+
+			int iStrengthFactor = ((iCollateralStrength + iTheirStrength + 1) / 2);
+
+			int iCollateralDamage = (GC.getDefineINT("COLLATERAL_COMBAT_DAMAGE") * (iCollateralStrength + iStrengthFactor)) / (iTheirStrength + iStrengthFactor);
+
+			iCollateralDamage *= 100 + getExtraCollateralDamage();
+
+			iCollateralDamage *= std::max(0, 100 - pTargetUnit->getCollateralDamageProtection());
+			iCollateralDamage /= 100;
+
+			if (pCity != NULL)
 			{
-				iBestValue = it->second;
-				pBestUnit = it->first;
-			}
-		}
-
-		if (pBestUnit != NULL)
-		{
-			mapUnitDamage.erase(pBestUnit);
-
-			if (NO_UNITCOMBAT == getUnitCombatType() || !pBestUnit->getUnitInfo().getUnitCombatCollateralImmune(getUnitCombatType()))
-			{
-				iTheirStrength = pBestUnit->baseCombatStr();
-
-				iStrengthFactor = ((iCollateralStrength + iTheirStrength + 1) / 2);
-
-				iCollateralDamage = (GC.getDefineINT("COLLATERAL_COMBAT_DAMAGE") * (iCollateralStrength + iStrengthFactor)) / (iTheirStrength + iStrengthFactor);
-
-				iCollateralDamage *= 100 + getExtraCollateralDamage();
-
-				iCollateralDamage *= std::max(0, 100 - pBestUnit->getCollateralDamageProtection());
+				iCollateralDamage *= 100 + pCity->getAirModifier();
 				iCollateralDamage /= 100;
-
-				if (pCity != NULL)
-				{
-					iCollateralDamage *= 100 + pCity->getAirModifier();
-					iCollateralDamage /= 100;
-				}
-
-				iCollateralDamage /= 100;
-
-				iCollateralDamage = std::max(0, iCollateralDamage);
-
-				int iMaxDamage = std::min(collateralDamageLimit(), (collateralDamageLimit() * (iCollateralStrength + iStrengthFactor)) / (iTheirStrength + iStrengthFactor));
-				iUnitDamage = std::max(pBestUnit->getDamage(), std::min(pBestUnit->getDamage() + iCollateralDamage, iMaxDamage));
-
-				if (pBestUnit->getDamage() != iUnitDamage)
-				{
-					pBestUnit->setDamage(iUnitDamage, getOwnerINLINE());
-					iDamageCount++;
-				}
 			}
 
-			iCount++;
-		}
-		else
-		{
-			break;
+			iCollateralDamage = std::max(0, iCollateralDamage/100);
+
+			int iMaxDamage = std::min(collateralDamageLimit(), (collateralDamageLimit() * (iCollateralStrength + iStrengthFactor)) / (iTheirStrength + iStrengthFactor));
+			int iUnitDamage = std::max(pTargetUnit->getDamage(), std::min(pTargetUnit->getDamage() + iCollateralDamage, iMaxDamage));
+
+			if (pTargetUnit->getDamage() != iUnitDamage)
+			{
+				pTargetUnit->setDamage(iUnitDamage, getOwnerINLINE());
+				iDamageCount++;
+			}
 		}
 	}
 
 	if (iDamageCount > 0)
 	{
-		szBuffer = gDLL->getText("TXT_KEY_MISC_YOU_SUFFER_COL_DMG", iDamageCount);
+		CvWString szBuffer = gDLL->getText("TXT_KEY_MISC_YOU_SUFFER_COL_DMG", iDamageCount);
 		gDLL->getInterfaceIFace()->addHumanMessage(pSkipUnit->getOwnerINLINE(), (pSkipUnit->getDomainType() != DOMAIN_AIR), GC.getEVENT_MESSAGE_TIME(), szBuffer, "AS2D_COLLATERAL", MESSAGE_TYPE_INFO, getButton(), (ColorTypes)GC.getInfoTypeForString("COLOR_RED"), pSkipUnit->getX_INLINE(), pSkipUnit->getY_INLINE(), true, true);
 
 		szBuffer = gDLL->getText("TXT_KEY_MISC_YOU_INFLICT_COL_DMG", getNameKey(), iDamageCount);
@@ -12731,169 +12712,144 @@ bool CvUnit::rangeStrike(int iX, int iY)
 //!
 //!				Note that the outcome of the battle is not determined here. This function plans
 //!				how many sub-units die and in which 'rounds' of battle.
-//! \param      kBattleDefinition The battle definition, which receives the battle plan.
+//! \param      kBattle The battle definition, which receives the battle plan.
+//! \param		combat_log The order and amplitude of damage taken by the units (K-Mod)
 //! \retval     The number of game turns that the battle should be given.
 //------------------------------------------------------------------------------------------------
-int CvUnit::planBattle( CvBattleDefinition & kBattleDefinition ) const
+
+// Rewriten for K-Mod!
+int CvUnit::planBattle(CvBattleDefinition& kBattle, const std::vector<int>& combat_log) const
 {
-#define BATTLE_TURNS_SETUP 4
-#define BATTLE_TURNS_ENDING 4
-#define BATTLE_TURNS_MELEE 6
-#define BATTLE_TURNS_RANGED 6
-#define BATTLE_TURN_RECHECK 4
+	const int BATTLE_TURNS_SETUP = 4;
+	const int BATTLE_TURNS_ENDING = 4;
+	const int BATTLE_TURNS_MELEE = 6;
+	const int BATTLE_TURNS_RANGED = 6;
+	const int BATTLE_TURN_RECHECK = 4;
 
-	int								aiUnitsBegin[BATTLE_UNIT_COUNT];
-	int								aiUnitsEnd[BATTLE_UNIT_COUNT];
-	int								aiToKillMelee[BATTLE_UNIT_COUNT];
-	int								aiToKillRanged[BATTLE_UNIT_COUNT];
-	CvBattleRoundVector::iterator	iIterator;
-	int								i, j;
-	bool							bIsLoser;
-	int								iRoundIndex;
-	int								iTotalRounds = 0;
-	int								iRoundCheck = BATTLE_TURN_RECHECK;
+	CvUnit* pAttackUnit = kBattle.getUnit(BATTLE_UNIT_ATTACKER);
+	CvUnit* pDefenceUnit = kBattle.getUnit(BATTLE_UNIT_DEFENDER);
 
-	// Initial conditions
-	kBattleDefinition.setNumRangedRounds(0);
-	kBattleDefinition.setNumMeleeRounds(0);
+	int iAttackerDamage = kBattle.getDamage(BATTLE_UNIT_ATTACKER, BATTLE_TIME_BEGIN);
+	int iDefenderDamage = kBattle.getDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_BEGIN);
 
-	int iFirstStrikesDelta = kBattleDefinition.getFirstStrikes(BATTLE_UNIT_ATTACKER) - kBattleDefinition.getFirstStrikes(BATTLE_UNIT_DEFENDER);
-	if (iFirstStrikesDelta > 0) // Attacker first strikes
+	int iAttackerUnits = pAttackUnit->getSubUnitsAlive(iAttackerDamage);
+	int iDefenderUnits = pDefenceUnit->getSubUnitsAlive(iDefenderDamage);
+	int iAttackerUnitsKilled = 0;
+	int iDefenderUnitsKilled = 0;
+
+	//
+	kBattle.setNumRangedRounds(0);
+	kBattle.setNumMeleeRounds(0);
+	kBattle.setDamage(BATTLE_UNIT_ATTACKER, BATTLE_TIME_RANGED, iAttackerDamage);
+	kBattle.setDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_RANGED, iDefenderDamage);
+	kBattle.clearBattleRounds();
+	// kBattle.setNumRangedRounds(iFirstStrikeRounds); // originally max(iFirstStrikesDelta, iKills / iFirstStrikesDelta)
+	// int iFirstStrikeRounds = kBattle.getFirstStrikes(BATTLE_UNIT_ATTACKER) + kBattle.getFirstStrikes(BATTLE_UNIT_DEFENDER);
+	bool bRanged = true;
+
+	const static int iStandardNumRounds = GC.getDefineINT("STANDARD_BATTLE_ANIMATION_ROUNDS", 6);
+
+	int iTotalBattleRounds = (iStandardNumRounds * (int)combat_log.size() * GC.getCOMBAT_DAMAGE() + GC.getMAX_HIT_POINTS()) / (2*GC.getMAX_HIT_POINTS());
+
+	// Reduce number of rounds if both units have groupSize == 1, because nothing much happens in those battles.
+	if (pAttackUnit->getGroupSize() == 1 && pDefenceUnit->getGroupSize() == 1)
+		iTotalBattleRounds = (2*iTotalBattleRounds+1)/3;
+
+	// apparently, there is a hardcoded minimum of 2 rounds. (game will crash if there less than 2 rounds.)
+	iTotalBattleRounds = range(iTotalBattleRounds, 2, 10);
+
+	int iBattleRound = 0;
+	for (int i = 0; i < (int)combat_log.size(); i++)
 	{
-		int iKills = computeUnitsToDie( kBattleDefinition, true, BATTLE_UNIT_DEFENDER );
-		kBattleDefinition.setNumRangedRounds(std::max(iFirstStrikesDelta, iKills / iFirstStrikesDelta));
-	}
-	else if (iFirstStrikesDelta < 0) // Defender first strikes
-	{
-		int iKills = computeUnitsToDie( kBattleDefinition, true, BATTLE_UNIT_ATTACKER );
-		iFirstStrikesDelta = -iFirstStrikesDelta;
-		kBattleDefinition.setNumRangedRounds(std::max(iFirstStrikesDelta, iKills / iFirstStrikesDelta));
-	}
-	increaseBattleRounds( kBattleDefinition);
-
-
-	// Keep randomizing until we get something valid
-	do 
-	{
-		iRoundCheck++;
-		if ( iRoundCheck >= BATTLE_TURN_RECHECK )
+		// The combat animator can't handle rounds where there are more deaths on one side than survivers on the other.
+		// therefore, we must sometimes end the round early to avoid violating that rule.
+		if (combat_log[i] > 0)
 		{
-			increaseBattleRounds( kBattleDefinition);
-			iTotalRounds = kBattleDefinition.getNumRangedRounds() + kBattleDefinition.getNumMeleeRounds();
-			iRoundCheck = 0;
+			iDefenderDamage = std::min(GC.getMAX_HIT_POINTS(), iDefenderDamage + combat_log[i]);
+			iDefenderUnitsKilled = std::min(iAttackerUnits - iAttackerUnitsKilled, iDefenderUnits - pDefenceUnit->getSubUnitsAlive(iDefenderDamage));
+			bRanged = bRanged && pAttackUnit->isRanged();
+			if (bRanged)
+				kBattle.addDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_RANGED, combat_log[i]); // I'm not sure if this is actually used for the animation...
+		}
+		else if (combat_log[i] < 0)
+		{
+			iAttackerDamage = std::min(GC.getMAX_HIT_POINTS(), iAttackerDamage - combat_log[i]);
+			iAttackerUnitsKilled = std::min(iDefenderUnits - iDefenderUnitsKilled, iAttackerUnits - pAttackUnit->getSubUnitsAlive(iAttackerDamage));
+			bRanged = bRanged && pDefenceUnit->isRanged();
+			if (bRanged)
+				kBattle.addDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_RANGED, combat_log[i]);
 		}
 
-		// Make sure to clear the battle plan, we may have to do this again if we can't find a plan that works.
-		kBattleDefinition.clearBattleRounds();
-
-		// Create the round list
-		CvBattleRound kRound;
-		kBattleDefinition.setBattleRound(iTotalRounds, kRound);
-
-		// For the attacker and defender
-		for ( i = 0; i < BATTLE_UNIT_COUNT; i++ )
+		// Sometimes we may need to end more than one round at a time...
+		bool bNextRound = false;
+		do
 		{
-			// Gather some initial information
-			BattleUnitTypes unitType = (BattleUnitTypes) i;
-			aiUnitsBegin[unitType] = kBattleDefinition.getUnit(unitType)->getSubUnitsAlive(kBattleDefinition.getDamage(unitType, BATTLE_TIME_BEGIN));
-			aiToKillRanged[unitType] = computeUnitsToDie( kBattleDefinition, true, unitType);
-			aiToKillMelee[unitType] = computeUnitsToDie( kBattleDefinition, false, unitType);
-			aiUnitsEnd[unitType] = aiUnitsBegin[unitType] - aiToKillMelee[unitType] - aiToKillRanged[unitType];
+			bNextRound = iBattleRound < (i+1) * iTotalBattleRounds / (int)combat_log.size();
 
-			// Make sure that if they aren't dead at the end, they have at least one unit left
-			if ( aiUnitsEnd[unitType] == 0 && !kBattleDefinition.getUnit(unitType)->isDead() )
+			// force the round to end if we are already at the deaths limit for whomever will take the next damage.
+			if (!bNextRound && (iDefenderUnitsKilled > 0 || iAttackerUnitsKilled > 0))
 			{
-				aiUnitsEnd[unitType]++;
-				if ( aiToKillMelee[unitType] > 0 )
+				if (i+1 == combat_log.size() ||
+					iDefenderUnitsKilled >= iAttackerUnits - iAttackerUnitsKilled && combat_log[i] > 0 ||
+					iAttackerUnitsKilled >= iDefenderUnits - iDefenderUnitsKilled && combat_log[i] < 0)
 				{
-					aiToKillMelee[unitType]--;
+					bNextRound = true;
 				}
+			}
+
+			if (bNextRound)
+			{
+				//bRanged = bRanged && (i < iFirstStrikeRounds || (pAttackUnit->isRanged() && pDefenceUnit->isRanged()));
+
+				if (bRanged)
+					kBattle.addNumRangedRounds(1);
 				else
-				{
-					aiToKillRanged[unitType]--;
-				}
+					kBattle.addNumMeleeRounds(1);
+
+				//
+				CvBattleRound kRound;
+
+				kRound.setRangedRound(bRanged);
+				kRound.setWaveSize(computeWaveSize(bRanged, iAttackerUnits, iDefenderUnits));
+
+				iAttackerUnits -= iAttackerUnitsKilled;
+				iDefenderUnits -= iDefenderUnitsKilled;
+
+				kRound.setNumAlive(BATTLE_UNIT_ATTACKER, iAttackerUnits);
+				kRound.setNumAlive(BATTLE_UNIT_DEFENDER, iDefenderUnits);
+				kRound.setNumKilled(BATTLE_UNIT_ATTACKER, iAttackerUnitsKilled);
+				kRound.setNumKilled(BATTLE_UNIT_DEFENDER, iDefenderUnitsKilled);
+				//
+
+				kBattle.addBattleRound(kRound);
+
+				iBattleRound++;
+				// there may be some spillover kills if the round was forced...
+				iDefenderUnitsKilled = iDefenderUnits - pDefenceUnit->getSubUnitsAlive(iDefenderDamage);
+				iAttackerUnitsKilled = iAttackerUnits - pAttackUnit->getSubUnitsAlive(iAttackerDamage);
+				// and if there are, we should increase the total number of rounds so that we can fit them in.
+				if (iDefenderUnitsKilled > 0 || iAttackerUnitsKilled > 0)
+					iTotalBattleRounds++;
 			}
+		} while (bNextRound);
+	}
+	//FAssert(iBattleRound == iTotalBattleRounds);
+	FAssert(iAttackerDamage == kBattle.getDamage(BATTLE_UNIT_ATTACKER, BATTLE_TIME_END));
+	FAssert(iDefenderDamage == kBattle.getDamage(BATTLE_UNIT_DEFENDER, BATTLE_TIME_END));
 
-			// If one unit is the loser, make sure that at least one of their units dies in the last round
-			if ( aiUnitsEnd[unitType] == 0 )
-			{
-				kBattleDefinition.getBattleRound(iTotalRounds - 1).addNumKilled(unitType, 1);
-				if ( aiToKillMelee[unitType] > 0)
-				{
-					aiToKillMelee[unitType]--;
-				}
-				else
-				{
-					aiToKillRanged[unitType]--;
-				}
-			}
-
-			// Randomize in which round each death occurs
-			bIsLoser = aiUnitsEnd[unitType] == 0;
-
-			// Randomize the ranged deaths
-			for ( j = 0; j < aiToKillRanged[unitType]; j++ )
-			{
-				iRoundIndex = GC.getGameINLINE().getSorenRandNum( range( kBattleDefinition.getNumRangedRounds(), 0, kBattleDefinition.getNumRangedRounds()), "Ranged combat death");
-				kBattleDefinition.getBattleRound(iRoundIndex).addNumKilled(unitType, 1);
-			}
-
-			// Randomize the melee deaths
-			for ( j = 0; j < aiToKillMelee[unitType]; j++ )
-			{
-				iRoundIndex = GC.getGameINLINE().getSorenRandNum( range( kBattleDefinition.getNumMeleeRounds() - (bIsLoser ? 1 : 2 ), 0, kBattleDefinition.getNumMeleeRounds()), "Melee combat death");
-				kBattleDefinition.getBattleRound(kBattleDefinition.getNumRangedRounds() + iRoundIndex).addNumKilled(unitType, 1);
-			}
-
-			// Compute alive sums
-			int iNumberKilled = 0;
-			for(int j=0;j<kBattleDefinition.getNumBattleRounds();j++)
-			{
-				CvBattleRound &round = kBattleDefinition.getBattleRound(j);
-				round.setRangedRound(j < kBattleDefinition.getNumRangedRounds());
-				iNumberKilled += round.getNumKilled(unitType);
-				round.setNumAlive(unitType, aiUnitsBegin[unitType] - iNumberKilled);
-			}
-		}
-
-		// Now compute wave sizes
-		for(int i=0;i<kBattleDefinition.getNumBattleRounds();i++)
-		{
-			CvBattleRound &round = kBattleDefinition.getBattleRound(i);
-			round.setWaveSize(computeWaveSize(round.isRangedRound(), round.getNumAlive(BATTLE_UNIT_ATTACKER) + round.getNumKilled(BATTLE_UNIT_ATTACKER), round.getNumAlive(BATTLE_UNIT_DEFENDER) + round.getNumKilled(BATTLE_UNIT_DEFENDER)));
-		}
-
-		if ( iTotalRounds > 400 )
-		{
-			kBattleDefinition.setNumMeleeRounds(1);
-			kBattleDefinition.setNumRangedRounds(0);
-			break;
-		}
-	} 
-	while ( !verifyRoundsValid( kBattleDefinition ));
-
-	//add a little extra time for leader to surrender
-	bool attackerLeader = false;
-	bool defenderLeader = false;
-	bool attackerDie = false;
-	bool defenderDie = false;
-	int lastRound = kBattleDefinition.getNumBattleRounds() - 1;
-	if(kBattleDefinition.getUnit(BATTLE_UNIT_ATTACKER)->getLeaderUnitType() != NO_UNIT)
-		attackerLeader = true;
-	if(kBattleDefinition.getUnit(BATTLE_UNIT_DEFENDER)->getLeaderUnitType() != NO_UNIT)
-		defenderLeader = true;
-	if(kBattleDefinition.getBattleRound(lastRound).getNumAlive(BATTLE_UNIT_ATTACKER) == 0)
-		attackerDie = true;
-	if(kBattleDefinition.getBattleRound(lastRound).getNumAlive(BATTLE_UNIT_DEFENDER) == 0)
-		defenderDie = true;
+	FAssert(verifyRoundsValid(kBattle));
 
 	int extraTime = 0;
-	if((attackerLeader && attackerDie) || (defenderLeader && defenderDie))
-		extraTime = BATTLE_TURNS_MELEE;
-	if(gDLL->getEntityIFace()->GetSiegeTower(kBattleDefinition.getUnit(BATTLE_UNIT_ATTACKER)->getUnitEntity()) || gDLL->getEntityIFace()->GetSiegeTower(kBattleDefinition.getUnit(BATTLE_UNIT_DEFENDER)->getUnitEntity()))
-		extraTime = BATTLE_TURNS_MELEE;
 
-	return BATTLE_TURNS_SETUP + BATTLE_TURNS_ENDING + kBattleDefinition.getNumMeleeRounds() * BATTLE_TURNS_MELEE + kBattleDefinition.getNumRangedRounds() * BATTLE_TURNS_MELEE + extraTime;
+	// extra time for seige towers and surrendering leaders.
+	if ((pAttackUnit->getLeaderUnitType() != NO_UNIT && pAttackUnit->isDead()) ||
+		(pDefenceUnit->getLeaderUnitType() != NO_UNIT && pDefenceUnit->isDead()) ||
+		gDLL->getEntityIFace()->GetSiegeTower(pAttackUnit->getUnitEntity()) || gDLL->getEntityIFace()->GetSiegeTower(pDefenceUnit->getUnitEntity()) )
+	{
+		extraTime = BATTLE_TURNS_MELEE;
+	}
+
+	return BATTLE_TURNS_SETUP + BATTLE_TURNS_ENDING + kBattle.getNumMeleeRounds() * BATTLE_TURNS_MELEE + kBattle.getNumRangedRounds() * BATTLE_TURNS_MELEE + extraTime;
 }
 
 //------------------------------------------------------------------------------------------------
@@ -13046,55 +13002,27 @@ void CvUnit::getDefenderCombatValues(CvUnit& kDefender, const CvPlot* pPlot, int
 	FAssert((iOurStrength + iTheirStrength) > 0);
 	FAssert((iOurFirepower + iTheirFirepower) > 0);
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      02/21/10                                jdog5000      */
-/*                                                                                              */
-/* Efficiency                                                                                   */
-/************************************************************************************************/
-	// From Lead From Behind by UncutDragon
-	// original
-	//iTheirOdds = ((GC.getDefineINT("COMBAT_DIE_SIDES") * iTheirStrength) / (iOurStrength + iTheirStrength));
-	// modified
 	iTheirOdds = ((GC.getCOMBAT_DIE_SIDES() * iTheirStrength) / (iOurStrength + iTheirStrength));
 
 	if (kDefender.isBarbarian())
 	{
 		if (GET_PLAYER(getOwnerINLINE()).getWinsVsBarbs() < GC.getHandicapInfo(GET_PLAYER(getOwnerINLINE()).getHandicapType()).getFreeWinsVsBarbs())
 		{
-			// UncutDragon
-			// original
-			//iTheirOdds = std::min((10 * GC.getDefineINT("COMBAT_DIE_SIDES")) / 100, iTheirOdds);
-			// modified
 			iTheirOdds = std::min((10 * GC.getCOMBAT_DIE_SIDES()) / 100, iTheirOdds);
-			// /UncutDragon
 		}
 	}
 	if (isBarbarian())
 	{
 		if (GET_PLAYER(kDefender.getOwnerINLINE()).getWinsVsBarbs() < GC.getHandicapInfo(GET_PLAYER(kDefender.getOwnerINLINE()).getHandicapType()).getFreeWinsVsBarbs())
 		{
-			// UncutDragon
-			// original
-			//iTheirOdds =  std::max((90 * GC.getDefineINT("COMBAT_DIE_SIDES")) / 100, iTheirOdds);
-			// modified
 			iTheirOdds =  std::max((90 * GC.getCOMBAT_DIE_SIDES()) / 100, iTheirOdds);
-			// /UncutDragon
 		}
 	}
 
 	int iStrengthFactor = ((iOurFirepower + iTheirFirepower + 1) / 2);
 
-	// UncutDragon
-	// original
-	//iOurDamage = std::max(1, ((GC.getDefineINT("COMBAT_DAMAGE") * (iTheirFirepower + iStrengthFactor)) / (iOurFirepower + iStrengthFactor)));
-	//iTheirDamage = std::max(1, ((GC.getDefineINT("COMBAT_DAMAGE") * (iOurFirepower + iStrengthFactor)) / (iTheirFirepower + iStrengthFactor)));
-	// modified
 	iOurDamage = std::max(1, ((GC.getCOMBAT_DAMAGE() * (iTheirFirepower + iStrengthFactor)) / (iOurFirepower + iStrengthFactor)));
 	iTheirDamage = std::max(1, ((GC.getCOMBAT_DAMAGE() * (iOurFirepower + iStrengthFactor)) / (iTheirFirepower + iStrengthFactor)));
-	// /UncutDragon
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 }
 
 int CvUnit::getTriggerValue(EventTriggerTypes eTrigger, const CvPlot* pPlot, bool bCheckPlot) const
@@ -13496,12 +13424,13 @@ bool CvUnit::LFBisBetterDefenderThan(const CvUnit* pDefender, const CvUnit* pAtt
 		iTheirRanking = pDefender->LFBgetDefenderRank(pAttacker);
 
 	// In case of equal value, fall back on unit cycle order
+	// (K-Mod. _reversed_ unit cycle order, so that inexperienced units defend first.)
 	if (iOurRanking == iTheirRanking)
 	{
 		if (isBeforeUnitCycle(this, pDefender))
-			iTheirRanking--;
-		else
 			iTheirRanking++;
+		else
+			iTheirRanking--;
 	}
 
 	// Retain the basic rank (before value adjustment) for the best defender

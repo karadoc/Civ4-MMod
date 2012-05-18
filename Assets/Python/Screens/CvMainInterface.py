@@ -1275,6 +1275,26 @@ class CvMainInterface:
 
 		return 0
 
+	# K-Mod. There are some special rules for which buttons should be shown and when. I'd rather have all those rules in one place. ie. here.
+	def showCommercePercent(self, eCommerce, ePlayer):
+		player = gc.getPlayer(ePlayer)
+		if not player.isFoundedFirstCity():
+			return False
+
+		if eCommerce == CommerceTypes.COMMERCE_GOLD and not CyInterface().isCityScreenUp():
+			return False
+
+		if player.getCommercePercent(eCommerce) > 0:
+			return True
+
+		if eCommerce == CommerceTypes.COMMERCE_ESPIONAGE and gc.getTeam(player.getTeam()).getHasMetCivCount(True) == 0:
+			return False
+
+		if player.isCommerceFlexible(eCommerce):
+			return True
+		return False
+	# K-Mod end
+
 	# Will update the percent buttons
 	def updatePercentButtons( self ):
 
@@ -1294,7 +1314,8 @@ class CvMainInterface:
 
 		pHeadSelectedCity = CyInterface().getHeadSelectedCity()
 
-		if ( not CyInterface().isCityScreenUp() or ( pHeadSelectedCity.getOwner() == gc.getGame().getActivePlayer() ) or gc.getGame().isDebugMode() ):
+		#if ( not CyInterface().isCityScreenUp() or ( pHeadSelectedCity.getOwner() == gc.getGame().getActivePlayer() ) or gc.getGame().isDebugMode() ):
+		if (not CyInterface().isCityScreenUp() or pHeadSelectedCity.getOwner() == gc.getGame().getActivePlayer()): # K-Mod. (debug mode still doesn't allow us to use the buttons.)
 			iCount = 0
 
 			if ( CyInterface().getShowInterface() != InterfaceVisibility.INTERFACE_HIDE_ALL and CyInterface().getShowInterface() != InterfaceVisibility.INTERFACE_MINIMAP_ONLY and CyInterface().getShowInterface() != InterfaceVisibility.INTERFACE_ADVANCED_START):
@@ -1302,7 +1323,10 @@ class CvMainInterface:
 					# Intentional offset...
 					eCommerce = (iI + 1) % CommerceTypes.NUM_COMMERCE_TYPES
 										
-					if (gc.getActivePlayer().isCommerceFlexible(eCommerce) or (CyInterface().isCityScreenUp() and (eCommerce == CommerceTypes.COMMERCE_GOLD))):
+					#if (gc.getActivePlayer().isCommerceFlexible(eCommerce) or (CyInterface().isCityScreenUp() and (eCommerce == CommerceTypes.COMMERCE_GOLD))):
+					# K-Mod
+					if self.showCommercePercent(eCommerce, gc.getGame().getActivePlayer()):
+					# K-Mod end
 # BUG - Min/Max Sliders - start
 						bEnable = gc.getActivePlayer().isCommerceFlexible(eCommerce)
 						if MainOpt.isShowMinMaxCommerceButtons() and not CyInterface().isCityScreenUp():
@@ -3008,7 +3032,10 @@ class CvMainInterface:
 				iCount = 0
 				for iI in range( CommerceTypes.NUM_COMMERCE_TYPES ):
 					eCommerce = (iI + 1) % CommerceTypes.NUM_COMMERCE_TYPES
-					if (gc.getPlayer(ePlayer).isCommerceFlexible(eCommerce) or (CyInterface().isCityScreenUp() and (eCommerce == CommerceTypes.COMMERCE_GOLD))):
+					#if (gc.getPlayer(ePlayer).isCommerceFlexible(eCommerce) or (CyInterface().isCityScreenUp() and (eCommerce == CommerceTypes.COMMERCE_GOLD))):
+					# K-Mod
+					if self.showCommercePercent(eCommerce, ePlayer):
+					# K-Mod end
 						szOutText = u"<font=2>%c:%d%%</font>" %(gc.getCommerceInfo(eCommerce).getChar(), gc.getPlayer(ePlayer).getCommercePercent(eCommerce))
 						szString = "PercentText" + str(iI)
 						screen.setLabel( szString, "Background", szOutText, CvUtil.FONT_LEFT_JUSTIFY, 14, 50 + (iCount * 19), -0.1, FontTypes.SMALL_FONT, WidgetTypes.WIDGET_GENERAL, -1, -1 )
@@ -4876,15 +4903,6 @@ class CvMainInterface:
 					iPowerColor = ScoreOpt.getPowerColor()
 					iHighPowerColor = ScoreOpt.getHighPowerColor()
 					iLowPowerColor = ScoreOpt.getLowPowerColor()
-					
-					if (bEspionage):
-						iDemographicsMission = -1
-						for iMissionLoop in range(gc.getNumEspionageMissionInfos()):
-							if (gc.getEspionageMissionInfo(iMissionLoop).isSeeDemographics()):
-								iDemographicsMission = iMissionLoop
-								break
-						if (iDemographicsMission == -1):
-							bShowPower = False
 # BUG - Power Rating - end
 
 				i = gc.getMAX_CIV_TEAMS() - 1
@@ -4923,7 +4941,8 @@ class CvMainInterface:
 														scores.setWaiting()
 	
 # BUG - Dead Civs - start
-											if (ScoreOpt.isUsePlayerName()):
+											#if (ScoreOpt.isUsePlayerName()):
+											if ScoreOpt.isUsePlayerName() or (not gc.getTeam(gc.getGame().getActiveTeam()).isHasMet(eTeam) and not gc.getGame().isDebugMode()): # K-Mod
 												szPlayerName = gc.getPlayer(ePlayer).getName()
 											else:
 												szPlayerName = gc.getLeaderHeadInfo(gc.getPlayer(ePlayer).getLeaderType()).getDescription()
@@ -4996,11 +5015,18 @@ class CvMainInterface:
 												if (bAlignIcons):
 													scores.setAlive()
 												# BUG: Rest of Dead Civs change is merely indentation by 1 level ...
-												if (gc.getTeam(eTeam).isAlive()):
-													if ( not (gc.getTeam(gc.getGame().getActiveTeam()).isHasMet(eTeam)) ):
-														szBuffer = szBuffer + (" ?")
-														if (bAlignIcons):
-															scores.setNotMet()
+												#if (gc.getTeam(eTeam).isAlive()):
+													# if ( not (gc.getTeam(gc.getGame().getActiveTeam()).isHasMet(eTeam)) ):
+														# szBuffer = szBuffer + (" ?")
+														# if (bAlignIcons):
+															# scores.setNotMet()
+												# K-Mod
+												if gc.getTeam(eTeam).isAlive() and not gc.getTeam(gc.getGame().getActiveTeam()).isHasMet(eTeam):
+													szBuffer = szBuffer + (" ?")
+													if (bAlignIcons):
+														scores.setNotMet()
+												if gc.getTeam(eTeam).isAlive() and (gc.getTeam(gc.getGame().getActiveTeam()).isHasMet(eTeam) or gc.getGame().isDebugMode()):
+												# K-Mod end
 													if (gc.getTeam(eTeam).isAtWar(gc.getGame().getActiveTeam())):
 														szBuffer = szBuffer + "("  + localText.getColorText("TXT_KEY_CONCEPT_WAR", (), gc.getInfoTypeForString("COLOR_RED")).upper() + ")"
 														if (bAlignIcons):
@@ -5044,14 +5070,10 @@ class CvMainInterface:
 														if (bAlignIcons):
 															scores.setEspionage()
 												
-												bEspionageCanSeeResearch = False
-												if (bEspionage):
-													for iMissionLoop in range(gc.getNumEspionageMissionInfos()):
-														if (gc.getEspionageMissionInfo(iMissionLoop).isSeeResearch()):
-															bEspionageCanSeeResearch = gc.getActivePlayer().canDoEspionageMission(iMissionLoop, ePlayer, None, -1)
-															break
-												
-												if (((gc.getPlayer(ePlayer).getTeam() == gc.getGame().getActiveTeam()) and (gc.getTeam(gc.getGame().getActiveTeam()).getNumMembers() > 1)) or (gc.getTeam(gc.getPlayer(ePlayer).getTeam()).isVassal(gc.getGame().getActiveTeam())) or gc.getGame().isDebugMode() or bEspionageCanSeeResearch):
+												# K-Mod (original code deleted)
+												if gc.getGame().isDebugMode() or (gc.getActivePlayer().canSeeResearch(ePlayer) and
+												(gc.getPlayer(ePlayer).getTeam() != gc.getGame().getActiveTeam() or gc.getTeam(gc.getGame().getActiveTeam()).getNumMembers() > 1)):
+												# K-Mod end
 													if (gc.getPlayer(ePlayer).getCurrentResearch() != -1):
 														szTempBuffer = u"-%s (%d)" %(gc.getTechInfo(gc.getPlayer(ePlayer).getCurrentResearch()).getDescription(), gc.getPlayer(ePlayer).getResearchTurnsLeft(gc.getPlayer(ePlayer).getCurrentResearch(), True))
 														szBuffer = szBuffer + szTempBuffer
@@ -5061,9 +5083,7 @@ class CvMainInterface:
 # BUG - Dead Civs - end
 # BUG - Power Rating - start
 												# if on, show according to espionage "see demographics" mission
-												if (bShowPower 
-													and (gc.getGame().getActivePlayer() != ePlayer
-														 and (not bEspionage or gc.getActivePlayer().canDoEspionageMission(iDemographicsMission, ePlayer, None, -1)))):
+												if bShowPower and gc.getGame().getActivePlayer() != ePlayer and gc.getActivePlayer().canSeeDemographics(ePlayer): # K-Mod (original BUG condition deleted)
 													iPower = gc.getPlayer(ePlayer).getPower()
 													if (iPower > 0): # avoid divide by zero
 														fPowerRatio = float(iPlayerPower) / float(iPower)

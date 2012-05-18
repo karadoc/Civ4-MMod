@@ -101,26 +101,8 @@ CvPlayer::CvPlayer()
 	m_ppaaiSpecialistExtraYield = NULL;
 	m_ppaaiImprovementYieldChange = NULL;
 
-/************************************************************************************************/
-/* AI_AUTO_PLAY_MOD                        09/01/07                                MRGENIE      */
-/*                                                                                              */
-/*                                                                                              */
-/************************************************************************************************/
-	m_bDisableHuman = false;
-/************************************************************************************************/
-/* AI_AUTO_PLAY_MOD                        END                                                  */
-/************************************************************************************************/
-
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                       12/07/09                             EmperorFool      */
-/*                                                                                              */
-/* Bugfix                                                                                       */
-/************************************************************************************************/
-	// Free Tech Popup Fix
-	m_bChoosingFreeTech = false;
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                        END                                                  */
-/************************************************************************************************/
+	m_bDisableHuman = false; // bbai
+	m_iChoosingFreeTechCount = 0; // K-Mod
 
 	reset(NO_PLAYER, true);
 }
@@ -241,7 +223,7 @@ void CvPlayer::init(PlayerTypes eID)
 
 		for (iI = 0; iI < NUM_COMMERCE_TYPES; iI++)
 		{
-			setCommercePercent(((CommerceTypes)iI), GC.getCommerceInfo((CommerceTypes)iI).getInitialPercent());
+			setCommercePercent((CommerceTypes)iI, GC.getCommerceInfo((CommerceTypes)iI).getInitialPercent(), true);
 		}
 
 		FAssertMsg((GC.getNumTraitInfos() > 0), "GC.getNumTraitInfos() is less than or equal to zero but is expected to be larger than zero in CvPlayer::init");
@@ -451,7 +433,7 @@ void CvPlayer::initInGame(PlayerTypes eID)
 
 		for (iI = 0; iI < NUM_COMMERCE_TYPES; iI++)
 		{
-			setCommercePercent(((CommerceTypes)iI), GC.getCommerceInfo((CommerceTypes)iI).getInitialPercent());
+			setCommercePercent((CommerceTypes)iI, GC.getCommerceInfo((CommerceTypes)iI).getInitialPercent(), true);
 		}
 
 		FAssertMsg((GC.getNumTraitInfos() > 0), "GC.getNumTraitInfos() is less than or equal to zero but is expected to be larger than zero in CvPlayer::init");
@@ -786,29 +768,8 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 	m_bExtendedGame = false;
 	m_bFoundedFirstCity = false;
 	m_bStrike = false;
-
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                       12/07/09                             EmperorFool      */
-/*                                                                                              */
-/* Bugfix                                                                                       */
-/************************************************************************************************/
-	// Free Tech Popup Fix
-	m_bChoosingFreeTech = false;
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                        END                                                  */
-/************************************************************************************************/
-
-
-/************************************************************************************************/
-/* AI_AUTO_PLAY_MOD                        09/01/07                            MRGENIE          */
-/*                                                                                              */
-/*                                                                                              */
-/************************************************************************************************/
-	m_bDisableHuman = false;
-/************************************************************************************************/
-/* AI_AUTO_PLAY_MOD                        END                                                  */
-/************************************************************************************************/
-
+	m_bDisableHuman = false; // bbai
+	m_iChoosingFreeTechCount = 0; // K-Mod
 
 	m_eID = eID;
 	updateTeamType();
@@ -858,7 +819,7 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 
 	for (iI = 0; iI < MAX_TEAMS; iI++)
 	{
-		m_aiEspionageSpendingWeightAgainstTeam[iI] = 0;
+		m_aiEspionageSpendingWeightAgainstTeam[iI] = 1;
 
 		if (!bConstructorCall && getTeam() != NO_TEAM)
 		{
@@ -866,7 +827,7 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 			{
 				if (GET_PLAYER((PlayerTypes) iJ).getTeam() == iI)
 				{
-					GET_PLAYER((PlayerTypes) iJ).setEspionageSpendingWeightAgainstTeam(getTeam(), 0);
+					GET_PLAYER((PlayerTypes) iJ).setEspionageSpendingWeightAgainstTeam(getTeam(), 1);
 				}
 			}
 		}
@@ -2948,10 +2909,18 @@ CvSelectionGroup* CvPlayer::cycleSelectionGroups(CvUnit* pUnit, bool bForward, b
 	CLLNode<int>* pFirstSelectionGroupNode;
 	CvSelectionGroup* pLoopSelectionGroup;
 
-	if (pbWrap != NULL)
+	// K-Mod
+	FAssert(GC.getGameINLINE().getActivePlayer() == getID());
+	bool bDummy;
+	bool &bWrap = pbWrap ? *pbWrap : bDummy; // this means we can just use bWrap directly and it will update *pbWrap if need be.
+	std::set<int>& cycled_groups = GC.getGameINLINE().m_ActivePlayerCycledGroups; // for convenience
+	// K-Mod end
+
+	/* if (pbWrap != NULL)
 	{
 		*pbWrap = false;
-	}
+	} */
+	bWrap = false;
 
 	pSelectionGroupNode = headGroupCycleNode();
 
@@ -2961,6 +2930,10 @@ CvSelectionGroup* CvPlayer::cycleSelectionGroups(CvUnit* pUnit, bool bForward, b
 		{
 			if (getSelectionGroup(pSelectionGroupNode->m_data) == pUnit->getGroup())
 			{
+				// K-Mod
+				if (isTurnActive())
+					cycled_groups.insert(pSelectionGroupNode->m_data);
+				//
 				if (bForward)
 				{
 					pSelectionGroupNode = nextGroupCycleNode(pSelectionGroupNode);
@@ -2987,10 +2960,10 @@ CvSelectionGroup* CvPlayer::cycleSelectionGroups(CvUnit* pUnit, bool bForward, b
 			pSelectionGroupNode = tailGroupCycleNode();
 		}
 
-		if (pbWrap != NULL)
+		/* if (pbWrap != NULL)
 		{
 			*pbWrap = true;
-		}
+		} */ // disabled by K-Mod
 	}
 
 	if (pSelectionGroupNode != NULL)
@@ -3002,17 +2975,18 @@ CvSelectionGroup* CvPlayer::cycleSelectionGroups(CvUnit* pUnit, bool bForward, b
 			pLoopSelectionGroup = getSelectionGroup(pSelectionGroupNode->m_data);
 			FAssertMsg(pLoopSelectionGroup != NULL, "LoopSelectionGroup is not assigned a valid value");
 
-			if (pLoopSelectionGroup->readyToSelect())
+			//if (pLoopSelectionGroup->readyToSelect())
+			if (pLoopSelectionGroup->readyToSelect() && cycled_groups.count(pSelectionGroupNode->m_data) == 0) // K-Mod
 			{
 				if (!bWorkers || pLoopSelectionGroup->hasWorker())
 				{
-					if (pUnit && pLoopSelectionGroup == pUnit->getGroup())
+					/* if (pUnit && pLoopSelectionGroup == pUnit->getGroup())
 					{
 						if (pbWrap != NULL)
 						{
 							*pbWrap = true;
 						}
-					}
+					} */
 
 					return pLoopSelectionGroup;
 				}
@@ -3026,10 +3000,10 @@ CvSelectionGroup* CvPlayer::cycleSelectionGroups(CvUnit* pUnit, bool bForward, b
 				{
 					pSelectionGroupNode = headGroupCycleNode();
 
-					if (pbWrap != NULL)
+					/* if (pbWrap != NULL)
 					{
 						*pbWrap = true;
-					}
+					} */
 				}
 			}
 			else
@@ -3040,18 +3014,27 @@ CvSelectionGroup* CvPlayer::cycleSelectionGroups(CvUnit* pUnit, bool bForward, b
 				{
 					pSelectionGroupNode = tailGroupCycleNode();
 
-					if (pbWrap != NULL)
+					/* if (pbWrap != NULL)
 					{
 						*pbWrap = true;
-					}
+					} */
 				}
 			}
 
 			if (pSelectionGroupNode == pFirstSelectionGroupNode)
 			{
-				break;
+				// break;
+				// K-Mod
+				if (bWrap)
+					break;
+				else
+				{
+					cycled_groups.clear();
+					bWrap = true;
+				}
+				// K-Mod end
 			}
-		}
+		} //
 	}
 
 	return NULL;
@@ -3126,10 +3109,18 @@ bool CvPlayer::isBarbarian() const
 
 const wchar* CvPlayer::getName(uint uiForm) const
 {
-
 	if (GC.getInitCore().getLeaderName(getID(), uiForm).empty() || (GC.getGameINLINE().isMPOption(MPOPTION_ANONYMOUS) && isAlive() && GC.getGameINLINE().getGameState() == GAMESTATE_ON))
 	{
-		return GC.getLeaderHeadInfo(getLeaderType()).getDescription(uiForm);
+		//return GC.getLeaderHeadInfo(getLeaderType()).getDescription(uiForm);
+		// K-Mod. Conceal the leader name of unmet players.
+		if (gDLL->getChtLvl() > 0 || GET_TEAM(GC.getGameINLINE().getActiveTeam()).isHasSeen(getTeam()))
+			return GC.getLeaderHeadInfo(getLeaderType()).getDescription(uiForm);
+		else
+		{
+			static CvWString string = gDLL->getText("TXT_KEY_UNKNOWN"); // hack to stop the string from going out of scope.
+			return string;
+		}
+		// K-Mod end
 	}
 	else
 	{
@@ -3153,6 +3144,14 @@ const wchar* CvPlayer::getNameKey() const
 
 const wchar* CvPlayer::getCivilizationDescription(uint uiForm) const
 {
+	// K-Mod. Conceal the civilization of unmet players.
+	if (gDLL->getChtLvl() == 0 && !GET_TEAM(GC.getGameINLINE().getActiveTeam()).isHasSeen(getTeam()))
+	{
+		static CvWString string = gDLL->getText("TXT_KEY_TOPCIVS_UNKNOWN"); // hack to stop the string from going out of scope.
+		return string;
+	}
+	// K-Mod end
+
 	if (GC.getInitCore().getCivDescription(getID(), uiForm).empty())
 	{
 		return GC.getCivilizationInfo(getCivilizationType()).getDescription(uiForm);
@@ -3179,6 +3178,14 @@ const wchar* CvPlayer::getCivilizationDescriptionKey() const
 
 const wchar* CvPlayer::getCivilizationShortDescription(uint uiForm) const
 {
+	// K-Mod. Conceal the civilization of unmet players.
+	if (!GET_TEAM(GC.getGameINLINE().getActiveTeam()).isHasSeen(getTeam()))
+	{
+		static CvWString string = gDLL->getText("TXT_KEY_UNKNOWN"); // hack to stop the string from going out of scope.
+		return string;
+	}
+	// K-Mod end
+
 	if (GC.getInitCore().getCivShortDesc(getID(), uiForm).empty())
 	{
 		return GC.getCivilizationInfo(getCivilizationType()).getShortDescription(uiForm);
@@ -3376,9 +3383,10 @@ void CvPlayer::doTurn()
 
 	AI_assignWorkingPlots();
 
-	if (0 == GET_TEAM(getTeam()).getHasMetCivCount(true) || GC.getGameINLINE().isOption(GAMEOPTION_NO_ESPIONAGE))
+	//if (0 == GET_TEAM(getTeam()).getHasMetCivCount(true) || GC.getGameINLINE().isOption(GAMEOPTION_NO_ESPIONAGE))
+	if (isCommerceFlexible(COMMERCE_ESPIONAGE) && (GET_TEAM(getTeam()).getHasMetCivCount(true) == 0 || GC.getGameINLINE().isOption(GAMEOPTION_NO_ESPIONAGE))) // K-Mod
 	{
-		setCommercePercent(COMMERCE_ESPIONAGE, 0);
+		setCommercePercent(COMMERCE_ESPIONAGE, 0); // (note: not forced)
 	}
 
 	verifyGoldCommercePercent();
@@ -3449,19 +3457,18 @@ void CvPlayer::doTurnUnits()
 {
 	PROFILE_FUNC();
 
-	CvSelectionGroup* pLoopSelectionGroup;
 	int iLoop;
 
 	AI_doTurnUnitsPre();
 
-	for(pLoopSelectionGroup = firstSelectionGroup(&iLoop); pLoopSelectionGroup != NULL; pLoopSelectionGroup = nextSelectionGroup(&iLoop))
+	for(CvSelectionGroup* pLoopSelectionGroup = firstSelectionGroup(&iLoop); pLoopSelectionGroup != NULL; pLoopSelectionGroup = nextSelectionGroup(&iLoop))
 	{
 		pLoopSelectionGroup->doDelayedDeath();
 	}
 
 	for (int iPass = 0; iPass < 4; iPass++)
 	{
-		for(pLoopSelectionGroup = firstSelectionGroup(&iLoop); pLoopSelectionGroup != NULL; pLoopSelectionGroup = nextSelectionGroup(&iLoop))
+		for (CvSelectionGroup* pLoopSelectionGroup = firstSelectionGroup(&iLoop); pLoopSelectionGroup != NULL; pLoopSelectionGroup = nextSelectionGroup(&iLoop))
 		{
 			switch (pLoopSelectionGroup->getDomainType())
 			{
@@ -3500,6 +3507,13 @@ void CvPlayer::doTurnUnits()
 			}
 		}
 	}
+
+	// K-Mod. (currently unused)
+	/*for (CvSelectionGroup* pLoopSelectionGroup = firstSelectionGroup(&iLoop); pLoopSelectionGroup != NULL; pLoopSelectionGroup = nextSelectionGroup(&iLoop))
+	{
+		updateGroupCycle(pLoopSelectionGroup);
+	}*/
+	// K-Mod end
 
 	if (getID() == GC.getGameINLINE().getActivePlayer())
 	{
@@ -3679,6 +3693,7 @@ void CvPlayer::updateCommerce(CommerceTypes eCommerce)
 
 void CvPlayer::updateCommerce()
 {
+	PROFILE_FUNC(); // K-Mod
 	CvCity* pLoopCity;
 	int iLoop;
 
@@ -3899,40 +3914,13 @@ bool CvPlayer::hasBusyUnit() const
 
 	return false;
 }
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                       12/07/09                             EmperorFool      */
-/*                                                                                              */
-/* Bugfix                                                                                       */
-/************************************************************************************************/
-// Free Tech Popup Fix
-bool CvPlayer::isChoosingFreeTech() const
-{
-	return m_bChoosingFreeTech;
-}
-
-void CvPlayer::setChoosingFreeTech(bool bValue)
-{
-	m_bChoosingFreeTech = bValue;
-}
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                        END                                                  */
-/************************************************************************************************/
 
 void CvPlayer::chooseTech(int iDiscover, CvWString szText, bool bFront)
 {
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                       12/07/09                             EmperorFool      */
-/*                                                                                              */
-/* Bugfix                                                                                       */
-/************************************************************************************************/
-	// Free Tech Popup Fix
+	// K-mod
 	if (iDiscover > 0)
-	{
-		setChoosingFreeTech(true);
-	}
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                        END                                                  */
-/************************************************************************************************/
+		changeChoosingFreeTechCount(1); // note: if iDiscover is > 1, this function will be called again with iDiscover-=1
+	// K-Mod end
 
 	CvPopupInfo* pInfo = new CvPopupInfo(BUTTONPOPUP_CHOOSETECH);
 	if (NULL != pInfo)
@@ -7435,7 +7423,7 @@ int CvPlayer::calculateInflatedCosts() const
 }
 
 
-int CvPlayer::calculateBaseNetGold() const
+/* int CvPlayer::calculateBaseNetGold() const
 {
 	int iNetGold;
 
@@ -7444,7 +7432,7 @@ int CvPlayer::calculateBaseNetGold() const
 	iNetGold -= calculateInflatedCosts();
 	
 	return iNetGold;
-}
+} */
 
 int CvPlayer::calculateResearchModifier(TechTypes eTech) const
 {
@@ -7567,7 +7555,7 @@ int CvPlayer::calculateResearchModifier(TechTypes eTech) const
 /************************************************************************************************/
 }
 
-int CvPlayer::calculateBaseNetResearch(TechTypes eTech) const
+/* int CvPlayer::calculateBaseNetResearch(TechTypes eTech) const
 {
 	TechTypes eResearchTech;
 
@@ -7581,11 +7569,12 @@ int CvPlayer::calculateBaseNetResearch(TechTypes eTech) const
 	}
 
 	return (((GC.getDefineINT("BASE_RESEARCH_RATE") + getCommerceRate(COMMERCE_RESEARCH)) * calculateResearchModifier(eResearchTech)) / 100);
-}
+} */
 
 
 int CvPlayer::calculateGoldRate() const
 {
+	/* original bts code
 	int iRate = 0;
 
 	if (isCommerceFlexible(COMMERCE_RESEARCH))
@@ -7597,12 +7586,22 @@ int CvPlayer::calculateGoldRate() const
 		iRate = std::min(0, (calculateBaseNetResearch() + calculateBaseNetGold()));
 	}
 
-	return iRate;
+	return iRate; */
+	// K-Mod. (Just moved from calculateBaseNetGold.)
+	int iNetGold;
+
+	iNetGold = (getCommerceRate(COMMERCE_GOLD) + getGoldPerTurn());
+
+	iNetGold -= calculateInflatedCosts();
+
+	return iNetGold;
+	// K-Mod end
 }
 
 
 int CvPlayer::calculateResearchRate(TechTypes eTech) const
 {
+	/* original bts code
 	int iRate = 0;
 
 	if (isCommerceFlexible(COMMERCE_RESEARCH))
@@ -7614,12 +7613,28 @@ int CvPlayer::calculateResearchRate(TechTypes eTech) const
 		iRate = std::max(1, (calculateBaseNetResearch(eTech) + calculateBaseNetGold()));
 	}
 
-	return iRate;
+	return iRate; */
+	// K-Mod. (Just moved from calculateBaseNetResearch.)
+	// Note: the original code had a floor of 1. This version does not.
+	TechTypes eResearchTech;
+
+	if (eTech != NO_TECH)
+	{
+		eResearchTech = eTech;
+	}
+	else
+	{
+		eResearchTech = getCurrentResearch();
+	}
+
+	return (((GC.getDefineINT("BASE_RESEARCH_RATE") + getCommerceRate(COMMERCE_RESEARCH)) * calculateResearchModifier(eResearchTech)) / 100);
+	// K-Mod end
 }
 
 int CvPlayer::calculateTotalCommerce() const
 {
-	int iTotalCommerce = calculateBaseNetGold() + calculateBaseNetResearch();
+	//int iTotalCommerce = calculateBaseNetGold() + calculateBaseNetResearch();
+	int iTotalCommerce = calculateGoldRate() + calculateResearchRate(); // K-Mod
 
 	for (int i = 0; i < NUM_COMMERCE_TYPES; ++i)
 	{
@@ -7849,7 +7864,8 @@ int CvPlayer::getResearchTurnsLeftTimes100(TechTypes eTech, bool bOverflow) cons
 			{
 				if ((iI == getID()) || (GET_PLAYER((PlayerTypes)iI).getCurrentResearch() == eTech))
 				{
-					iResearchRate += GET_PLAYER((PlayerTypes)iI).calculateResearchRate(eTech);
+					//iResearchRate += GET_PLAYER((PlayerTypes)iI).calculateResearchRate(eTech);
+					iResearchRate += std::max(1, GET_PLAYER((PlayerTypes)iI).calculateResearchRate(eTech)); // K-Mod (replacing the minimum which use to be in calculateResearchRate)
 					iOverflow += (GET_PLAYER((PlayerTypes)iI).getOverflowResearch() * calculateResearchModifier(eTech)) / 100;
 				}
 			}
@@ -7891,6 +7907,56 @@ int CvPlayer::getResearchTurnsLeftTimes100(TechTypes eTech, bool bOverflow) cons
     
 }
 
+// K-Mod. Return true if this player can see what ePlayer is researching
+bool CvPlayer::canSeeResearch(PlayerTypes ePlayer) const
+{
+	FAssert(ePlayer >= 0 && ePlayer < MAX_PLAYERS);
+	const CvPlayer& kOther = GET_PLAYER(ePlayer);
+
+	if (kOther.getTeam() == getTeam() || GET_TEAM(kOther.getTeam()).isVassal(getTeam()))
+		return true;
+
+	if (!GET_TEAM(getTeam()).isHasMet(kOther.getTeam()))
+		return false;
+
+	if (!GC.getGameINLINE().isOption(GAMEOPTION_NO_ESPIONAGE))
+	{
+		for (EspionageMissionTypes i = (EspionageMissionTypes)0; i < GC.getNumEspionageMissionInfos(); i = (EspionageMissionTypes)(i+1))
+		{
+			CvEspionageMissionInfo& kMissionInfo = GC.getEspionageMissionInfo(i);
+
+			if (kMissionInfo.isSeeResearch() && kMissionInfo.isPassive() && canDoEspionageMission(i, ePlayer, 0, 0, 0))
+				return true;
+		}
+	}
+	return false;
+}
+
+// return true if this player can see ePlayer's demographics (power graph, culture graph, etc.)
+bool CvPlayer::canSeeDemographics(PlayerTypes ePlayer) const
+{
+	FAssert(ePlayer >= 0 && ePlayer < MAX_PLAYERS);
+	const CvPlayer& kOther = GET_PLAYER(ePlayer);
+
+	if (kOther.getTeam() == getTeam() || GET_TEAM(kOther.getTeam()).isVassal(getTeam()))
+		return true;
+
+	if (!GET_TEAM(getTeam()).isHasMet(kOther.getTeam()))
+		return false;
+
+	if (GC.getGameINLINE().isOption(GAMEOPTION_NO_ESPIONAGE))
+		return true;
+
+	for (EspionageMissionTypes i = (EspionageMissionTypes)0; i < GC.getNumEspionageMissionInfos(); i = (EspionageMissionTypes)(i+1))
+	{
+		CvEspionageMissionInfo& kMissionInfo = GC.getEspionageMissionInfo(i);
+
+		if (kMissionInfo.isSeeDemographics() && kMissionInfo.isPassive() && canDoEspionageMission(i, ePlayer, 0, 0, 0))
+			return true;
+	}
+	return false;
+}
+// K-Mod end
 
 bool CvPlayer::isCivic(CivicTypes eCivic) const
 {
@@ -8530,47 +8596,23 @@ int CvPlayer::unitsGoldenAgeCapable() const
 	return iCount;
 }
 
-
-// BUG - Female Great People - start
-
-/*
- * Units are grouped by unit class instead of type so you cannot start your second Golden Age
- * with two Great Prophets: one male and one female.
- */
+// Rewriten for K-Mod. (Essentially the functionality, but far more efficient. The only functionality difference is that unit class is now used rather unit type.)
 int CvPlayer::unitsGoldenAgeReady() const
 {
 	PROFILE_FUNC();
 
-	CvUnit* pLoopUnit;
-	bool* pabUnitUsed;
-	int iCount;
+	std::set<UnitClassTypes> golden_age_units;
+
 	int iLoop;
-	int iI;
-
-    pabUnitUsed = new bool[GC.getNumUnitClassInfos()];
-
-    for (iI = 0; iI < GC.getNumUnitClassInfos(); iI++)
+	for (CvUnit* pLoopUnit = firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = nextUnit(&iLoop))
 	{
-		pabUnitUsed[iI] = false;
-	}
-
-	iCount = 0;
-
-	for(pLoopUnit = firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = nextUnit(&iLoop))
-	{
-        if (!(pabUnitUsed[pLoopUnit->getUnitClassType()]))
+		if (pLoopUnit->isGoldenAge() && golden_age_units.count(pLoopUnit->getUnitClassType()) == 0)
 		{
-			if (pLoopUnit->isGoldenAge())
-			{
-                pabUnitUsed[pLoopUnit->getUnitClassType()] = true;
-				iCount++;
-			}
+			golden_age_units.insert(pLoopUnit->getUnitClassType());
 		}
 	}
 
-	SAFE_DELETE_ARRAY(pabUnitUsed);
-
-	return iCount;
+	return golden_age_units.size();
 }
 
 
@@ -9105,10 +9147,16 @@ void CvPlayer::changeAnarchyModifier(int iChange)
 {
 	if (0 != iChange)
 	{
-	m_iAnarchyModifier += iChange;
-
+		/* original bts code
 		setRevolutionTimer(std::max(0, ((100 + iChange) * getRevolutionTimer()) / 100));
-		setConversionTimer(std::max(0, ((100 + iChange) * getConversionTimer()) / 100));
+		setConversionTimer(std::max(0, ((100 + iChange) * getConversionTimer()) / 100)); */
+		// K-Mod. The original code is wrong, and it is missing the anarchy length change.
+		changeRevolutionTimer(getRevolutionTimer() * iChange / std::max(1, 100+getAnarchyModifier()));
+		changeConversionTimer(getConversionTimer() * iChange / std::max(1, 100+getAnarchyModifier()));
+		changeAnarchyTurns(getAnarchyTurns() * iChange / std::max(1, 100+getAnarchyModifier()));
+		// K-Mod end
+
+		m_iAnarchyModifier += iChange;
 	}
 }
 
@@ -9121,6 +9169,9 @@ int CvPlayer::getGoldenAgeModifier() const
 
 void CvPlayer::changeGoldenAgeModifier(int iChange)
 {
+	// K-Mod. If we are currently in a golden age, adjust its duration!
+	changeGoldenAgeTurns(getGoldenAgeTurns() * iChange / std::max(1, 100 + getGoldenAgeModifier()));
+	// K-Mod end
 	m_iGoldenAgeModifier += iChange;
 }
 
@@ -11663,7 +11714,13 @@ void CvPlayer::setTeam(TeamTypes eTeam)
 
 PlayerColorTypes CvPlayer::getPlayerColor() const
 {
-	return GC.getInitCore().getColor(getID());
+	//return GC.getInitCore().getColor(getID());
+	// K-Mod. Conceal the player colour of unmet players.
+	if (gDLL->getChtLvl() > 0 || GET_TEAM(GC.getGameINLINE().getActiveTeam()).isHasSeen(getTeam()))
+		return GC.getInitCore().getColor(getID());
+	else
+		return GC.getInitCore().getColor(BARBARIAN_PLAYER);
+	// K-Mod end
 }
 
 
@@ -11887,79 +11944,93 @@ int CvPlayer::getCommercePercent(CommerceTypes eIndex) const
 	return m_aiCommercePercent[eIndex];
 }
 
-
-void CvPlayer::setCommercePercent(CommerceTypes eIndex, int iNewValue)
+// K-Mod. This function has been rewritten to enforce the rules of flexible / inflexible commerce types.
+// (not all changes marked)
+bool CvPlayer::setCommercePercent(CommerceTypes eIndex, int iNewValue, bool bForce)
 {
-	int iTotalCommercePercent;
-	int iOldValue;
-	int iI;
-
 	FAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
 	FAssertMsg(eIndex < NUM_COMMERCE_TYPES, "eIndex is expected to be within maximum bounds (invalid Index)");
 
-	PROFILE_FUNC(); // K-Mod - I suspect this function is slow
-
-	iOldValue = getCommercePercent(eIndex);
-
-	m_aiCommercePercent[eIndex] = range(iNewValue, 0, 100);
-
-	if (iOldValue != getCommercePercent(eIndex))
+	if (!bForce && !isCommerceFlexible(eIndex))
 	{
-		iTotalCommercePercent = 0;
+		FAssertMsg(false, "setCommercePercent called without permission.");
+		return false; // can't change percent
+	}
 
-		for (iI = 0; iI < NUM_COMMERCE_TYPES; iI++)
+	int iOldValue = getCommercePercent(eIndex);
+	iNewValue = range(iNewValue, 0, 100);
+
+	if (iOldValue == iNewValue)
+		return false;
+
+	m_aiCommercePercent[eIndex] = iNewValue;
+
+	int iTotalCommercePercent = 0;
+
+	for (CommerceTypes i = (CommerceTypes)0; i < NUM_COMMERCE_TYPES; i = (CommerceTypes)(i+1))
+	{
+		iTotalCommercePercent += getCommercePercent(i);
+	}
+
+	for (CommerceTypes i = (CommerceTypes)0; iTotalCommercePercent != 100 && i < NUM_COMMERCE_TYPES; i = (CommerceTypes)(i+1))
+	{
+		if (i != eIndex && isCommerceFlexible(i))
 		{
-			iTotalCommercePercent += getCommercePercent((CommerceTypes)iI);
+			FAssert(bForce || isCommerceFlexible(i));
+			int iAdjustment = std::min(m_aiCommercePercent[i], iTotalCommercePercent - 100);
+			m_aiCommercePercent[i] -= iAdjustment;
+			iTotalCommercePercent -= iAdjustment;
 		}
-
-		for (iI = 0; iI < NUM_COMMERCE_TYPES; iI++)
+	}
+	// if we couldn't balance the books, we need to do a second pass, with fewer restrictions
+	if (iTotalCommercePercent != 100)
+	{
+		for (CommerceTypes i = (CommerceTypes)0; iTotalCommercePercent != 100 && i < NUM_COMMERCE_TYPES; i = (CommerceTypes)(i+1))
 		{
-			if (iI != eIndex)
+			if (bForce ? i != eIndex : isCommerceFlexible(i))
 			{
-				if (100 != iTotalCommercePercent)
-				{
-					int iAdjustment = std::min(m_aiCommercePercent[iI], iTotalCommercePercent - 100);
-					m_aiCommercePercent[iI] -= iAdjustment;
-					iTotalCommercePercent -= iAdjustment;
-				}
-				else
-				{
-					break;
-				}
+				FAssert(bForce || isCommerceFlexible(i));
+				int iAdjustment = std::min(m_aiCommercePercent[i], iTotalCommercePercent - 100);
+				m_aiCommercePercent[i] -= iAdjustment;
+				iTotalCommercePercent -= iAdjustment;
 			}
 		}
-
-		FAssert(100 == iTotalCommercePercent);
-
-		updateCommerce();
-
-		AI_makeAssignWorkDirty();
-
-		/* original bts code
-		if (getTeam() == GC.getGameINLINE().getActiveTeam())
-		{
-			gDLL->getInterfaceIFace()->setDirty(GameData_DIRTY_BIT, true);
-			gDLL->getInterfaceIFace()->setDirty(Score_DIRTY_BIT, true);
-			gDLL->getInterfaceIFace()->setDirty(CityScreen_DIRTY_BIT, true);
-			gDLL->getInterfaceIFace()->setDirty(Financial_Screen_DIRTY_BIT, true);
-		} */
-		// K-Mod
-		if (getTeam() == GC.getGameINLINE().getActiveTeam())
-			gDLL->getInterfaceIFace()->setDirty(GameData_DIRTY_BIT, true); // research turns left?
-
-		if (getID() == GC.getGameINLINE().getActivePlayer())
-		{
-			gDLL->getInterfaceIFace()->setDirty(CityInfo_DIRTY_BIT, true);
-			gDLL->getInterfaceIFace()->setDirty(Financial_Screen_DIRTY_BIT, true);
-		}
-		// K-Mod end
 	}
+	FAssert(100 == iTotalCommercePercent);
+
+	if (iOldValue == getCommercePercent(eIndex))
+		return false;
+
+	updateCommerce();
+
+	AI_makeAssignWorkDirty();
+
+	/* original bts code
+	if (getTeam() == GC.getGameINLINE().getActiveTeam())
+	{
+		gDLL->getInterfaceIFace()->setDirty(GameData_DIRTY_BIT, true);
+		gDLL->getInterfaceIFace()->setDirty(Score_DIRTY_BIT, true);
+		gDLL->getInterfaceIFace()->setDirty(CityScreen_DIRTY_BIT, true);
+		gDLL->getInterfaceIFace()->setDirty(Financial_Screen_DIRTY_BIT, true);
+	} */
+	// K-Mod
+	if (getTeam() == GC.getGameINLINE().getActiveTeam())
+		gDLL->getInterfaceIFace()->setDirty(GameData_DIRTY_BIT, true); // research turns left?
+
+	if (getID() == GC.getGameINLINE().getActivePlayer())
+	{
+		gDLL->getInterfaceIFace()->setDirty(CityInfo_DIRTY_BIT, true);
+		gDLL->getInterfaceIFace()->setDirty(Financial_Screen_DIRTY_BIT, true);
+	}
+	// K-Mod end
+
+	return true;
 }
 
 
-void CvPlayer::changeCommercePercent(CommerceTypes eIndex, int iChange)								
+bool CvPlayer::changeCommercePercent(CommerceTypes eIndex, int iChange)
 {
-	setCommercePercent(eIndex, (getCommercePercent(eIndex) + iChange));
+	return setCommercePercent(eIndex, (getCommercePercent(eIndex) + iChange));
 }
 
 
@@ -12118,7 +12189,7 @@ bool CvPlayer::isCommerceFlexible(CommerceTypes eIndex) const
 	FAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
 	FAssertMsg(eIndex < NUM_COMMERCE_TYPES, "eIndex is expected to be within maximum bounds (invalid Index)");
 
-	if (!isFoundedFirstCity())
+	/* if (!isFoundedFirstCity())
 	{
 		return false;
 	}
@@ -12129,7 +12200,7 @@ bool CvPlayer::isCommerceFlexible(CommerceTypes eIndex) const
 		{
 			return false;
 		}
-	}
+	} */ // Disabled by K-Mod. (I don't want to enforce these conditions in such a fundamental way.)
 
 	return (GC.getCommerceInfo(eIndex).isFlexiblePercent() || (getCommerceFlexibleCount(eIndex) > 0) || GET_TEAM(getTeam()).isCommerceFlexible(eIndex));
 }
@@ -12147,7 +12218,8 @@ void CvPlayer::changeCommerceFlexibleCount(CommerceTypes eIndex, int iChange)
 
 		if (!isCommerceFlexible(eIndex))
 		{
-			setCommercePercent(eIndex, 0);
+			//setCommercePercent(eIndex, 0);
+			setCommercePercent(eIndex, GC.getCommerceInfo(eIndex).getInitialPercent(), true); // K-Mod
 		}
 
 		if (getID() == GC.getGameINLINE().getActivePlayer())
@@ -12574,7 +12646,7 @@ bool CvPlayer::canHurry(HurryTypes eIndex) const
 }
 
 
-bool CvPlayer::canPopRush()
+bool CvPlayer::canPopRush() const
 {
 	return (m_iPopRushHurryCount > 0);
 }
@@ -13124,107 +13196,68 @@ void CvPlayer::changeImprovementYieldChange(ImprovementTypes eIndex1, YieldTypes
 }
 
 
-// XXX should pUnit be a CvSelectionGroup???
-void CvPlayer::updateGroupCycle(CvUnit* pUnit)
+// K-Mod. I've changed this function from using pUnit to using pGroup.
+// I've also rewriten most of the code, to give more natural ordering, and to be more robust and readable code.
+void CvPlayer::updateGroupCycle(CvSelectionGroup* pGroup)
 {
 	PROFILE_FUNC();
+	FAssert(pGroup);
 
-	CLLNode<IDInfo>* pUnitNode;
-	CLLNode<int>* pSelectionGroupNode;
-	CLLNode<int>* pBestSelectionGroupNode;
-	CvSelectionGroup* pLoopSelectionGroup;
-	CvUnit* pHeadUnit;
-	CvUnit* pBeforeUnit;
-	CvUnit* pAfterUnit;
-	CvUnit* pLoopUnit;
-	CvPlot* pPlot;
-	int iValue;
-	int iBestValue;
+	CvPlot* pPlot = pGroup->plot();
 
-	if (!(pUnit->onMap()))
-	{
+	if (!pPlot || !isCycleGroup(pGroup))
 		return;
-	}
 
-	FAssertMsg(pUnit->getGroup() != NULL, "Unit->getGroup() is not assigned a valid value");
+	CvUnit* pUnit = pGroup->getHeadUnit();
+	FAssert(pUnit);
 
-	removeGroupCycle(pUnit->getGroupID());
+	//removeGroupCycle(pGroup->getID()); // will be removed while we reposition it
 
-	pPlot = pUnit->plot();
+	CLLNode<int>* pBestSelectionGroupNode = NULL;
+	int iBestCost = MAX_INT;
 
-	pBeforeUnit = NULL;
-	pAfterUnit = NULL;
+	CvSelectionGroup* pPreviousGroup = NULL;
 
-	pUnitNode = pPlot->headUnitNode();
+	CLLNode<int>* pSelectionGroupNode = headGroupCycleNode();
 
-	while (pUnitNode != NULL)
+	while (pSelectionGroupNode)
 	{
-		pLoopUnit = ::getUnit(pUnitNode->m_data);
-		pUnitNode = pPlot->nextUnitNode(pUnitNode);
+		CvSelectionGroup* pNextGroup = getSelectionGroup(pSelectionGroupNode->m_data);
+		FAssert(pNextGroup);
 
-		if (pLoopUnit->isGroupHead())
+		// if we find our group in the list, remove it.
+		if (pNextGroup == pGroup)
 		{
-			if (pLoopUnit != pUnit)
+			pSelectionGroupNode = deleteGroupCycleNode(pSelectionGroupNode);
+		}
+		else if (isCycleGroup(pNextGroup) && pNextGroup->canAllMove())
+		{
+			//int iCost = groupCycleDistance(pPreviousGroup, pGroup) + groupCycleDistance(pGroup, pNextGroup) - groupCycleDistance(pPreviousGroup, pNextGroup);
+			int iCost = groupCycleDistance(pGroup, pNextGroup) + (pPreviousGroup ? groupCycleDistance(pPreviousGroup, pGroup) - groupCycleDistance(pPreviousGroup, pNextGroup) : 1);
+			if (iCost < iBestCost)
 			{
-				if (!isBeforeUnitCycle(pLoopUnit, pUnit))
-				{
-					pBeforeUnit = pLoopUnit;
-					break;
-				}
-				else
-				{
-					pAfterUnit = pLoopUnit;
-				}
+				iBestCost = iCost;
+				pBestSelectionGroupNode = pSelectionGroupNode;
 			}
+			pPreviousGroup = pNextGroup;
+			pSelectionGroupNode = nextGroupCycleNode(pSelectionGroupNode);
+		}
+		else
+		{
+			pSelectionGroupNode = nextGroupCycleNode(pSelectionGroupNode);
+		}
+	}
+	if (pPreviousGroup)
+	{
+		FAssert(isCycleGroup(pPreviousGroup) && pPreviousGroup->canAllMove());
+		int iCost = groupCycleDistance(pPreviousGroup, pGroup) + 1; // cost for being at the end of the list.
+		if (iCost < iBestCost)
+		{
+			pBestSelectionGroupNode = 0;
 		}
 	}
 
-	pSelectionGroupNode = headGroupCycleNode();
-
-	iBestValue = MAX_INT;
-	pBestSelectionGroupNode = NULL;
-
-	while (pSelectionGroupNode != NULL)
-	{
-		pLoopSelectionGroup = getSelectionGroup(pSelectionGroupNode->m_data);
-		FAssertMsg(pLoopSelectionGroup != NULL, "LoopSelectionGroup is not assigned a valid value");
-
-		pHeadUnit = pLoopSelectionGroup->getHeadUnit();
-
-		if (pHeadUnit != NULL)
-		{
-			if (pBeforeUnit != NULL)
-			{
-				if (pBeforeUnit == pHeadUnit)
-				{
-					pBestSelectionGroupNode = pSelectionGroupNode;
-					break;
-				}
-			}
-			else if (pAfterUnit != NULL)
-			{
-				if (pAfterUnit == pHeadUnit)
-				{
-					pBestSelectionGroupNode = nextGroupCycleNode(pSelectionGroupNode);
-					break;
-				}
-			}
-			else
-			{
-				iValue = plotDistance(pUnit->getX_INLINE(), pUnit->getY_INLINE(), pHeadUnit->getX_INLINE(), pHeadUnit->getY_INLINE());
-
-				if (iValue < iBestValue)
-				{
-					iBestValue = iValue;
-					pBestSelectionGroupNode = pSelectionGroupNode;
-				}
-			}
-		}
-
-		pSelectionGroupNode = nextGroupCycleNode(pSelectionGroupNode);
-	}
-
-	if (pBestSelectionGroupNode != NULL)
+	if (pBestSelectionGroupNode)
 	{
 		m_groupCycle.insertBefore(pUnit->getGroupID(), pBestSelectionGroupNode);
 	}
@@ -13255,6 +13288,31 @@ void CvPlayer::removeGroupCycle(int iID)
 	}
 }
 
+// K-Mod
+void CvPlayer::refreshGroupCycleList()
+{
+	std::vector<CvSelectionGroup*> update_list;
+
+	CLLNode<int>* pNode = headGroupCycleNode();
+	while (pNode)
+	{
+		CvSelectionGroup* pLoopGroup = getSelectionGroup(pNode->m_data);
+		CvUnit* pLoopHead = pLoopGroup->getHeadUnit();
+		if (pLoopHead && isCycleGroup(pLoopGroup) && pLoopGroup->canAllMove() && (pLoopHead->hasMoved() || (pLoopHead->isCargo() && pLoopHead->getTransportUnit()->hasMoved())))
+		{
+			update_list.push_back(pLoopGroup);
+			pNode = deleteGroupCycleNode(pNode);
+		}
+		else
+			pNode = nextGroupCycleNode(pNode);
+	}
+
+	for (size_t i = 0; i < update_list.size(); i++)
+	{
+		updateGroupCycle(update_list[i]);
+	}
+}
+// K-Mod end
 
 CLLNode<int>* CvPlayer::deleteGroupCycleNode(CLLNode<int>* pNode)
 {
@@ -14177,7 +14235,8 @@ void CvPlayer::doResearch()
 		{
 			iOverflowResearch = (getOverflowResearch() * calculateResearchModifier(eCurrentTech)) / 100;
 			setOverflowResearch(0);
-			GET_TEAM(getTeam()).changeResearchProgress(eCurrentTech, (calculateResearchRate() + iOverflowResearch), getID());
+			//GET_TEAM(getTeam()).changeResearchProgress(eCurrentTech, (calculateResearchRate() + iOverflowResearch), getID());
+			GET_TEAM(getTeam()).changeResearchProgress(eCurrentTech, std::max(1, calculateResearchRate()) + iOverflowResearch, getID()); // K-Mod (replacing the minimum which use to be in calculateResearchRate)
 		}
 
 		if (bForceResearchChoice)
@@ -14872,16 +14931,25 @@ int CvPlayer::getEspionageMissionCostModifier(EspionageMissionTypes eMission, Pl
 		}
 
 		// City's culture affects cost
+		/* original bts code
 		iModifier *= 100 - (pCity->getCultureTimes100(getID()) * GC.getDefineINT("ESPIONAGE_CULTURE_MULTIPLIER_MOD")) / std::max(1, pCity->getCultureTimes100(eTargetPlayer) + pCity->getCultureTimes100(getID()));
-		iModifier /= 100;
+		iModifier /= 100; */
 
 		iModifier *= 100 + pCity->getEspionageDefenseModifier();
 		iModifier /= 100;
 	}
 
-	// Distance mod
 	if (pPlot != NULL)
 	{
+		// K-Mod. Culture Mod. (Based on plot culture rather than city culture.)
+		if (eMission == NO_ESPIONAGEMISSION || GC.getEspionageMissionInfo(eMission).isSelectPlot() || GC.getEspionageMissionInfo(eMission).isTargetsCity())
+		{
+			iModifier *= 100 - (pPlot->getCulture(getID()) * GC.getDefineINT("ESPIONAGE_CULTURE_MULTIPLIER_MOD")) / std::max(1, pPlot->getCulture(eTargetPlayer) + pPlot->getCulture(getID()));
+			iModifier /= 100;
+		}
+		// K-Mod end
+
+		// Distance mod
 		int iDistance = GC.getMap().maxPlotDistance();
 
 		CvCity* pOurCapital = getCapitalCity();
@@ -15144,15 +15212,11 @@ bool CvPlayer::doEspionageMission(EspionageMissionTypes eMission, PlayerTypes eT
 			{
 				szBuffer = gDLL->getText("TXT_KEY_ESPIONAGE_TARGET_CITY_CULTURE_INSERTED", pCity->getNameKey()).GetCString();				
 
+				/* original bts code
 				int iCultureAmount = kMission.getCityInsertCultureAmountFactor() * pCity->countTotalCultureTimes100();
 				iCultureAmount /= 10000;
 				iCultureAmount = std::max(1, iCultureAmount);
-				
-/**
-*** K-Mod, 6/dec/10, Karadoc
-*** apply culture in one hit. We don't need fake 'free city culture' anymore.
-**/
-				/* original bts code
+
 				int iNumTurnsApplied = (GC.getDefineINT("GREAT_WORKS_CULTURE_TURNS") * GC.getGameSpeedInfo(GC.getGameINLINE().getGameSpeedType()).getUnitGreatWorkPercent()) / 100;
 
 				for (int i = 0; i < iNumTurnsApplied; ++i)
@@ -15163,12 +15227,14 @@ bool CvPlayer::doEspionageMission(EspionageMissionTypes eMission, PlayerTypes eT
 				if (iNumTurnsApplied > 0)
 				{
 					pCity->changeCulture(getID(), iCultureAmount % iNumTurnsApplied, false, true);
-				}
-				*/
-				pCity->changeCulture(getID(), iCultureAmount, true, true);
-/**
-*** K-Mod end
-**/
+				} */
+
+				// K-Mod. apply culture in one hit. We don't need fake 'free city culture' anymore.
+				int iCultureTimes100 = std::max(1, kMission.getCityInsertCultureAmountFactor() * pCity->countTotalCultureTimes100() / 100);
+
+				//pCity->changeCultureTimes100(getID(), iCultureTimes100, true, true);
+				pCity->doPlotCultureTimes100(true, getID(), iCultureTimes100, false); // plot culture only.
+				// K-Mod end
 
 				bSomethingHappened = true;
 			}
@@ -16999,6 +17065,7 @@ void CvPlayer::doWarnings()
 
 void CvPlayer::verifyGoldCommercePercent()
 {
+	/* original bts code
 	while ((getGold() + calculateGoldRate()) < 0)
 	{
 		changeCommercePercent(COMMERCE_GOLD, GC.getDefineINT("COMMERCE_PERCENT_CHANGE_INCREMENTS"));
@@ -17007,7 +17074,14 @@ void CvPlayer::verifyGoldCommercePercent()
 		{
 			break;
 		}
+	} */
+	// K-Mod
+	bool bValid = isCommerceFlexible(COMMERCE_GOLD);
+	while (bValid && getCommercePercent(COMMERCE_GOLD) < 100 && getGold() + calculateGoldRate() < 0)
+	{
+		bValid = changeCommercePercent(COMMERCE_GOLD, GC.getDefineINT("COMMERCE_PERCENT_CHANGE_INCREMENTS"));
 	}
+	// K-Mod end
 }
 
 
@@ -17261,8 +17335,16 @@ void CvPlayer::read(FDataStreamBase* pStream)
 	pStream->Read(&m_bExtendedGame);
 	pStream->Read(&m_bFoundedFirstCity);
 	pStream->Read(&m_bStrike);
-	if (uiFlag >= 2)
-		pStream->Read(&m_bChoosingFreeTech); // K-Mod
+	// K-Mod
+	if (uiFlag >= 4)
+		pStream->Read(&m_iChoosingFreeTechCount);
+	else if (uiFlag >= 2)
+	{
+		bool bFreeTech = false;
+		pStream->Read(&bFreeTech);
+		m_iChoosingFreeTechCount = bFreeTech ? 1 : 0;
+	}
+	// K-Mod end
 
 	pStream->Read((int*)&m_eID);
 	pStream->Read((int*)&m_ePersonalityType);
@@ -17284,10 +17366,6 @@ void CvPlayer::read(FDataStreamBase* pStream)
 	pStream->Read(NUM_COMMERCE_TYPES, m_aiCapitalCommerceRateModifier);
 	pStream->Read(NUM_COMMERCE_TYPES, m_aiStateReligionBuildingCommerce);
 	pStream->Read(NUM_COMMERCE_TYPES, m_aiSpecialistExtraCommerce);
-	// Temporary K-Mod hack, to move from version v1.25 to v1.26. (this will be deleted in the next version)
-	if (m_aiSpecialistExtraCommerce[COMMERCE_RESEARCH] == 2 && GC.getNumCivicInfos() > 2 && GC.getCivicInfo((CivicTypes)2).getSpecialistExtraCommerce(COMMERCE_RESEARCH) == 3)
-		m_aiSpecialistExtraCommerce[COMMERCE_RESEARCH] = 3;
-	//
 	pStream->Read(NUM_COMMERCE_TYPES, m_aiCommerceFlexibleCount);
 	pStream->Read(MAX_PLAYERS, m_aiGoldPerTurnByPlayer);
 	pStream->Read(MAX_TEAMS, m_aiEspionageSpendingWeightAgainstTeam);
@@ -17625,7 +17703,7 @@ void CvPlayer::write(FDataStreamBase* pStream)
 {
 	int iI;
 
-	uint uiFlag = 3;
+	uint uiFlag = 4;
 	pStream->Write(uiFlag);		// flag for expansion
 
 	pStream->Write(m_iStartingX);
@@ -17732,7 +17810,7 @@ void CvPlayer::write(FDataStreamBase* pStream)
 	pStream->Write(m_bExtendedGame);
 	pStream->Write(m_bFoundedFirstCity);
 	pStream->Write(m_bStrike);
-	pStream->Write(m_bChoosingFreeTech); // K-Mod (uiFlag >= 2)
+	pStream->Write(m_iChoosingFreeTechCount); // K-Mod (bool for 2 <= uiFlag < 4. then int.)
 
 	pStream->Write(m_eID);
 	pStream->Write(m_ePersonalityType);
@@ -22676,7 +22754,8 @@ void CvPlayer::markTradeOffers(CLinkList<TradeData>& ourInventory, const CLinkLi
 {
 	for (CLLNode<TradeData>* pOfferNode = ourOffer.head(); pOfferNode != NULL; pOfferNode = ourOffer.next(pOfferNode))
 	{
-		for (CLLNode<TradeData>* pInvNode = ourInventory.head(); pInvNode != NULL; pInvNode = ourInventory.next(pInvNode))
+		CLLNode<TradeData>* pInvNode; // (defined here just for the assertion at the end)
+		for (pInvNode = ourInventory.head(); pInvNode != NULL; pInvNode = ourInventory.next(pInvNode))
 		{
 			if (pInvNode->m_data.m_eItemType == pOfferNode->m_data.m_eItemType &&
 				pInvNode->m_data.m_iData == pOfferNode->m_data.m_iData)

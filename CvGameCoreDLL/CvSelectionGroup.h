@@ -77,8 +77,8 @@ public:
 	bool canEnterTerritory(TeamTypes eTeam, bool bIgnoreRightOfPassage = false) const;									// Exposed to Python
 	bool canEnterArea(TeamTypes eTeam, const CvArea* pArea, bool bIgnoreRightOfPassage = false) const;									// Exposed to Python
 	DllExport bool canMoveInto(CvPlot* pPlot, bool bAttack = false);																		// Exposed to Python
-	//DllExport bool canMoveOrAttackInto(CvPlot* pPlot, bool bDeclareWar = false);												// Exposed to Python
-	bool canMoveOrAttackInto(CvPlot* pPlot, bool bDeclareWar = false, bool bCheckMoves = false, bool bAssumeVisible = true); // Exposed to Python, K-Mod added bCheckMoves and bAssumeVisible. (who needs "DllExport"?)
+	DllExport bool canMoveOrAttackInto(CvPlot* pPlot, bool bDeclareWar = false) { return canMoveOrAttackInto(pPlot, bDeclareWar, false); } // Exposed to Python
+	bool canMoveOrAttackInto(CvPlot* pPlot, bool bDeclareWar, bool bCheckMoves/* = false (see above) */, bool bAssumeVisible = true); // K-Mod. (hack to avoid breaking the DllExport)
 	bool canMoveThrough(CvPlot* pPlot, bool bDeclareWar = false, bool bAssumeVisible = true) const; // Exposed to Python, K-Mod added bDeclareWar and bAssumeVisible
 	bool canFight();																																										// Exposed to Python 
 	bool canDefend();																																										// Exposed to Python
@@ -133,8 +133,12 @@ public:
 	bool groupAmphibMove(CvPlot* pPlot, int iFlags);
 
 	DllExport bool readyToSelect(bool bAny = false);																										// Exposed to Python
-	bool readyToMove(bool bAny = false);																																// Exposed to Python
-	bool readyToAuto();																																									// Exposed to Python 
+	bool readyToMove(bool bAny = false); // Exposed to Python
+	bool readyToAuto(); // Exposed to Python
+	// K-Mod. (note: I'd make these function const, but it would conflict with some dllexport functions)
+	bool readyForMission();
+	bool canDoMission(int iMission, int iData1, int iData2, CvPlot* pPlot, bool bTestVisible, bool bCheckMoves);
+	// K-Mod end
 
 	int getID() const;																																												// Exposed to Python
 	void setID(int iID);																			
@@ -161,7 +165,7 @@ public:
 	void setActivityType(ActivityTypes eNewValue);																											// Exposed to Python
 
 	AutomateTypes getAutomateType() const;																																		// Exposed to Python
-	bool isAutomated();																																									// Exposed to Python
+	bool isAutomated() const; // Exposed to Python
 	void setAutomateType(AutomateTypes eNewValue);																											// Exposed to Python
 
 	FAStarNode* getPathLastNode() const;

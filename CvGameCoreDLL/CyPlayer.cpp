@@ -567,10 +567,10 @@ int CyPlayer::getGwPercentAnger() const
 ** K-Mod end
 */
 
-int CyPlayer::calculateBaseNetResearch()
+/* int CyPlayer::calculateBaseNetResearch()
 {
 	return m_pPlayer ? m_pPlayer->calculateBaseNetResearch() : -1;
-}
+} */
 
 bool CyPlayer::isResearch()
 {
@@ -606,6 +606,18 @@ int CyPlayer::getResearchTurnsLeft(int /*TechTypes*/ eTech, bool bOverflow)
 {
 	return m_pPlayer ? m_pPlayer->getResearchTurnsLeft((TechTypes)eTech, bOverflow) : -1;
 }
+
+// K-Mod
+bool CyPlayer::canSeeResearch(int /*PlayerTypes*/ ePlayer) const
+{
+	return m_pPlayer ? m_pPlayer->canSeeResearch((PlayerTypes)ePlayer) : false;
+}
+
+bool CyPlayer::canSeeDemographics(int /*PlayerTypes*/ ePlayer) const
+{
+	return m_pPlayer ? m_pPlayer->canSeeDemographics((PlayerTypes)ePlayer) : false;
+}
+// K-Mod end
 
 bool CyPlayer::isCivic(int /*CivicTypes*/ eCivic)
 {

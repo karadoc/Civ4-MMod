@@ -71,7 +71,7 @@ public:
 	void verifyUnitValidPlot();
 	void forceBumpUnits(); // K-Mod
 
-	void nukeExplosion(int iRange, CvUnit* pNukeUnit = NULL);																							// Exposed to Python
+	void nukeExplosion(int iRange, CvUnit* pNukeUnit = NULL, bool bBomb = true); //  K-Mod added bBomb, Exposed to Python
 
 	bool isConnectedTo( const CvCity* pCity) const;																												// Exposed to Python
 	bool isConnectedToCapital(PlayerTypes ePlayer = NO_PLAYER) const;																			// Exposed to Python
@@ -201,6 +201,7 @@ public:
 	int getNumVisibleEnemyDefenders(const CvUnit* pUnit) const;																				// Exposed to Python
 	int getNumVisiblePotentialEnemyDefenders(const CvUnit* pUnit) const;															// Exposed to Python
 	DllExport bool isVisibleEnemyUnit(PlayerTypes ePlayer) const;																			// Exposed to Python
+	bool isVisiblePotentialEnemyUnit(PlayerTypes ePlayer) const; // K-Mod
 	DllExport int getNumVisibleUnits(PlayerTypes ePlayer) const;
 	bool isVisibleEnemyUnit(const CvUnit* pUnit) const;
 	bool isVisibleOtherUnit(PlayerTypes ePlayer) const;																								// Exposed to Python

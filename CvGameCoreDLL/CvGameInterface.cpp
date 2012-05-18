@@ -496,7 +496,11 @@ void CvGame::updateTestEndTurn()
 				{
 					if (GET_PLAYER(getActivePlayer()).hasAutoUnit())
 					{
-						if (!(GC.shiftKey()))
+						//if (!(GC.shiftKey()))
+						// K-Mod. Don't start automoves if we currently have a group selected which would move.
+						CvUnit* pSelectedUnit = gDLL->getInterfaceIFace()->getHeadSelectedUnit();
+						if (!GC.shiftKey() && (pSelectedUnit == NULL || !pSelectedUnit->getGroup()->readyToAuto()))
+						// K-Mod end
 						{
 							CvMessageControl::getInstance().sendAutoMoves();
 						}
@@ -730,7 +734,11 @@ void CvGame::cycleSelectionGroups(bool bClear, bool bForward, bool bWorkers) con
 
 		if (bWrap)
 		{
-			if (GET_PLAYER(getActivePlayer()).hasAutoUnit())
+			//if (GET_PLAYER(getActivePlayer()).hasAutoUnit())
+			// K-Mod. I've weakend this condition so that the group cycle order can be refreshed by automoves.
+			// (Maybe I should create & use "sendCycleRefresh" instead.)
+			if (pNextSelectionGroup || GET_PLAYER(getActivePlayer()).hasAutoUnit())
+			// K-Mod end
 			{
 				CvMessageControl::getInstance().sendAutoMoves();
 			}
@@ -778,7 +786,13 @@ void CvGame::cycleSelectionGroups_delayed(int iDelay, bool bIncremental, bool bD
 	{
 		if (!bDelayOnly)
 		{
-			cycleSelectionGroups(true);
+			if (GET_PLAYER(eActive).isOption(PLAYEROPTION_NO_UNIT_CYCLING)) // (for the non-rapid case, this option is handled elsewhere.)
+				return;
+
+			if (gDLL->getEngineIFace()->isCameraLocked())
+				gDLL->getInterfaceIFace()->setCycleSelectionCounter(1); // immediate cycling might violate the camera lock. :(
+			else
+				cycleSelectionGroups(true);
 		}
 	}
 	else
@@ -982,7 +996,8 @@ void CvGame::selectionListMove(CvPlot* pPlot, bool bAlt, bool bShift, bool bCtrl
 
 	if (bAlt)
 	{
-		gDLL->getInterfaceIFace()->selectGroup(pHeadSelectedUnit, false, false, true);
+		//gDLL->getInterfaceIFace()->selectGroup(pHeadSelectedUnit, false, false, true);
+		gDLL->getInterfaceIFace()->selectGroup(pHeadSelectedUnit, false, true, true); // K-Mod
 	}
 	else if (bCtrl)
 	{
@@ -1320,7 +1335,8 @@ void CvGame::handleAction(int iAction)
 		{
 			if (GC.getInterfaceModeInfo((InterfaceModeTypes)GC.getActionInfo(iAction).getInterfaceModeType()).getSelectAll())
 			{
-				gDLL->getInterfaceIFace()->selectGroup(pHeadSelectedUnit, false, false, true);
+				//gDLL->getInterfaceIFace()->selectGroup(pHeadSelectedUnit, false, false, true);
+				gDLL->getInterfaceIFace()->selectGroup(pHeadSelectedUnit, false, true, true); // K-Mod
 			}
 			else if (GC.getInterfaceModeInfo((InterfaceModeTypes)GC.getActionInfo(iAction).getInterfaceModeType()).getSelectType())
 			{
@@ -1566,7 +1582,8 @@ void CvGame::doControl(ControlTypes eControl)
 		pHeadSelectedUnit = gDLL->getInterfaceIFace()->getHeadSelectedUnit();
 		if (pHeadSelectedUnit != NULL)
 		{
-			gDLL->getInterfaceIFace()->selectGroup(pHeadSelectedUnit, false, false, true);
+			//gDLL->getInterfaceIFace()->selectGroup(pHeadSelectedUnit, false, false, true);
+			gDLL->getInterfaceIFace()->selectGroup(pHeadSelectedUnit, false, true, true); // K-Mod
 		}
 		break;
 

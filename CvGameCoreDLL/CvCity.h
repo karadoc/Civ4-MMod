@@ -1177,15 +1177,6 @@ protected:
 	bool m_bInfoDirty;
 	bool m_bLayoutDirty;
 	bool m_bPlundered;
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                       12/07/09                         denev & jdog5000     */
-/*                                                                                              */
-/* Bugfix                                                                                       */
-/************************************************************************************************/
-	bool m_bPopProductionProcess;
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                        END                                                  */
-/************************************************************************************************/
 
 	PlayerTypes m_eOwner;
 	PlayerTypes m_ePreviousOwner;
@@ -1275,16 +1266,18 @@ protected:
 
 	void doGrowth();
 	void doCulture();
-	/* K-Mod, 26/sep/10, Karadoc - added bCityCulture parameter for use with trade route culture */
-	/* K-Mod, 31/oct/10, Karadoc - replaced doPlotCulture with doPlotCultureTimes100 */
 	//void doPlotCulture(bool bUpdate, PlayerTypes ePlayer, int iCultureRate, bool bCityCulture = true);
-	void doPlotCultureTimes100(bool bUpdate, PlayerTypes ePlayer, int iCultureRateTimes100, bool bCityCulture = true);
+	// K-Mod. I've made this function public so that I can use it for the "insert culture" espionage mission. (I've also changed the functionality of it quite a bit.)
+public:
+	void doPlotCultureTimes100(bool bUpdate, PlayerTypes ePlayer, int iCultureRateTimes100, bool bCityCulture);
+protected:
+	// K-Mod end
+	bool doCheckProduction();
 	void doProduction(bool bAllowNoProduction);
 	void doDecay();
 	void doReligion();
 	void doGreatPeople();
 	void doMeltdown();
-	bool doCheckProduction();
 
 	int getExtraProductionDifference(int iExtra, UnitTypes eUnit) const;
 	int getExtraProductionDifference(int iExtra, BuildingTypes eBuilding) const;

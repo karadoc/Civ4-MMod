@@ -112,7 +112,7 @@ public:
 	int AI_getRivalAirPower( ) const;
 	bool AI_refusePeace(TeamTypes ePeaceTeam) const; // K-Mod. (refuse peace when we need war for conquest victory.)
 	bool AI_acceptSurrender( TeamTypes eSurrenderTeam ) const;
-	bool AI_isOkayVassalTarget( TeamTypes eTeam );
+	bool AI_isOkayVassalTarget( TeamTypes eTeam ) const;
 
 	void AI_getWarRands( int &iMaxWarRand, int &iLimitedWarRand, int &iDogpileWarRand ) const;
 	void AI_getWarThresholds( int &iMaxWarThreshold, int &iLimitedWarThreshold, int &iDogpileWarThreshold ) const;
@@ -199,7 +199,6 @@ public:
 	virtual void write(FDataStreamBase* pStream);
 
 	// K-Mod. Strength Memory - a very basic and rough reminder-map of how strong the enemy presence is on each plot.
-	// Currently it is only used and set during pathfinding, with the MOVE_ATTACK_STACK flag.
 public:
 	int AI_getStrengthMemory(int x, int y) const;
 	inline int AI_getStrengthMemory(const CvPlot* pPlot) { return AI_getStrengthMemory(pPlot->getX_INLINE(), pPlot->getY_INLINE()); }

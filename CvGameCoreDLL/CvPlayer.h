@@ -111,6 +111,8 @@ public:
 	DllExport void updateHuman();
 	DllExport bool isBarbarian() const;																																					// Exposed to Python						
 
+	// K-Mod note: I've changed getName, getCivilizationDescription, and getCivilizationShortDescription to only give accurate information if the active player has met this player.
+	// The "key" versions of those functions are unchanged. This is important because getNameKey and so on are used to create messages for the replay.
 	DllExport const wchar* getName(uint uiForm = 0) const;																											// Exposed to Python
 	DllExport const wchar* getNameKey() const;																																	// Exposed to Python
 	DllExport const wchar* getCivilizationDescription(uint uiForm = 0) const;																		// Exposed to Python
@@ -160,17 +162,10 @@ public:
 	DllExport bool hasAutoUnit() const;
 	DllExport bool hasBusyUnit() const;
 
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                       12/07/09                             EmperorFool      */
-/*                                                                                              */
-/* Bugfix                                                                                       */
-/************************************************************************************************/
-	// Free Tech Popup Fix
-	bool isChoosingFreeTech() const;
-	void setChoosingFreeTech(bool bValue);
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                        END                                                  */
-/************************************************************************************************/
+	// K-Mod
+	bool isChoosingFreeTech() const { return m_iChoosingFreeTechCount > 0; }
+	void changeChoosingFreeTechCount(int iChange) { m_iChoosingFreeTechCount += iChange; }
+	// K-Mod end
 
 	DllExport void chooseTech(int iDiscover = 0, CvWString szText = "", bool bFront = false);				// Exposed to Python
 
@@ -281,8 +276,8 @@ public:
 	int calculateInflationRate() const;																																		// Exposed to Python
 	int calculateInflatedCosts() const;																																		// Exposed to Python
 
-	int calculateBaseNetGold() const;
-	int calculateBaseNetResearch(TechTypes eTech = NO_TECH) const;   // Exposed to Python
+	//int calculateBaseNetGold() const; // disabled by K-Mod
+	//int calculateBaseNetResearch(TechTypes eTech = NO_TECH) const;   // disabled by K-Mod (was exposed to Python)
 	int calculateResearchModifier(TechTypes eTech) const;   // Exposed to Python
 	int calculateGoldRate() const;																																				// Exposed to Python
 	int calculateResearchRate(TechTypes eTech = NO_TECH) const;																						// Exposed to Python
@@ -290,12 +285,13 @@ public:
 
 	bool isResearch() const;																																							// Exposed to Python
 	DllExport bool canEverResearch(TechTypes eTech) const;																								// Exposed to Python
-	// K-Mod, added "bFree" argument
-	DllExport bool canResearch(TechTypes eTech, bool bTrade = false, bool bFree = false) const;																// Exposed to Python
+	DllExport bool canResearch(TechTypes eTech, bool bTrade = false, bool bFree = false) const; // (K-Mod, added bFree. Does this break DllExport?) Exposed to Python
 	DllExport TechTypes getCurrentResearch() const;																												// Exposed to Python
 	bool isCurrentResearchRepeat() const;																																	// Exposed to Python
 	bool isNoResearchAvailable() const;																																		// Exposed to Python
 	DllExport int getResearchTurnsLeft(TechTypes eTech, bool bOverflow) const;														// Exposed to Python
+	bool canSeeResearch(PlayerTypes ePlayer) const; // K-Mod, Exposed to Python
+	bool canSeeDemographics(PlayerTypes ePlayer) const; // K-Mod, Exposed to Python
 
 	bool isCivic(CivicTypes eCivic) const;																																// Exposed to Python
 	bool canDoCivics(CivicTypes eCivic) const;																														// Exposed to Python
@@ -756,8 +752,12 @@ public:
 	void changeFreeCityCommerce(CommerceTypes eIndex, int iChange);
 
 	int getCommercePercent(CommerceTypes eIndex) const;																								// Exposed to Python
-	void setCommercePercent(CommerceTypes eIndex, int iNewValue);																// Exposed to Python
-	DllExport void changeCommercePercent(CommerceTypes eIndex, int iChange);										// Exposed to Python
+	/* void setCommercePercent(CommerceTypes eIndex, int iNewValue); // Exposed to Python
+	DllExport void changeCommercePercent(CommerceTypes eIndex, int iChange); */ // Exposed to Python
+	// K-Mod. these functions now return false if the value is not changed.
+	bool setCommercePercent(CommerceTypes eIndex, int iNewValue, bool bForce = false); // Exposed to Python
+	bool changeCommercePercent(CommerceTypes eIndex, int iChange); // Exposed to Python
+	// K-Mod end
 
 	int getCommerceRate(CommerceTypes eIndex) const;																									// Exposed to Python
 	void changeCommerceRate(CommerceTypes eIndex, int iChange);
@@ -830,7 +830,7 @@ public:
 
 	int getHurryCount(HurryTypes eIndex) const;																												// Exposed to Python
 	DllExport bool canHurry(HurryTypes eIndex) const;																									// Exposed to Python
-	bool canPopRush();
+	bool canPopRush() const;
 	void changeHurryCount(HurryTypes eIndex, int iChange);
 
 	int getSpecialBuildingNotRequiredCount(SpecialBuildingTypes eIndex) const;												// Exposed to Python
@@ -860,11 +860,11 @@ public:
 
 	int getSpecialistValidCount(SpecialistTypes eIndex) const;
 	DllExport bool isSpecialistValid(SpecialistTypes eIndex) const;																		// Exposed to Python					
-	void changeSpecialistValidCount(SpecialistTypes eIndex, int iChange);												
-																																															
+	void changeSpecialistValidCount(SpecialistTypes eIndex, int iChange);
+
 	DllExport bool isResearchingTech(TechTypes eIndex) const;																					// Exposed to Python					
-	void setResearchingTech(TechTypes eIndex, bool bNewValue);																	
-																																															
+	void setResearchingTech(TechTypes eIndex, bool bNewValue);
+
 	DllExport CivicTypes getCivics(CivicOptionTypes eIndex) const;																		// Exposed to Python					
 	int getSingleCivicUpkeep(CivicTypes eCivic, bool bIgnoreAnarchy = false) const;										// Exposed to Python					
 	int getCivicUpkeep(CivicTypes* paeCivics = NULL, bool bIgnoreAnarchy = false) const;							// Exposed to Python					
@@ -876,8 +876,10 @@ public:
 	int getImprovementYieldChange(ImprovementTypes eIndex1, YieldTypes eIndex2) const;								// Exposed to Python
 	void changeImprovementYieldChange(ImprovementTypes eIndex1, YieldTypes eIndex2, int iChange);
 
-	void updateGroupCycle(CvUnit* pUnit);
+	//void updateGroupCycle(CvUnit* pUnit);
+	void updateGroupCycle(CvSelectionGroup* pGroup); // K-Mod
 	void removeGroupCycle(int iID);
+	void refreshGroupCycleList(); // K-Mod
 	CLLNode<int>* deleteGroupCycleNode(CLLNode<int>* pNode);
 	CLLNode<int>* nextGroupCycleNode(CLLNode<int>* pNode) const;
 	CLLNode<int>* previousGroupCycleNode(CLLNode<int>* pNode) const;
@@ -1246,16 +1248,7 @@ protected:
 /* AI_AUTO_PLAY_MOD                        END                                                  */
 /************************************************************************************************/
 
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                       12/07/09                             EmperorFool      */
-/*                                                                                              */
-/* Bugfix                                                                                       */
-/************************************************************************************************/
-	// Free Tech Popup Fix
-	bool m_bChoosingFreeTech;
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                        END                                                  */
-/************************************************************************************************/
+	int m_iChoosingFreeTechCount; // K-Mod (based on the 'Unofficial Patch'
 
 	PlayerTypes m_eID;
 	LeaderHeadTypes m_ePersonalityType;
