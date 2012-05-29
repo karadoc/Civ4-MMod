@@ -2288,6 +2288,7 @@ public:
 	bool isConquest() const;					// Exposed to Python
 	bool isDiploVote() const;					// Exposed to Python
 	DllExport bool isPermanent() const;					// Exposed to Python
+	bool isTotalVictory() const { return m_bTotalVictory; } // Karadoc, Exposed to Python
 
 	const char* getMovie() const;
 
@@ -2311,6 +2312,7 @@ protected:
 	bool m_bConquest;
 	bool m_bDiploVote;
 	bool m_bPermanent;
+	bool m_bTotalVictory; // Karadoc, mastery victory
 
 	CvString m_szMovie;
 

@@ -9857,7 +9857,8 @@ m_bTargetScore(false),
 m_bEndScore(false),
 m_bConquest(false),
 m_bDiploVote(false),
-m_bPermanent(false)
+m_bPermanent(false),
+m_bTotalVictory(false) // Karadoc, mastery victory
 {
 }
 
@@ -9959,6 +9960,7 @@ bool CvVictoryInfo::read(CvXMLLoadUtility* pXML)
 	pXML->GetChildXmlValByName(&m_bConquest, "bConquest");
 	pXML->GetChildXmlValByName(&m_bDiploVote, "bDiploVote");
 	pXML->GetChildXmlValByName(&m_bPermanent, "bPermanent");
+	pXML->GetChildXmlValByName(&m_bTotalVictory, "bTotalVictory"); // Karadoc, mastery victory
 	pXML->GetChildXmlValByName(&m_iPopulationPercentLead, "iPopulationPercentLead");
 	pXML->GetChildXmlValByName(&m_iLandPercent, "iLandPercent");
 	pXML->GetChildXmlValByName(&m_iMinLandPercent, "iMinLandPercent");

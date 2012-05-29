@@ -201,6 +201,8 @@ public:
 	int getProjectCreatedCount(int /*ProjectTypes*/ eIndex);
 	bool isProjectMaxedOut(int /*ProjectTypes*/ eIndex, int iExtra);
 
+	int countWorldWonders(bool bBuilt, int /*PlayerTypes*/ eBuilder) { return m_pGame ? m_pGame->countWorldWonders(bBuilt, (PlayerTypes)eBuilder) : false; } // Karadoc
+
 	int getForceCivicCount(int /*CivicTypes*/ eIndex);
 	bool isForceCivic(int /*CivicTypes*/ eIndex);
 	bool isForceCivicOption(int /*CivicOptionTypes*/ eCivicOption);

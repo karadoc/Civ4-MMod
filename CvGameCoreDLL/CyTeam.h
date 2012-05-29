@@ -30,6 +30,7 @@ public:
 	void signOpenBorders(int /*TeamTypes*/ eTeam);
 	void signDefensivePact(int /*TeamTypes*/ eTeam);
 
+	int getTotalVictoryScore() { return m_pTeam ? m_pTeam->getTotalVictoryScore() : -1; } // Karadoc
 	int getAssets();
 	int getPower(bool bIncludeVassals);
 	int getDefensivePower();

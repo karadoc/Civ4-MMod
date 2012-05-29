@@ -369,6 +369,8 @@ public:
 	bool isProjectMaxedOut(ProjectTypes eIndex, int iExtra = 0) const; // Exposed to Python
 	void incrementProjectCreatedCount(ProjectTypes eIndex, int iExtra = 1);
 
+	int countWorldWonders(bool bBuilt = true, PlayerTypes eBuilder = NO_PLAYER) const; // Exposed to Python. Karadoc (used for Mastery Victory, replacing sevo's "getSevoWonderScore")
+
 	int getForceCivicCount(CivicTypes eIndex) const;														// Exposed to Python
 	bool isForceCivic(CivicTypes eIndex) const;																	// Exposed to Python
 	bool isForceCivicOption(CivicOptionTypes eCivicOption) const;								// Exposed to Python

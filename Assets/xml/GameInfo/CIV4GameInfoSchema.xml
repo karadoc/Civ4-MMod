@@ -455,6 +455,7 @@
 	<ElementType name="bConquest" content="textOnly" dt:type="boolean"/>
 	<ElementType name="bDiploVote" content="textOnly" dt:type="boolean"/>
 	<ElementType name="bPermanent" content="textOnly" dt:type="boolean"/>
+	<ElementType name="bTotalVictory" content="textOnly" dt:type="boolean"/>
 	<ElementType name="iPopulationPercentLead" content="textOnly" dt:type="int"/>
 	<ElementType name="iLandPercent" content="textOnly" dt:type="int"/>
 	<ElementType name="iMinLandPercent" content="textOnly" dt:type="int"/>
@@ -472,6 +473,7 @@
 		<element type="bConquest"/>
 		<element type="bDiploVote"/>
 		<element type="bPermanent"/>
+		<element type="bTotalVictory"/>
 		<element type="iPopulationPercentLead"/>
 		<element type="iLandPercent"/>
 		<element type="iMinLandPercent"/>

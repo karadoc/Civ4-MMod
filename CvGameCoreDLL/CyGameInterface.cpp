@@ -190,6 +190,8 @@ void CyGamePythonInterface()
 		.def("getProjectCreatedCount", &CyGame::getProjectCreatedCount, "int (ProjectTypes eIndex)")
 		.def("isProjectMaxedOut", &CyGame::isProjectMaxedOut, "bool (ProjectTypes eIndex)")
 
+		.def("countWorldWonders", &CyGame::countWorldWonders, "bool (bool bBuilt, PlayerTypes eBuilder)") // Karadoc
+
 		.def("getForceCivicCount", &CyGame::getForceCivicCount, "int (CivicTypes eIndex)")
 		.def("isForceCivic", &CyGame::isForceCivic, "bool (CivicTypes eIndex)")
 		.def("isForceCivicOption", &CyGame::isForceCivicOption, "bool (CivicOptionTypes eCivicOption)")

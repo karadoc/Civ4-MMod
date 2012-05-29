@@ -212,6 +212,21 @@ void CvGame::init(HandicapTypes eHandicap)
 
 	setStartTurn(getGameTurn());
 
+	// Karadoc: mastery victory
+	bool bMastery = false;
+	for (VictoryTypes i = (VictoryTypes)0; !bMastery && i < GC.getNumVictoryInfos(); i=(VictoryTypes)(i+1))
+	{
+		bMastery = GC.getVictoryInfo(i).isTotalVictory() && isVictoryValid(i);
+	}
+	if (bMastery)
+	{
+		for (VictoryTypes i = (VictoryTypes)0; !bMastery && i < GC.getNumVictoryInfos(); i=(VictoryTypes)(i+1))
+		{
+			setVictoryValid(i, true);
+		}
+	}
+	// Karadoc end
+
 	if (getMaxTurns() == 0)
 	{
 		iEstimateEndTurn = 0;
@@ -225,16 +240,23 @@ void CvGame::init(HandicapTypes eHandicap)
 
 		if (getEstimateEndTurn() > getGameTurn())
 		{
-			bValid = false;
-
-			for (iI = 0; iI < GC.getNumVictoryInfos(); iI++)
+			//bValid = false;
+			// Karadoc: mastery victory
+			if (bMastery)
+				bValid = true;
+			else
+			// K end.
 			{
-				if (isVictoryValid((VictoryTypes)iI))
+				bValid = false;
+				for (iI = 0; iI < GC.getNumVictoryInfos(); iI++)
 				{
-					if (GC.getVictoryInfo((VictoryTypes)iI).isEndScore())
+					if (isVictoryValid((VictoryTypes)iI))
 					{
-						bValid = true;
-						break;
+						if (GC.getVictoryInfo((VictoryTypes)iI).isEndScore())
+						{
+							bValid = true;
+							break;
+						}
 					}
 				}
 			}
@@ -5316,6 +5338,52 @@ void CvGame::incrementProjectCreatedCount(ProjectTypes eIndex, int iExtra)
 }
 
 
+// K. used for Mastery Victory
+int CvGame::countWorldWonders(bool bBuilt, PlayerTypes eBuilder) const
+{
+	FAssert(!bBuilt || eBuilder != NO_PLAYER);
+
+	if (eBuilder == NO_PLAYER || !bBuilt)
+	{
+		int iCount = 0;
+		// just loop through buildings
+		for (BuildingClassTypes eLoopClass = (BuildingClassTypes)0; eLoopClass < GC.getNumBuildingClassInfos(); eLoopClass = (BuildingClassTypes)(eLoopClass+1))
+		{
+			if (::isWorldWonderClass(eLoopClass))
+			{
+				iCount += bBuilt ? getBuildingClassCreatedCount(eLoopClass) : GC.getBuildingClassInfo(eLoopClass).getMaxGlobalInstances();
+			}
+		}
+		return iCount;
+	}
+	else
+	{
+		int iCount = 0;
+		// loop through all cities, for all players, to count how many wonders this player has built.
+		for (PlayerTypes eLoopPlayer = (PlayerTypes)0; eLoopPlayer < MAX_CIV_PLAYERS; eLoopPlayer = (PlayerTypes)(eLoopPlayer+1))
+		{
+			const CvPlayer& kLoopPlayer = GET_PLAYER(eLoopPlayer);
+			int iLoop;
+			for (CvCity* pLoopCity = kLoopPlayer.firstCity(&iLoop); pLoopCity; pLoopCity = kLoopPlayer.nextCity(&iLoop))
+			{
+				for (BuildingClassTypes eLoopClass = (BuildingClassTypes)0; eLoopClass < GC.getNumBuildingClassInfos(); eLoopClass = (BuildingClassTypes)(eLoopClass+1))
+				{
+					if (::isWorldWonderClass(eLoopClass))
+					{
+						BuildingTypes eLoopBuilding = (BuildingTypes)GC.getCivilizationInfo(kLoopPlayer.getCivilizationType()).getCivilizationBuildings(eLoopClass);
+						if (eLoopBuilding != NO_BUILDING && pLoopCity->getNumRealBuilding(eLoopBuilding) > 0 && pLoopCity->getBuildingOriginalOwner(eLoopBuilding) == eBuilder)
+						{
+							iCount += pLoopCity->getNumRealBuilding(eLoopBuilding);
+						}
+					}
+				}
+			}
+		}
+		return iCount;
+	}
+}
+// K. end
+
 int CvGame::getForceCivicCount(CivicTypes eIndex) const
 {
 	FAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
@@ -7693,6 +7761,41 @@ void CvGame::testVictory()
 		}
 
 	}
+
+	// Karadoc: mastery condition. (based on code by Sevo)
+	if (getMaxTurns() != 0 && getElapsedGameTurns() >= getMaxTurns())
+	{
+		for (int iJ = 0; iJ < GC.getNumVictoryInfos(); iJ++)
+		{
+			if (GC.getVictoryInfo((VictoryTypes)iJ).isTotalVictory() && isVictoryValid((VictoryTypes)iJ))
+			{
+				aaiWinners.clear(); // sorry, folks, no winners today by usual means, only Mastery Victory is achievable;)
+
+				int topScore = 0;
+				// End of game and Total Victory is selected.  Calculate the topscore, beyatch.
+				for (int iI = 0; iI < MAX_CIV_TEAMS; iI++)
+				{
+					if (GET_TEAM((TeamTypes)iI).isAlive() && !GET_TEAM((TeamTypes)iI).isMinorCiv())
+					{
+						int score = GET_TEAM((TeamTypes)iI).getTotalVictoryScore();
+						if (score >= topScore)
+						{
+							if (score > topScore)
+								aaiWinners.clear();
+							topScore = score;
+
+							std::vector<int> aWinner;
+							aWinner.push_back(iI);
+							aWinner.push_back(iJ);
+							aaiWinners.push_back(aWinner);
+						}
+					}
+				}
+				break;
+			}
+		}
+	}
+	// Karadoc end
 
 	if (aaiWinners.size() > 0)
 	{

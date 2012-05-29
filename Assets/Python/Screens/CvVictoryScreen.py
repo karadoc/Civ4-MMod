@@ -105,7 +105,7 @@ class CvVictoryScreen:
 		self.DX_LINK = 220
 		self.Y_LINK = 726
 		self.MARGIN = 20
-		
+
 		self.SETTINGS_PANEL_X1 = 50
 		self.SETTINGS_PANEL_X2 = 355
 		self.SETTINGS_PANEL_X3 = 660
@@ -222,7 +222,7 @@ class CvVictoryScreen:
 		screen.addPanel(self.getNextWidgetName(), "", "", False, False, self.X_AREA-10, self.Y_AREA-15, self.W_AREA+20, self.H_AREA+30, PanelStyles.PANEL_STYLE_BLUE50)
 		szTable = self.getNextWidgetName()
 		screen.addTableControlGFC(szTable, 2, self.X_AREA, self.Y_AREA, self.W_AREA, self.H_AREA, False, False, 32,32, TableStyles.TABLE_STYLE_STANDARD)
-		screen.enableSelect(szTable, False)		
+		screen.enableSelect(szTable, False)
 		screen.setTableColumnHeader(szTable, 0, "", self.TABLE2_WIDTH_0)
 		screen.setTableColumnHeader(szTable, 1, "", self.TABLE2_WIDTH_1)
 
@@ -578,7 +578,7 @@ class CvVictoryScreen:
 
 		fVotePercent = 100.0 * iVoteTotal[iWinner] / iMaxVotes
 		fMargin = 100.0 * (iVoteTotal[iWinner] - iVoteTotal[iLoser]) / iMaxVotes
-		
+
 		if self.VoteType == 1:
 			sSecGen = gc.getVoteSourceInfo(iActiveVote).getSecretaryGeneralText()
 		else:
@@ -656,7 +656,7 @@ class CvVictoryScreen:
 					if gc.getPlayer(j).isAlive() and not gc.getPlayer(j).isBarbarian() and gc.getTeam(iActiveTeam).isHasMet(gc.getPlayer(j).getTeam()):
 						szPlayerText = gc.getPlayer(j).getName()
 						if (-1 != iSecretaryGeneralVote):
-							szPlayerText += localText.getText("TXT_KEY_VICTORY_SCREEN_PLAYER_VOTES", (gc.getPlayer(j).getVotes(iSecretaryGeneralVote, i), )) 
+							szPlayerText += localText.getText("TXT_KEY_VICTORY_SCREEN_PLAYER_VOTES", (gc.getPlayer(j).getVotes(iSecretaryGeneralVote, i), ))
 						if (gc.getGame().canHaveSecretaryGeneral(i) and gc.getGame().getSecretaryGeneral(i) == gc.getPlayer(j).getTeam()):
 							iRow = screen.appendTableRow(szTable)
 							screen.setTableText(szTable, 0, iRow, szPlayerText, "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
@@ -740,7 +740,7 @@ class CvVictoryScreen:
 		return -1
 
 	def showGameSettingsScreen(self):
-		self.deleteAllWidgets()	
+		self.deleteAllWidgets()
 		screen = self.getScreen()
 
 		activePlayer = gc.getPlayer(self.iActivePlayer)
@@ -751,12 +751,12 @@ class CvVictoryScreen:
 		screen.addListBoxGFC(szSettingsTable, "", self.SETTINGS_PANEL_X1 + self.MARGIN, self.SETTINGS_PANEL_Y + self.MARGIN, self.SETTINGS_PANEL_WIDTH - 2*self.MARGIN, self.SETTINGS_PANEL_HEIGHT - 2*self.MARGIN, TableStyles.TABLE_STYLE_EMPTY)
 		screen.enableSelect(szSettingsTable, False)
 
-# K-Mod, disabled the following		
+# K-Mod, disabled the following
 #		if showHOFSettingChecks and BugPath.isMac():
 #			failedHOFChecks = True
 #			showHOFSettingChecks = False
 #			screen.appendListBoxStringNoUpdate(szSettingsTable, self.BuffyWarningMac, WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY )
-				
+
 		screen.appendListBoxStringNoUpdate(szSettingsTable, localText.getText("TXT_KEY_LEADER_CIV_DESCRIPTION", (activePlayer.getNameKey(), activePlayer.getCivilizationShortDescriptionKey())), WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY )
 		screen.appendListBoxStringNoUpdate(szSettingsTable, u"     (" + CyGameTextMgr().parseLeaderTraits(activePlayer.getLeaderType(), activePlayer.getCivilizationType(), True, False) + ")", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY )
 		screen.appendListBoxStringNoUpdate(szSettingsTable, " ", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY )
@@ -824,6 +824,11 @@ class CvVictoryScreen:
 
 		self.drawTabs()
 
+
+
+
+#Sevo--VCM
+# (lots of new code)
 	def showVictoryConditionScreen(self):
 		activePlayer = PyHelpers.PyPlayer(self.iActivePlayer)
 		iActiveTeam = gc.getPlayer(self.iActivePlayer).getTeam()
@@ -856,6 +861,9 @@ class CvVictoryScreen:
 			popPercent = (ourPop * 100.0) / totalPop
 		else:
 			popPercent = 0.0
+# Prevents division by zero at beginning of game; picky, I know.
+			TotalPop = 1
+
 
 		iBestPopTeam = -1
 		bestPop = 0
@@ -890,13 +898,21 @@ class CvVictoryScreen:
 
 		iBestLandTeam = -1
 		bestLand = 0
+
+		ownedLand = 0
 		for iLoopTeam in range(gc.getMAX_CIV_TEAMS()):
+			ownedLand += gc.getTeam(iLoopTeam).getTotalLand()
+
 			if (gc.getTeam(iLoopTeam).isAlive() and not gc.getTeam(iLoopTeam).isMinorCiv() and not gc.getTeam(iLoopTeam).isBarbarian()):
 				if (iLoopTeam != iActiveTeam and (activePlayer.getTeam().isHasMet(iLoopTeam) or gc.getGame().isDebugMode())):
 					teamLand = gc.getTeam(iLoopTeam).getTotalLand()
 					if (teamLand > bestLand):
 						bestLand = teamLand
 						iBestLandTeam = iLoopTeam
+		if (ownedLand < 1):
+			ownedLand = 1
+		TVLand = ((ourLand * 100.0) / totalLand)
+
 
 		# Religion
 		iOurReligion = -1
@@ -922,13 +938,20 @@ class CvVictoryScreen:
 
 		iBestCultureTeam = -1
 		bestCulture = 0
+		worldCulture = 0
+
+		ourCulture = gc.getTeam(activePlayer.getTeam().getID()).countTotalCulture()
+
 		for iLoopTeam in range(gc.getMAX_CIV_TEAMS()):
+			worldCulture += gc.getTeam(iLoopTeam).countTotalCulture()
 			if (gc.getTeam(iLoopTeam).isAlive() and not gc.getTeam(iLoopTeam).isMinorCiv() and not gc.getTeam(iLoopTeam).isBarbarian()):
 				if (iLoopTeam != iActiveTeam and (activePlayer.getTeam().isHasMet(iLoopTeam) or gc.getGame().isDebugMode())):
 					teamCulture = gc.getTeam(iLoopTeam).countTotalCulture()
 					if (teamCulture > bestCulture):
 						bestCulture = teamCulture
 						iBestCultureTeam = iLoopTeam
+		if (worldCulture < 1):
+			worldCulture = 1
 
 		# Vote
 		aiVoteBuildingClass = []
@@ -936,7 +959,7 @@ class CvVictoryScreen:
 			for j in range(gc.getNumVoteSourceInfos()):
 				if (gc.getBuildingInfo(i).getVoteSourceType() == j):
 					iUNTeam = -1
-					bUnknown = true 
+					bUnknown = true
 					for iLoopTeam in range(gc.getMAX_CIV_TEAMS()):
 						if (gc.getTeam(iLoopTeam).isAlive() and not gc.getTeam(iLoopTeam).isMinorCiv() and not gc.getTeam(iLoopTeam).isBarbarian()):
 							if (gc.getTeam(iLoopTeam).getBuildingClassCount(gc.getBuildingInfo(i).getBuildingClassType()) > 0):
@@ -956,9 +979,303 @@ class CvVictoryScreen:
 				break
 		# K-Mod end
 
-		self.deleteAllWidgets()	
+		self.deleteAllWidgets()
 		screen = self.getScreen()
 
+#################################################################################################
+# VCM START
+	# Get Best Team
+		iBestTeam = gc.getPlayer(0).getTeam() #The first turn of the game, everyone's score starts at 0, so there is no best team.
+		#The human player is a good approx though.
+		iBestTeamScore = 0
+		iTVScore = 0
+		for iLoopPlayer in range(gc.getMAX_CIV_PLAYERS()):
+			if ((gc.getPlayer(iLoopPlayer).isAlive()) and (iLoopPlayer != activePlayer.getID())):
+				iTVScore = gc.getTeam(gc.getPlayer(iLoopPlayer).getTeam()).getTotalVictoryScore()
+				if (iTVScore > iBestTeamScore):
+					iBestTeamScore = iTVScore
+					iBestTeam = gc.getPlayer(iLoopPlayer).getTeam()
+
+
+	# Power History
+		ourPower = 0;
+		worldPower = 0;
+		bestPower = 0;
+
+		for iLoopPlayer in range(gc.getMAX_CIV_PLAYERS()+1):
+			if (gc.getPlayer(iLoopPlayer).isAlive()):
+				for i in range (gc.getGame().getGameTurn()):
+					worldPower += gc.getPlayer(iLoopPlayer).getPowerHistory(i);
+
+					if (activePlayer.getTeam().getID() == gc.getPlayer(iLoopPlayer).getTeam()):
+						ourPower += gc.getPlayer(iLoopPlayer).getPowerHistory(i);
+					elif (iBestTeam == gc.getPlayer(iLoopPlayer).getTeam()):
+						bestPower += gc.getPlayer(iLoopPlayer).getPowerHistory(i);
+		if (worldPower < 0):
+			worldPower = 1;
+
+
+		for iLoopVC in range(gc.getNumVictoryInfos()):
+			victory = gc.getVictoryInfo(iLoopVC)
+			if (victory.isTotalVictory()):
+				if gc.getGame().isVictoryValid(iLoopVC):
+
+					self.deleteAllWidgets()
+
+					self.drawTabs()
+					# Start filling in the table below
+					screen.addPanel(self.getNextWidgetName(), "", "", False, False, self.X_AREA-10, self.Y_AREA-15, self.W_AREA+20, self.H_AREA+30, PanelStyles.PANEL_STYLE_BLUE50)
+					szTable = self.getNextWidgetName()
+					screen.addTableControlGFC(szTable, 5, self.X_AREA, self.Y_AREA, self.W_AREA, self.H_AREA, False, False, 32,32, TableStyles.TABLE_STYLE_STANDARD)
+					screen.setTableColumnHeader(szTable, 0, "", 430)
+					screen.setTableColumnHeader(szTable, 1, "", 180)
+					screen.setTableColumnHeader(szTable, 2, "", int(180 * 0.5) + 100)
+					screen.setTableColumnHeader(szTable, 3, "", int(180 * 0.5) + 100)
+					screen.appendTableRow(szTable)
+
+
+					szVictoryType = u"<font=4b>" + victory.getDescription().upper() + u"</font>"
+					if (gc.getGame().getMaxTurns() > gc.getGame().getElapsedGameTurns() and (gc.getGame().getMaxTurns()/6) < gc.getGame().getElapsedGameTurns()):
+						iNumRows = screen.getTableNumRows(szTable)
+						szVictoryType += "    (" + localText.getText("TXT_KEY_MISC_TURNS_LEFT", (gc.getGame().getMaxTurns() - gc.getGame().getElapsedGameTurns(), )) + ")"
+						screen.setTableText(szTable, 0, iNumRows - 1, szVictoryType, "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+						screen.setTableText(szTable, 1, iNumRows - 1, u"<font=4b>" + activePlayer.getName(), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_CENTER_JUSTIFY)
+						if (gc.getTeam(iBestTeam).hasMetHuman()):
+							screen.setTableText(szTable, 3, iNumRows - 1, u"<font=4b>" + gc.getTeam(iBestTeam).getName(), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+					elif ((gc.getGame().getMaxTurns()/6) > gc.getGame().getElapsedGameTurns()):
+						iRow = screen.appendTableRow(szTable)
+						iRow = screen.appendTableRow(szTable)
+						screen.setTableText(szTable, 0, iRow, u"<font=3b>" + localText.getText("TXT_KEY_VICTORY_SCREEN_TOOEARLY", ())  + u"</font>", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+						return
+
+
+
+					#screen.appendTableRow(szTable)
+					iRow = screen.appendTableRow(szTable)
+
+				# Headings
+					screen.setTableText(szTable, 0, iRow, u"<font=3b>" + localText.getText("TXT_KEY_VICTORY_SCREEN_CONDITION", ())  + u"</font>", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 1, iRow, u"<font=3b>" + localText.getText("TXT_KEY_VICTORY_SCREEN_PERCENTAGE", ()) + u"</font>", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 2, iRow, u"<font=3b>" + localText.getText("TXT_KEY_VICTORY_SCREEN_POINTS", ()) + u"</font>", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 3, iRow, u"<font=2b>" + localText.getText("TXT_KEY_BEST_RIVAL_CCV", ()) + u"</font>", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+					screen.appendTableRow(szTable)
+					iRow = screen.appendTableRow(szTable)
+
+				# Population
+					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_WORLD_POP", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 1, iRow, (u"%i%%" % popPercent), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 2, iRow, (u"%i" % popPercent), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+						screen.setTableText(szTable, 3, iRow, (u"%i%%" % (gc.getTeam(iBestTeam).getTotalPopulation() * 100 / totalPop)), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					else:
+						screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_UNKNOWN",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+				# Land
+					iRow = screen.appendTableRow(szTable)
+					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_WORLD_LAND", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 1, iRow, (u"%i%%" % TVLand), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 2, iRow, (u"%i" % TVLand), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+						screen.setTableText(szTable, 3, iRow, (u"%i%%" % (gc.getTeam(iBestTeam).getTotalLand() * 100 / totalLand)), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					else:
+						screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_UNKNOWN",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+				# Culture
+					iRow = screen.appendTableRow(szTable)
+					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_CONCEPT_CULTURE", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 1, iRow, u"%i%%" %(ourCulture * 100/worldCulture), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 2, iRow, u"%i" %(ourCulture * 100/worldCulture), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+						screen.setTableText(szTable, 3, iRow, u"%i%%" %(gc.getTeam(iBestTeam).countTotalCulture() * 100 / worldCulture), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					else:
+						screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_UNKNOWN",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+				# Power
+					iRow = screen.appendTableRow(szTable)
+					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_POWER", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 1, iRow, u"%i" %(ourPower), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 2, iRow, u"%i" %(ourPower * 100/worldPower), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+						screen.setTableText(szTable, 3, iRow, u"%i" %(bestPower), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					else:
+						screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_UNKNOWN",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+						#screen.setTableText(szTable, 3, iRow, u"%i" %(worldPower), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+				# WonderScores
+
+					iTeamWonderScore = self.getTeamWonderScore(activePlayer.getTeam().getID())
+					iRivalWonderScore = self.getTeamWonderScore(iBestTeam)
+					#iTotalWorldWondersBuilt = gc.getPlayer(0).getSevoWondersScore(1)
+					#iTotalWorldWondersPossible = gc.getPlayer(0).getSevoWondersScore(2)
+					# Karadoc
+					iTotalWorldWondersBuilt = gc.getGame().countWorldWonders(true, -1)
+					iTotalWorldWondersPossible = gc.getGame().countWorldWonders(false, -1)
+					#
+
+					iRow = screen.appendTableRow(szTable)
+					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_CONCEPT_WONDERS", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 1, iRow, u"%i  (%i " %(iTeamWonderScore, iTotalWorldWondersBuilt) + localText.getText("TXT_KEY_OF_VCM", ()) + " %i " %(iTotalWorldWondersPossible)+ localText.getText("TXT_KEY_BUILT_VCM", ()) + ")", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 2, iRow, u"%i" %(iTeamWonderScore * 100 /iTotalWorldWondersPossible), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+						screen.setTableText(szTable, 3, iRow, u"%i" %(iRivalWonderScore), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					else:
+						screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_UNKNOWN",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+				# Religion
+					iRow = screen.appendTableRow(szTable)
+					iRefRow = iRow
+					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_CONCEPT_RELIGION",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+					if (iOurReligion != -1):
+						for iLoopReligion in range(gc.getNumReligionInfos()):
+							if (activePlayer.getTeam().hasHolyCity(iLoopReligion)):
+								religionPercent = gc.getGame().calculateReligionPercent(iLoopReligion)
+
+								iRow = screen.appendTableRow(szTable)
+								screen.setTableText(szTable, 0, iRow, gc.getReligionInfo(iLoopReligion).getDescription(), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_RIGHT_JUSTIFY)
+								screen.setTableText(szTable, 1, iRow, (u"%d%%" % religionPercent), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+								#Only get points for the TOP religion score.
+								if (iLoopReligion == iOurReligion):
+									screen.setTableText(szTable, 2, iRow, (u"%d" % religionPercent), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+					else:
+						iRow = screen.appendTableRow(szTable)
+						screen.setTableText(szTable, 1, iRow, localText.getText("TXT_KEY_VICTORY_RELIGION_NO_HOLY_CITY_CCV",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+					iReligionFound = 0;
+					if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+						for iLoopReligion in range(gc.getNumReligionInfos()):
+							if (gc.getTeam(iBestTeam).hasHolyCity(iLoopReligion)):
+								iReligionFound = 1;
+								religionPercent = gc.getGame().calculateReligionPercent(iLoopReligion)
+
+								iRefRow += 1
+								if (iRefRow > iRow):
+									iRow = screen.appendTableRow(szTable)
+								screen.setTableText(szTable, 3, iRefRow, (u"%s: %i%%" %(gc.getReligionInfo(iLoopReligion).getDescription(), religionPercent)), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+						if (iReligionFound == 0):
+							iRefRow += 1
+							screen.setTableText(szTable, 3, iRefRow, localText.getText("TXT_KEY_VICTORY_RELIGION_NO_HOLY_CITY_CCV",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					else:
+						screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_UNKNOWN",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+
+					# Legendary Cultural Cities
+
+					(iPlayerLegendaryCities, iWorldLegendaryCities) = self.getLegendaryCities(activePlayer.getTeam().getID())
+					(iBestTeamLegendaryCities, iWorldLegendaryCities) = self.getLegendaryCities(iBestTeam)
+
+					ourBestCities = self.getListCultureCitiesTeam(activePlayer.getTeam().getID())[0:(iPlayerLegendaryCities + 3)]
+					theirBestCities = self.getListCultureCitiesTeam(iBestTeam)[0:(iBestTeamLegendaryCities+3)]
+
+					iRow = screen.appendTableRow(szTable)
+					iRefRow = iRow
+					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_CITIES", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+					for i in range(len(ourBestCities)):
+						iRow = screen.appendTableRow(szTable)
+						screen.setTableText(szTable, 0, iRow, ourBestCities[i][1].getName() + ":", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_RIGHT_JUSTIFY)
+						screen.setTableText(szTable, 1, iRow, str(ourBestCities[i][0]), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+						if ( iPlayerLegendaryCities >= i+1 ):
+							screen.setTableText(szTable, 2, iRow, u"%s" %(30), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+					if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+						for i in range(len(theirBestCities)):
+							iRefRow += 1
+							if (iRefRow > iRow):
+								iRow = screen.appendTableRow(szTable)
+							screen.setTableText(szTable, 3, iRefRow, u"%s %i" %(theirBestCities[i][1].getName() + ":", theirBestCities[i][0]), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_UNKNOWN",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+
+
+				# Starship Launch Data
+					iRow = screen.appendTableRow(szTable)
+					iRow = screen.appendTableRow(szTable)
+					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_CONCEPT_SPACESHIP", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+					if (iBestTeam != -1):
+						iRivalLaunched = self.teamLaunchedShip(iBestTeam)
+
+					iNeedParts = 0
+
+
+					if (self.teamLaunchedShip(activePlayer.getTeam().getID()) == 1):
+						screen.setTableText(szTable, 1, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_LAUNCHED", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+						screen.setTableText(szTable, 2, iRow, u"%i" %(100), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					else:
+						screen.setTableText(szTable, 1, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_NOTLAUNCHED", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+						if (activePlayer.getTeam().getProjectCount(gc.getInfoTypeForString("PROJECT_APOLLO_PROGRAM")) > 0 ):
+							iNeedParts = 1
+
+					if ((iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()) and (iRivalLaunched == 1)):
+						screen.setTableText(szTable, 3, iRow, u"%s" %(localText.getText("TXT_KEY_VICTORY_SCREEN_LAUNCHED", ())), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					elif (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+						screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_NOTLAUNCHED", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+					#add spaceship button
+					iSpaceshipButtonRow = screen.getTableNumRows(szTable)
+					screen.appendTableRow(szTable)
+					screen.setButtonGFC("SpaceShipButton" + str(iLoopVC), localText.getText("TXT_KEY_GLOBELAYER_STRATEGY_VIEW", ()), "", 0, 0, 15, 10, WidgetTypes.WIDGET_GENERAL, self.SPACESHIP_SCREEN_BUTTON, -1, ButtonStyles.BUTTON_STYLE_STANDARD )
+					screen.attachControlToTableCell("SpaceShipButton" + str(iLoopVC), szTable, iSpaceshipButtonRow, 1)
+
+					if (iNeedParts == 1):
+						for i in range(gc.getNumProjectInfos()):
+							for iL in range(gc.getNumVictoryInfos()):
+								if (gc.getProjectInfo(i).getVictoryMinThreshold(iL) > 0):
+									if (gc.getProjectInfo(i).isSpaceship()):
+										iRow = screen.appendTableRow(szTable)
+										if (gc.getProjectInfo(i).getVictoryMinThreshold(iL) < gc.getProjectInfo(i).getVictoryThreshold(iL)):
+                                                                                        screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_BUILDING2", (gc.getProjectInfo(i).getVictoryMinThreshold(iL), gc.getProjectInfo(i).getVictoryThreshold(iL), gc.getProjectInfo(i).getTextKey())), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_RIGHT_JUSTIFY)
+                                                                                else:
+                                                                                        screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_BUILDING", (gc.getProjectInfo(i).getVictoryThreshold(iL), gc.getProjectInfo(i).getTextKey())), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_RIGHT_JUSTIFY)
+
+										if (self.teamLaunchedShip(activePlayer.getTeam().getID()) != 1):
+											screen.setTableText(szTable, 1, iRow, str(activePlayer.getTeam().getProjectCount(i)), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+										if ((iBestTeam != -1) and gc.getTeam(iBestTeam).hasMetHuman() and self.teamLaunchedShip(gc.getTeam(iBestTeam).getID()) != 1):
+                                                                                        screen.setTableText(szTable, 3, iRow, str(gc.getTeam(iBestTeam).getProjectCount(i)), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+
+
+
+				# Score Totals
+					iRow = screen.appendTableRow(szTable)
+					iRow = screen.appendTableRow(szTable)
+					screen.setTableText(szTable, 0, iRow, u"<font=4b>" + localText.getText("TXT_KEY_VICTORY_SCREEN_TOTALS", ()) + "</font>", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 2, iRow, u"<font=4b>%i</font>" %(activePlayer.getTeam().getTotalVictoryScore()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+
+					if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+						screen.setTableText(szTable, 3, iRow, u"<font=4b>%i</font>" %(gc.getTeam(iBestTeam).getTotalVictoryScore()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					iRow = screen.appendTableRow(szTable)
+					iRow = screen.appendTableRow(szTable)
+					iRow = screen.appendTableRow(szTable)
+
+				# The rest of the scores
+					screen.setTableText(szTable, 0, iRow, u"<font=4b>" + localText.getText("TXT_KEY_OTHER_NATIONS_CCV",()) + u"</font>", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					iRow = screen.appendTableRow(szTable)
+					for iLoopTeam in range(gc.getMAX_CIV_TEAMS()):
+						icurrent = gc.getTeam(iLoopTeam).getName()
+						if (gc.getTeam(iLoopTeam).isAlive() and not gc.getTeam(iLoopTeam).isMinorCiv() and not gc.getTeam(iLoopTeam).isBarbarian()):
+							if (iLoopTeam != iActiveTeam and iLoopTeam != iBestTeam and activePlayer.getTeam().isHasMet(iLoopTeam) or gc.getGame().isDebugMode()):
+								iRow = screen.appendTableRow(szTable)
+								screen.setTableText(szTable, 0, iRow, u"<font=3b>" + icurrent + ":" + u"</font>", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+								screen.setTableText(szTable, 1, iRow, u"<font=3b>" + str(gc.getTeam(iLoopTeam).getTotalVictoryScore()) + u"</font>", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+
+				# civ picker dropdown
+					if (CyGame().isDebugMode()):
+						self.szDropdownName = self.DEBUG_DROPDOWN_ID
+						screen.addDropDownBoxGFC(self.szDropdownName, 22, 12, 300, WidgetTypes.WIDGET_GENERAL, -1, -1, FontTypes.GAME_FONT)
+						for j in range(gc.getMAX_PLAYERS()):
+							if (gc.getPlayer(j).isAlive()):
+								screen.addPullDownString(self.szDropdownName, gc.getPlayer(j).getName(), j, j, False )
+
+					return
+
+	# End of check to see if Total Victory is enabled
+#End VCM
 		# Start filling in the table below
 		screen.addPanel(self.getNextWidgetName(), "", "", False, False, self.X_AREA-10, self.Y_AREA-15, self.W_AREA+20, self.H_AREA+30, PanelStyles.PANEL_STYLE_BLUE50)
 		szTable = self.getNextWidgetName()
@@ -1059,10 +1376,11 @@ class CvVictoryScreen:
 						screen.setTableText(szTable, 3, iRow, (u"%d%%" % ourReligionPercent), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					else:
 						screen.setTableText(szTable, 2, iRow, activePlayer.getTeam().getName() + ":", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-						screen.setTableText(szTable, 3, iRow, u"No Holy City", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+						screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_VICTORY_RELIGION_NO_HOLY_CITY_CCV", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					if (iBestReligion != -1):
 						screen.setTableText(szTable, 4, iRow, gc.getReligionInfo(iBestReligion).getDescription() + ":", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-						screen.setTableText(szTable, 5, iRow, (u"%d%%" % religionPercent), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+						#RevolutionDCM religious victory bug fix
+						screen.setTableText(szTable, 5, iRow, (u"%d%%" % bestReligionPercent), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					bEntriesFound = True
 
 				if (victory.getTotalCultureRatio() > 0):
@@ -1178,7 +1496,7 @@ class CvVictoryScreen:
 									#check if spaceship
 									if (gc.getProjectInfo(i).isSpaceship()):
 										bSpaceshipFound = True
-								
+
 								# add AI space ship info
 								if (iBestProjectTeam != -1):
 									pTeam = gc.getTeam(iBestProjectTeam)
@@ -1217,7 +1535,7 @@ class CvVictoryScreen:
 							screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_BUILDING", (szNumber, gc.getProjectInfo(i).getTextKey())), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 							screen.setTableText(szTable, 2, iRow, activePlayer.getTeam().getName() + ":", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 							screen.setTableText(szTable, 3, iRow, str(activePlayer.getTeam().getProjectCount(i)), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-							
+
 							#check if spaceship
 							if (gc.getProjectInfo(i).isSpaceship()):
 								bSpaceshipFound = True
@@ -1228,12 +1546,12 @@ class CvVictoryScreen:
 
 							bEntriesFound = True
 # BUG Additions End
-						
+
 				#add spaceship button
 				if (bSpaceshipFound):
 					screen.setButtonGFC("SpaceShipButton" + str(iLoopVC), localText.getText("TXT_KEY_GLOBELAYER_STRATEGY_VIEW", ()), "", 0, 0, 15, 10, WidgetTypes.WIDGET_GENERAL, self.SPACESHIP_SCREEN_BUTTON, -1, ButtonStyles.BUTTON_STYLE_STANDARD )
 					screen.attachControlToTableCell("SpaceShipButton" + str(iLoopVC), szTable, iVictoryTitleRow, 1)
-					
+
 					victoryDelay = gc.getTeam(iActiveTeam).getVictoryCountdown(iLoopVC)
 					if((victoryDelay > 0) and (gc.getGame().getGameState() != GameStateTypes.GAMESTATE_EXTENDED)):
 						victoryDate = CyGameTextMgr().getTimeStr(gc.getGame().getGameTurn() + victoryDelay, False)
@@ -1241,7 +1559,7 @@ class CvVictoryScreen:
 						screen.setTableText(szTable, 3, iVictoryTitleRow, victoryDate, "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 						screen.setTableText(szTable, 4, iVictoryTitleRow, localText.getText("TXT_KEY_REPLAY_SCREEN_TURNS", ()) + ":", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 						screen.setTableText(szTable, 5, iVictoryTitleRow, str(victoryDelay), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-						
+
 				if (victory.isDiploVote()):
 					for (iVoteBuildingClass, iUNTeam, bUnknown) in aiVoteBuildingClass:
 						iRow = screen.appendTableRow(szTable)
@@ -1255,10 +1573,10 @@ class CvVictoryScreen:
 						else:
 							screen.setTableText(szTable, 2, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_NOT_BUILT", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 						bEntriesFound = True
-					
+
 				if (victory.getCityCulture() != CultureLevelTypes.NO_CULTURELEVEL and victory.getNumCultureCities() > 0):
 					ourBestCities = self.getListCultureCities(self.iActivePlayer, victory)[0:victory.getNumCultureCities()]
-					
+
 					iBestCulturePlayer = -1
 					bestCityCulture = 0
 # BUG - 3.19 Culture Threshold - start
@@ -1268,14 +1586,14 @@ class CvVictoryScreen:
 						if (gc.getPlayer(iLoopPlayer).isAlive() and not gc.getPlayer(iLoopPlayer).isMinorCiv() and not gc.getPlayer(iLoopPlayer).isBarbarian()):
 							if (iLoopPlayer != self.iActivePlayer and (activePlayer.getTeam().isHasMet(gc.getPlayer(iLoopPlayer).getTeam()) or gc.getGame().isDebugMode())):
 								theirBestCities = self.getListCultureCities(iLoopPlayer, victory)[0:victory.getNumCultureCities()]
-								
+
 								iTotalCulture = 0
 								for loopCity in theirBestCities:
 									if loopCity[0] >= maxCityCulture:
 										iTotalCulture += maxCityCulture
 									else:
 										iTotalCulture += loopCity[0]
-								
+
 								if (iTotalCulture >= bestCityCulture):
 									bestCityCulture = iTotalCulture
 									iBestCulturePlayer = iLoopPlayer
@@ -1284,7 +1602,7 @@ class CvVictoryScreen:
 						theirBestCities = self.getListCultureCities(iBestCulturePlayer, victory)[0:(victory.getNumCultureCities())]
 					else:
 						theirBestCities = []
-						
+
 					iRow = screen.appendTableRow(szTable)
 					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_CITY_CULTURE", (victory.getNumCultureCities(), gc.getCultureLevelInfo(victory.getCityCulture()).getTextKey())), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 
@@ -1329,7 +1647,7 @@ class CvVictoryScreen:
 						if (i < victory.getNumCultureCities()-1):
 							iRow = screen.appendTableRow(szTable)
 					bEntriesFound = True
-					
+
 				if (bEntriesFound):
 					screen.appendTableRow(szTable)
 					screen.appendTableRow(szTable)
@@ -1346,7 +1664,7 @@ class CvVictoryScreen:
 			for j in range(gc.getMAX_PLAYERS()):
 				if (gc.getPlayer(j).isAlive()):
 					screen.addPullDownString(self.szDropdownName, gc.getPlayer(j).getName(), j, j, False )
-		
+
 		self.drawTabs()
 
 # BUG Additions Start
@@ -1381,6 +1699,50 @@ class CvVictoryScreen:
 				listCultureCities.reverse()
 				return listCultureCities
 		return []
+
+# Sevo--VCM
+	def getListCultureCitiesTeam(self, iTeam):
+		found = 0
+		cityList = []
+
+		for iPlayer in range(gc.getMAX_PLAYERS()):
+			if (gc.getPlayer(iPlayer).getTeam() == iTeam):
+				player = PyPlayer(iPlayer)
+				if player.isAlive():
+					cityList.extend(player.getCityList())
+					found = 1
+
+		if (found == 1):
+			listCultureCities = len(cityList) * [(0, 0)]
+			i = 0
+
+			for city in cityList:
+				listCultureCities[i] = (city.getCulture(), city)
+				i += 1
+			listCultureCities.sort()
+			listCultureCities.reverse()
+			return listCultureCities
+
+		else:
+			return []
+
+
+	def getLegendaryCities(self, iTeam):
+		iLegendaryCities = 0
+		iPlayerCities = 0;
+
+		for iPlayer in range(gc.getMAX_PLAYERS()):
+			player = PyPlayer(iPlayer)
+			cityList = player.getCityList()
+			for city in cityList:
+				if (city.getCulture() > gc.getCultureLevelInfo(gc.getNumCultureLevelInfos()-1).getSpeedThreshold(gc.getGame().getGameSpeedType()) ):
+					iLegendaryCities += 1
+					if (gc.getPlayer(iPlayer).getTeam() == iTeam):
+						iPlayerCities += 1
+
+		return [iPlayerCities, iLegendaryCities]
+
+# END VCM
 
 # BUG Additions Start
 	def getVotesForWhichCandidate(self, iPlayer, iCand1, iCand2, iVote):
@@ -1619,3 +1981,40 @@ class CvVictoryScreen:
 
 	def update(self, fDelta):
 		return
+
+#Sevo--VCM (edited by Karadoc)
+	def getTeamWonderScore(self, teamID):
+
+		teamWonderScore = 0
+
+		for iLoopPlayer in range(gc.getMAX_CIV_PLAYERS()):
+			if (gc.getPlayer(iLoopPlayer).isAlive() and not gc.getPlayer(iLoopPlayer).isMinorCiv() and not gc.getPlayer(iLoopPlayer).isBarbarian()):
+				if (gc.getPlayer(iLoopPlayer).getTeam() == teamID):
+					teamWonderScore += gc.getGame().countWorldWonders(true, iLoopPlayer)
+
+		return teamWonderScore
+
+	def getTeamTotalCulture(self, iTeam):
+
+		teamCulture = 0
+
+		for iLoopPlayer in range(gc.getMAX_CIV_PLAYERS()):
+			if (gc.getPlayer(iLoopPlayer).isAlive() and not gc.getPlayer(iLoopPlayer).isMinorCiv() and not gc.getPlayer(iLoopPlayer).isBarbarian()):
+				if (gc.getPlayer(iLoopPlayer).getTeam() == teamID):
+					teamCulture += gc.getPlayer(iLoopPlayer).countTotalCulture()
+
+		return teamCulture
+
+	def teamLaunchedShip(self, teamID):
+		# for iLoopPlayer in range(gc.getMAX_CIV_PLAYERS()):
+			# if (gc.getPlayer(iLoopPlayer).isAlive() and not gc.getPlayer(iLoopPlayer).isMinorCiv() and not gc.getPlayer(iLoopPlayer).isBarbarian()):
+				# if (gc.getPlayer(iLoopPlayer).getTeam() == teamID):
+					# if (gc.getGame().getStarshipLaunched(iLoopPlayer)):
+						# return 1
+		# return -1
+		# Karadoc version
+		return gc.getTeam(teamID).hasSpaceshipArrived()
+		# end
+
+
+# END VCM

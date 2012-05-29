@@ -67,6 +67,7 @@ public:
 	void signDefensivePact(TeamTypes eTeam);																			// Exposed to Python
 	bool canSignDefensivePact(TeamTypes eTeam);
 
+	int getTotalVictoryScore() const; // Karadoc (Mastery Victory)
 	int getAssets() const;																															// Exposed to Python
 	int getPower(bool bIncludeVassals) const;																																// Exposed to Python
 	int getDefensivePower(TeamTypes eExcludeTeam = NO_TEAM) const;	// Exposed to Python

@@ -24,6 +24,7 @@ void CyTeamPythonInterface()
 		.def("signOpenBorders", &CyTeam::signOpenBorders, "void (int /*TeamTypes*/ eTeam)")
 		.def("signDefensivePact", &CyTeam::signDefensivePact, "void (int /*TeamTypes*/ eTeam)")
 
+		.def("getTotalVictoryScore", &CyTeam::getTotalVictoryScore, "int ()") // Karadoc
 		.def("getAssets", &CyTeam::getAssets, "int ()")
 		.def("getPower", &CyTeam::getPower, "int (bool bIncludeVassals)")
 		.def("getDefensivePower", &CyTeam::getDefensivePower, "int ()")

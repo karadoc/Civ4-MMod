@@ -88,6 +88,7 @@ void CyInfoPythonInterface2()
 		.def("isConquest", &CvVictoryInfo::isConquest, "bool ()")
 		.def("isDiploVote", &CvVictoryInfo::isDiploVote, "bool ()")
 		.def("isPermanent", &CvVictoryInfo::isPermanent, "bool ()")
+		.def("isTotalVictory", &CvVictoryInfo::isTotalVictory, "bool ()") // Karadoc, mastery victory
 
 		.def("getMovie", &CvVictoryInfo::getMovie, "string ()")
 		;
