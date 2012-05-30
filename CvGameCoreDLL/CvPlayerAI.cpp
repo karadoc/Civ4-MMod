@@ -18722,7 +18722,16 @@ int CvPlayerAI::AI_calculateCultureVictoryStage() const
 		}
 	}
 
-	if( iLegendaryCount >= iVictoryCities )
+	// K-Mod. check for Mastery victory
+	bool bMasteryVictory = false;
+	for (VictoryTypes i = (VictoryTypes)0; !bMasteryVictory && i < GC.getNumVictoryInfos(); i=(VictoryTypes)(i+1))
+	{
+		if (GC.getGameINLINE().isVictoryValid(i) && GC.getVictoryInfo(i).isTotalVictory())
+			bMasteryVictory = true;
+	}
+	// K-Mod end
+
+	if (iLegendaryCount >= iVictoryCities && (!bMasteryVictory || GC.getGameINLINE().getGameState() == GAMESTATE_EXTENDED))
 	{
 		// Already won, keep playing culture heavy but do some tech to keep pace if human wants to keep playing
 		return 3;
@@ -18826,11 +18835,16 @@ int CvPlayerAI::AI_calculateCultureVictoryStage() const
 	}
 
 	int iWinningCountdown = INT_MAX;
-	if ((int)countdownList.size() >= iVictoryCities && iVictoryCities > 0)
+	if (bMasteryVictory)
+	{
+		std::sort(countdownList.begin(), countdownList.end());
+	}
+	else if ((int)countdownList.size() >= iVictoryCities && iVictoryCities > 0)
 	{
 		std::partial_sort(countdownList.begin(), countdownList.begin() + iVictoryCities, countdownList.end());
 		iWinningCountdown = countdownList[iVictoryCities-1];
 	}
+
     if (iCloseToLegendaryCount >= iVictoryCities || getCurrentEra() >= (GC.getNumEraInfos() - (2 + AI_getStrategyRand(1) % 2)))
     {
 		bool bAt3 = false;
@@ -18858,9 +18872,30 @@ int CvPlayerAI::AI_calculateCultureVictoryStage() const
 			{
 				return 4;
 			}*/
-			// K-Mod. Do full culture if our winning countdown is below the countdown target.
-			int iCountdownTarget = 180;
+			// K-Mod.
+			if (bMasteryVictory)
 			{
+				// work out how many legendary cities we should aim for. (please excuse the arbitrary numbers used here)
+				int iTurnsRemaining = GC.getGameINLINE().getEstimateEndTurn() - GC.getGameINLINE().getGameTurn();
+				if (iTurnsRemaining > 0 && iTurnsRemaining <= GC.getGameINLINE().getMaxTurns()/3)
+				{
+					int iTarget = 0;
+					for (size_t i = 0; i < countdownList.size(); i++)
+					{
+						if (countdownList[i] < iTurnsRemaining - 10 && (i < iVictoryCities + iLegendaryCount || countdownList[i] - countdownList[iTarget] < 15))
+						{
+							iTarget = i;
+						}
+					}
+					if (iTurnsRemaining < countdownList[iTarget]+12)
+						return 4;
+				}
+			}
+			else
+			{
+				// Do full culture if our winning countdown is below the countdown target.
+				int iCountdownTarget = 180;
+
 				// The countdown target depends on what other victory strategies we have in mind. The target is 180 turns * 100 / iDenominator.
 				// For example, if we're already at war, and going for conquest 4, the target countdown is then ~ 180 * 100 / 470 == 38 turns.
 				// Note: originally culture 4 was blocked completely by stage 4 of any other victory strategy. But this is no longer the case.
@@ -18886,10 +18921,11 @@ int CvPlayerAI::AI_calculateCultureVictoryStage() const
 
 				iCountdownTarget *= GC.getGameSpeedInfo(GC.getGame().getGameSpeedType()).getVictoryDelayPercent();
 				iCountdownTarget /= std::max(1, iDemoninator);
-			}
-			if (iWinningCountdown < iCountdownTarget)
-			{
-				return 4;
+
+				if (iWinningCountdown < iCountdownTarget)
+				{
+					return 4;
+				}
 			}
 			// K-Mod end
 
