@@ -31,24 +31,10 @@
 #include "CvDLLEngineIFaceBase.h"
 #include "CvDLLFAStarIFaceBase.h"
 #include "CvDLLPythonIFaceBase.h"
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      05/09/09                                jdog5000      */
-/*                                                                                              */
-/* General AI                                                                                   */
-/************************************************************************************************/
+//bbai
 #include "CvDLLFlagEntityIFaceBase.h"
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      10/02/09                                jdog5000      */
-/*                                                                                              */
-/* AI logging                                                                                   */
-/************************************************************************************************/
 #include "BetterBTSAI.h"
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
+//bbai end
 
 // Public Functions...
 
@@ -1024,25 +1010,6 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 		AI_reset(false);
 	}
 }
-
-/************************************************************************************************/
-/* CHANGE_PLAYER                          08/17/08                                jdog5000      */
-/*                                                                                              */
-/*                                                                                              */
-/************************************************************************************************/
-//
-// for logging
-//
-void CvPlayer::logMsg(char* format, ... )
-{
-	static char buf[2048];
-	_vsnprintf( buf, 2048-4, format, (char*)(&format+1) );
-	gDLL->logMsg("sdkDbg.log", buf);
-}
-
-/************************************************************************************************/
-/* CHANGE_PLAYER                           END                                                  */
-/************************************************************************************************/
 
 /************************************************************************************************/
 /* CHANGE_PLAYER                          08/17/08                                jdog5000      */
@@ -3106,6 +3073,7 @@ bool CvPlayer::isBarbarian() const
 	return (getID() == BARBARIAN_PLAYER);
 }
 
+static bool concealUnknownCivs() { return !gDLL->IsPitbossHost() && gDLL->getChtLvl() == 0 && !gDLL->GetWorldBuilderMode(); } // K-Mod
 
 const wchar* CvPlayer::getName(uint uiForm) const
 {
@@ -3113,7 +3081,7 @@ const wchar* CvPlayer::getName(uint uiForm) const
 	{
 		//return GC.getLeaderHeadInfo(getLeaderType()).getDescription(uiForm);
 		// K-Mod. Conceal the leader name of unmet players.
-		if (gDLL->getChtLvl() > 0 || GET_TEAM(GC.getGameINLINE().getActiveTeam()).isHasSeen(getTeam()))
+		if (!concealUnknownCivs() || GET_TEAM(GC.getGameINLINE().getActiveTeam()).isHasSeen(getTeam()))
 			return GC.getLeaderHeadInfo(getLeaderType()).getDescription(uiForm);
 		else
 		{
@@ -3145,7 +3113,7 @@ const wchar* CvPlayer::getNameKey() const
 const wchar* CvPlayer::getCivilizationDescription(uint uiForm) const
 {
 	// K-Mod. Conceal the civilization of unmet players.
-	if (gDLL->getChtLvl() == 0 && !GET_TEAM(GC.getGameINLINE().getActiveTeam()).isHasSeen(getTeam()))
+	if (concealUnknownCivs() && !GET_TEAM(GC.getGameINLINE().getActiveTeam()).isHasSeen(getTeam()))
 	{
 		static CvWString string = gDLL->getText("TXT_KEY_TOPCIVS_UNKNOWN"); // hack to stop the string from going out of scope.
 		return string;
@@ -3179,7 +3147,7 @@ const wchar* CvPlayer::getCivilizationDescriptionKey() const
 const wchar* CvPlayer::getCivilizationShortDescription(uint uiForm) const
 {
 	// K-Mod. Conceal the civilization of unmet players.
-	if (!GET_TEAM(GC.getGameINLINE().getActiveTeam()).isHasSeen(getTeam()))
+	if (concealUnknownCivs() && !GET_TEAM(GC.getGameINLINE().getActiveTeam()).isHasSeen(getTeam()))
 	{
 		static CvWString string = gDLL->getText("TXT_KEY_UNKNOWN"); // hack to stop the string from going out of scope.
 		return string;
@@ -8596,7 +8564,7 @@ int CvPlayer::unitsGoldenAgeCapable() const
 	return iCount;
 }
 
-// Rewriten for K-Mod. (Essentially the functionality, but far more efficient. The only functionality difference is that unit class is now used rather unit type.)
+// Rewriten for K-Mod. (The only functionality difference is that unit class is now used rather unit type. But this version is far more efficient.)
 int CvPlayer::unitsGoldenAgeReady() const
 {
 	PROFILE_FUNC();
@@ -11716,7 +11684,7 @@ PlayerColorTypes CvPlayer::getPlayerColor() const
 {
 	//return GC.getInitCore().getColor(getID());
 	// K-Mod. Conceal the player colour of unmet players.
-	if (gDLL->getChtLvl() > 0 || GET_TEAM(GC.getGameINLINE().getActiveTeam()).isHasSeen(getTeam()))
+	if (!concealUnknownCivs() || GET_TEAM(GC.getGameINLINE().getActiveTeam()).isHasSeen(getTeam()))
 		return GC.getInitCore().getColor(getID());
 	else
 		return GC.getInitCore().getColor(BARBARIAN_PLAYER);
@@ -13233,7 +13201,7 @@ void CvPlayer::updateGroupCycle(CvSelectionGroup* pGroup)
 		else if (isCycleGroup(pNextGroup) && pNextGroup->canAllMove())
 		{
 			//int iCost = groupCycleDistance(pPreviousGroup, pGroup) + groupCycleDistance(pGroup, pNextGroup) - groupCycleDistance(pPreviousGroup, pNextGroup);
-			int iCost = groupCycleDistance(pGroup, pNextGroup) + (pPreviousGroup ? groupCycleDistance(pPreviousGroup, pGroup) - groupCycleDistance(pPreviousGroup, pNextGroup) : 1);
+			int iCost = groupCycleDistance(pGroup, pNextGroup) + (pPreviousGroup ? groupCycleDistance(pPreviousGroup, pGroup) - groupCycleDistance(pPreviousGroup, pNextGroup) : 3);
 			if (iCost < iBestCost)
 			{
 				iBestCost = iCost;
@@ -13250,7 +13218,7 @@ void CvPlayer::updateGroupCycle(CvSelectionGroup* pGroup)
 	if (pPreviousGroup)
 	{
 		FAssert(isCycleGroup(pPreviousGroup) && pPreviousGroup->canAllMove());
-		int iCost = groupCycleDistance(pPreviousGroup, pGroup) + 1; // cost for being at the end of the list.
+		int iCost = groupCycleDistance(pPreviousGroup, pGroup) + 3; // cost for being at the end of the list.
 		if (iCost < iBestCost)
 		{
 			pBestSelectionGroupNode = 0;
@@ -21309,7 +21277,11 @@ void CvPlayer::launch(VictoryTypes eVictory)
 	kTeam.finalizeProjectArtTypes();
 	kTeam.setVictoryCountdown(eVictory, kTeam.getVictoryDelay(eVictory));
 
-	gDLL->getEngineIFace()->AddLaunch(getID());
+	//gDLL->getEngineIFace()->AddLaunch(getID());
+	// K-Mod. The spaceship launch causes pitboss to crash
+	if (!gDLL->IsPitbossHost())
+		gDLL->getEngineIFace()->AddLaunch(getID());
+	// K-Mod end.
 
 	kTeam.setCanLaunch(eVictory, false);
 
@@ -22898,7 +22870,7 @@ void CvPlayer::getUnitLayerColors(GlobeLayerUnitOptionTypes eOption, std::vector
 						CvUnit* pUnit = ::getUnit(pUnitNode->m_data);
 						pUnitNode = pLoopPlot->nextUnitNode(pUnitNode);
 
-						if (pUnit->getVisualOwner() == iPlayer && !pUnit->isInvisible(getTeam(), GC.getGameINLINE().isDebugMode()))
+						if (pUnit->getVisualOwner() == iPlayer && !pUnit->isInvisible(getTeam(), true))
 						{
 							// now, is this unit of interest?
 							bool bIsMilitary = pUnit->baseCombatStr() > 0;

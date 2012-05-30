@@ -2726,7 +2726,7 @@ int CvGame::getAdjustedPopulationPercent(VictoryTypes eVictory) const
 }
 
 
-int CvGame::getProductionPerPopulation(HurryTypes eHurry)
+int CvGame::getProductionPerPopulation(HurryTypes eHurry) const
 {
 	if (NO_HURRY == eHurry)
 	{
@@ -4802,7 +4802,8 @@ void CvGame::setActivePlayer(PlayerTypes eNewValue, bool bForceHotSeat)
 		int iActiveNetId = ((NO_PLAYER != eOldActivePlayer) ? GET_PLAYER(eOldActivePlayer).getNetID() : -1);
 		GC.getInitCore().setActivePlayer(eNewValue);
 
-		if (GET_PLAYER(eNewValue).isHuman() && (isHotSeat() || isPbem() || bForceHotSeat))
+		//if (GET_PLAYER(eNewValue).isHuman() && (isHotSeat() || isPbem() || bForceHotSeat))
+		if (eNewValue != NO_PLAYER && GET_PLAYER(eNewValue).isHuman() && (isHotSeat() || isPbem() || bForceHotSeat)) // K-Mod
 		{
 			gDLL->getPassword(eNewValue);
 			setHotPbemBetweenTurns(false);
@@ -8958,6 +8959,11 @@ void CvGame::changeHumanPlayer( PlayerTypes eNewHuman )
 
 bool CvGame::isCompetingCorporation(CorporationTypes eCorporation1, CorporationTypes eCorporation2) const
 {
+	// K-Mod
+	if (eCorporation1 == eCorporation2)
+		return false;
+	// K-Mod end
+
 	bool bShareResources = false;
 
 	for (int i = 0; i < GC.getNUM_CORPORATION_PREREQ_BONUSES() && !bShareResources; ++i)
@@ -9429,7 +9435,8 @@ VoteSelectionData* CvGame::addVoteSelection(VoteSourceTypes eVoteSource)
 							kData.szText += gDLL->getText("TXT_KEY_POPUP_PASSED");
 						}
 
-						if (canDoResolution(eVoteSource, kData))
+						//if (canDoResolution(eVoteSource, kData))
+						if (isValidVoteSelection(eVoteSource, kData)) // K-Mod (zomg!)
 						{
 							pData->aVoteOptions.push_back(kData);
 						}
