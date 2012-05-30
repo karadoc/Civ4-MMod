@@ -7764,14 +7764,13 @@ void CvGame::testVictory()
 	}
 
 	// Karadoc: mastery condition. (based on code by Sevo)
-	if (getMaxTurns() != 0 && getElapsedGameTurns() >= getMaxTurns())
+	for (int iJ = 0; iJ < GC.getNumVictoryInfos(); iJ++)
 	{
-		for (int iJ = 0; iJ < GC.getNumVictoryInfos(); iJ++)
+		if (GC.getVictoryInfo((VictoryTypes)iJ).isTotalVictory() && isVictoryValid((VictoryTypes)iJ))
 		{
-			if (GC.getVictoryInfo((VictoryTypes)iJ).isTotalVictory() && isVictoryValid((VictoryTypes)iJ))
+			aaiWinners.clear(); // sorry, folks, no winners today by usual means, only Mastery Victory is achievable;)
+			if (getMaxTurns() != 0 && getElapsedGameTurns() >= getMaxTurns())
 			{
-				aaiWinners.clear(); // sorry, folks, no winners today by usual means, only Mastery Victory is achievable;)
-
 				int topScore = 0;
 				// End of game and Total Victory is selected.  Calculate the topscore, beyatch.
 				for (int iI = 0; iI < MAX_CIV_TEAMS; iI++)
@@ -7792,8 +7791,8 @@ void CvGame::testVictory()
 						}
 					}
 				}
-				break;
 			}
+			break;
 		}
 	}
 	// Karadoc end

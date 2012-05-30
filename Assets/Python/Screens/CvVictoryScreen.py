@@ -985,7 +985,8 @@ class CvVictoryScreen:
 #################################################################################################
 # VCM START
 	# Get Best Team
-		iBestTeam = gc.getPlayer(0).getTeam() #The first turn of the game, everyone's score starts at 0, so there is no best team.
+		#iBestTeam = gc.getPlayer(0).getTeam() #The first turn of the game, everyone's score starts at 0, so there is no best team.
+		iBestTeam = -1 # K-Mod. (isn't this better?)
 		#The human player is a good approx though.
 		iBestTeamScore = 0
 		iTVScore = 0
@@ -995,6 +996,8 @@ class CvVictoryScreen:
 				if (iTVScore > iBestTeamScore):
 					iBestTeamScore = iTVScore
 					iBestTeam = gc.getPlayer(iLoopPlayer).getTeam()
+
+		bHasMetBest = iBestTeam != -1 and gc.getTeam(iActiveTeam).isHasMet(iBestTeam) # K-Mod
 
 
 	# Power History
@@ -1040,7 +1043,8 @@ class CvVictoryScreen:
 						szVictoryType += "    (" + localText.getText("TXT_KEY_MISC_TURNS_LEFT", (gc.getGame().getMaxTurns() - gc.getGame().getElapsedGameTurns(), )) + ")"
 						screen.setTableText(szTable, 0, iNumRows - 1, szVictoryType, "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 						screen.setTableText(szTable, 1, iNumRows - 1, u"<font=4b>" + activePlayer.getName(), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_CENTER_JUSTIFY)
-						if (gc.getTeam(iBestTeam).hasMetHuman()):
+						#if (gc.getTeam(iBestTeam).hasMetHuman()):
+						if bHasMetBest: # K-Mod
 							screen.setTableText(szTable, 3, iNumRows - 1, u"<font=4b>" + gc.getTeam(iBestTeam).getName(), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 
 					elif ((gc.getGame().getMaxTurns()/6) > gc.getGame().getElapsedGameTurns()):
@@ -1067,7 +1071,8 @@ class CvVictoryScreen:
 					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_WORLD_POP", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					screen.setTableText(szTable, 1, iRow, (u"%i%%" % popPercent), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					screen.setTableText(szTable, 2, iRow, (u"%i" % popPercent), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-					if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+					#if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+					if bHasMetBest: # K-Mod
 						screen.setTableText(szTable, 3, iRow, (u"%i%%" % (gc.getTeam(iBestTeam).getTotalPopulation() * 100 / totalPop)), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					else:
 						screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_UNKNOWN",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
@@ -1077,7 +1082,8 @@ class CvVictoryScreen:
 					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_WORLD_LAND", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					screen.setTableText(szTable, 1, iRow, (u"%i%%" % TVLand), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					screen.setTableText(szTable, 2, iRow, (u"%i" % TVLand), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-					if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+					#if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+					if bHasMetBest: # K-Mod
 						screen.setTableText(szTable, 3, iRow, (u"%i%%" % (gc.getTeam(iBestTeam).getTotalLand() * 100 / totalLand)), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					else:
 						screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_UNKNOWN",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
@@ -1086,7 +1092,8 @@ class CvVictoryScreen:
 					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_CONCEPT_CULTURE", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					screen.setTableText(szTable, 1, iRow, u"%i%%" %(ourCulture * 100/worldCulture), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					screen.setTableText(szTable, 2, iRow, u"%i" %(ourCulture * 100/worldCulture), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-					if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+					#if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+					if bHasMetBest: # K-Mod
 						screen.setTableText(szTable, 3, iRow, u"%i%%" %(gc.getTeam(iBestTeam).countTotalCulture() * 100 / worldCulture), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					else:
 						screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_UNKNOWN",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
@@ -1095,7 +1102,8 @@ class CvVictoryScreen:
 					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_POWER", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					screen.setTableText(szTable, 1, iRow, u"%i" %(ourPower), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					screen.setTableText(szTable, 2, iRow, u"%i" %(ourPower * 100/worldPower), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-					if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+					#if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+					if bHasMetBest: # K-Mod
 						screen.setTableText(szTable, 3, iRow, u"%i" %(bestPower), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					else:
 						screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_UNKNOWN",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
@@ -1116,7 +1124,8 @@ class CvVictoryScreen:
 					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_CONCEPT_WONDERS", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					screen.setTableText(szTable, 1, iRow, u"%i  (%i " %(iTeamWonderScore, iTotalWorldWondersBuilt) + localText.getText("TXT_KEY_OF_VCM", ()) + " %i " %(iTotalWorldWondersPossible)+ localText.getText("TXT_KEY_BUILT_VCM", ()) + ")", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					screen.setTableText(szTable, 2, iRow, u"%i" %(iTeamWonderScore * 100 /iTotalWorldWondersPossible), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-					if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+					#if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+					if bHasMetBest: # K-Mod
 						screen.setTableText(szTable, 3, iRow, u"%i" %(iRivalWonderScore), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					else:
 						screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_UNKNOWN",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
@@ -1144,7 +1153,8 @@ class CvVictoryScreen:
 						screen.setTableText(szTable, 1, iRow, localText.getText("TXT_KEY_VICTORY_RELIGION_NO_HOLY_CITY_CCV",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 
 					iReligionFound = 0;
-					if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+					#if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+					if bHasMetBest: # K-Mod
 						for iLoopReligion in range(gc.getNumReligionInfos()):
 							if (gc.getTeam(iBestTeam).hasHolyCity(iLoopReligion)):
 								iReligionFound = 1;
@@ -1180,7 +1190,8 @@ class CvVictoryScreen:
 						if ( iPlayerLegendaryCities >= i+1 ):
 							screen.setTableText(szTable, 2, iRow, u"%s" %(30), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 
-					if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+					#if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+					if bHasMetBest: # K-Mod
 						for i in range(len(theirBestCities)):
 							iRefRow += 1
 							if (iRefRow > iRow):
@@ -1196,12 +1207,12 @@ class CvVictoryScreen:
 					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_CONCEPT_SPACESHIP", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 
 					if (iBestTeam != -1):
-						iRivalLaunched = self.teamLaunchedShip(iBestTeam)
+						bRivalLaunched = self.teamLaunchedShip(iBestTeam)
 
 					iNeedParts = 0
 
 
-					if (self.teamLaunchedShip(activePlayer.getTeam().getID()) == 1):
+					if self.teamLaunchedShip(activePlayer.getTeam().getID()):
 						screen.setTableText(szTable, 1, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_LAUNCHED", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 						screen.setTableText(szTable, 2, iRow, u"%i" %(100), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					else:
@@ -1209,10 +1220,14 @@ class CvVictoryScreen:
 						if (activePlayer.getTeam().getProjectCount(gc.getInfoTypeForString("PROJECT_APOLLO_PROGRAM")) > 0 ):
 							iNeedParts = 1
 
-					if ((iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()) and (iRivalLaunched == 1)):
-						screen.setTableText(szTable, 3, iRow, u"%s" %(localText.getText("TXT_KEY_VICTORY_SCREEN_LAUNCHED", ())), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-					elif (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
-						screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_NOTLAUNCHED", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					#if ((iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()) and (iRivalLaunched == 1)):
+					# K-Mod (changed stuff)
+					if bHasMetBest:
+						if bRivalLaunched:
+							screen.setTableText(szTable, 3, iRow, u"%s" %(localText.getText("TXT_KEY_VICTORY_SCREEN_LAUNCHED", ())), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+						else:
+							screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_NOTLAUNCHED", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					# K-Mod end
 
 					#add spaceship button
 					iSpaceshipButtonRow = screen.getTableNumRows(szTable)
@@ -1231,9 +1246,10 @@ class CvVictoryScreen:
                                                                                 else:
                                                                                         screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_BUILDING", (gc.getProjectInfo(i).getVictoryThreshold(iL), gc.getProjectInfo(i).getTextKey())), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_RIGHT_JUSTIFY)
 
-										if (self.teamLaunchedShip(activePlayer.getTeam().getID()) != 1):
+										if not self.teamLaunchedShip(activePlayer.getTeam().getID()):
 											screen.setTableText(szTable, 1, iRow, str(activePlayer.getTeam().getProjectCount(i)), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-										if ((iBestTeam != -1) and gc.getTeam(iBestTeam).hasMetHuman() and self.teamLaunchedShip(gc.getTeam(iBestTeam).getID()) != 1):
+										#if ((iBestTeam != -1) and gc.getTeam(iBestTeam).hasMetHuman() and self.teamLaunchedShip(gc.getTeam(iBestTeam).getID()) != 1):
+										if bHasMetBest and self.teamLaunchedShip(gc.getTeam(iBestTeam).getID()) : # K-Mod
                                                                                         screen.setTableText(szTable, 3, iRow, str(gc.getTeam(iBestTeam).getProjectCount(i)), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 
 
@@ -1246,7 +1262,8 @@ class CvVictoryScreen:
 					screen.setTableText(szTable, 2, iRow, u"<font=4b>%i</font>" %(activePlayer.getTeam().getTotalVictoryScore()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 
 
-					if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+					#if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
+					if bHasMetBest: # K-Mod
 						screen.setTableText(szTable, 3, iRow, u"<font=4b>%i</font>" %(gc.getTeam(iBestTeam).getTotalVictoryScore()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 					iRow = screen.appendTableRow(szTable)
 					iRow = screen.appendTableRow(szTable)
@@ -2013,7 +2030,14 @@ class CvVictoryScreen:
 						# return 1
 		# return -1
 		# Karadoc version
-		return gc.getTeam(teamID).hasSpaceshipArrived()
+		#return gc.getTeam(teamID).hasSpaceshipArrived()
+		for iProject in range(gc.getNumProjectInfos()):
+			if gc.getProjectInfo(iProject).isSpaceship():
+				eVictory = gc.getProjectInfo(iProject).getVictoryPrereq()
+				if eVictory >= 0:
+					return gc.getTeam(teamID).getVictoryDelay(eVictory) >= 0
+
+		return False
 		# end
 
 
