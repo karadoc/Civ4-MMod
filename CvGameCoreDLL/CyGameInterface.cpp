@@ -281,6 +281,7 @@ void CyGamePythonInterface()
 
 		.def("isEventActive", &CyGame::isEventActive, "bool (int /*EventTriggerTypes*/ eTrigger)")
 		.def("doControl", &CyGame::doControl, "void (int /*ControlTypes*/ iControl)")
+		.def("getSpaceVictory", &CyGame::getSpaceVictory, "VictoryTypes ()") // K-Mod
 		;
 
 	python::class_<CyDeal>("CyDeal")

@@ -291,6 +291,7 @@ public:
 
 	bool isEventActive(int /*EventTriggerTypes*/ eTrigger);
 	void doControl(int iControl);
+	int /*VictoryTypes*/ getSpaceVictory() { return m_pGame ? m_pGame->getSpaceVictory() : -1; } // K-Mod
 
 protected:
 	CvGame* m_pGame;

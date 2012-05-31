@@ -85,7 +85,7 @@ public:
 	DllExport void handleAction(int iAction);
 
 	bool canDoControl(ControlTypes eControl) const;
-	void doControl(ControlTypes eControl);
+	void doControl(ControlTypes eControl); // Exposed to Python
 
 	DllExport void implementDeal(PlayerTypes eWho, PlayerTypes eOtherWho, CLinkList<TradeData>* pOurList, CLinkList<TradeData>* pTheirList, bool bForce = false);
 	void verifyDeals();
@@ -539,7 +539,7 @@ public:
 	DllExport CvPlot* getNewHighlightPlot() const;
 	DllExport ColorTypes getPlotHighlightColor(CvPlot* pPlot) const;
 	DllExport void cheatSpaceship() const;
-	DllExport VictoryTypes getSpaceVictory() const;
+	DllExport VictoryTypes getSpaceVictory() const; // Exposed to Python (exposed by K-Mod)
 	DllExport void nextActivePlayer(bool bForward);
 
 	DllExport DomainTypes getUnitDomain(UnitTypes eUnit) const;
