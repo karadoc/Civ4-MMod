@@ -1056,6 +1056,7 @@ class CvVictoryScreen:
 
 
 					#screen.appendTableRow(szTable)
+					iRow = screen.appendTableRow(szTable) # K-Mod (blank line)
 					iRow = screen.appendTableRow(szTable)
 
 				# Headings
@@ -1131,9 +1132,11 @@ class CvVictoryScreen:
 						screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_UNKNOWN",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 
 				# Religion
+					iRow = screen.appendTableRow(szTable) # K-Mod (blank line)
 					iRow = screen.appendTableRow(szTable)
 					iRefRow = iRow
-					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_CONCEPT_RELIGION",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					#screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_CONCEPT_RELIGION",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 0, iRow, u"<font=2b>" + localText.getText("TXT_KEY_CONCEPT_RELIGION",()) + u"</font>", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY) # K-Mod
 
 					if (iOurReligion != -1):
 						for iLoopReligion in range(gc.getNumReligionInfos()):
@@ -1181,14 +1184,24 @@ class CvVictoryScreen:
 
 					iRow = screen.appendTableRow(szTable)
 					iRefRow = iRow
-					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_CITIES", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					#screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_CITIES", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					screen.setTableText(szTable, 0, iRow, u"<font=2b>" + localText.getText("TXT_KEY_VICTORY_SCREEN_CITIES", ()) + u"</font>", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY) # K-Mod
 
 					for i in range(len(ourBestCities)):
 						iRow = screen.appendTableRow(szTable)
-						screen.setTableText(szTable, 0, iRow, ourBestCities[i][1].getName() + ":", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_RIGHT_JUSTIFY)
+						# screen.setTableText(szTable, 0, iRow, ourBestCities[i][1].getName() + ":", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_RIGHT_JUSTIFY)
+						# screen.setTableText(szTable, 1, iRow, str(ourBestCities[i][0]), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+						# if ( iPlayerLegendaryCities >= i+1 ):
+							# screen.setTableText(szTable, 2, iRow, u"%s" %(30), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+						# K-Mod
+						sName = ourBestCities[i][1].getName()
+						if iPlayerLegendaryCities >= i+1:
+							sName = u"<font=2b>" + sName + u"</font>"
+							screen.setTableText(szTable, 2, iRow, u"%i" %(30), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+						screen.setTableText(szTable, 0, iRow, sName + ":", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_RIGHT_JUSTIFY)
 						screen.setTableText(szTable, 1, iRow, str(ourBestCities[i][0]), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-						if ( iPlayerLegendaryCities >= i+1 ):
-							screen.setTableText(szTable, 2, iRow, u"%s" %(30), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+						# K-Mod end
 
 					#if (iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()):
 					if bHasMetBest: # K-Mod
@@ -1196,64 +1209,69 @@ class CvVictoryScreen:
 							iRefRow += 1
 							if (iRefRow > iRow):
 								iRow = screen.appendTableRow(szTable)
-							screen.setTableText(szTable, 3, iRefRow, u"%s %i" %(theirBestCities[i][1].getName() + ":", theirBestCities[i][0]), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-					screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_UNKNOWN",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+							#screen.setTableText(szTable, 3, iRefRow, u"%s %i" %(theirBestCities[i][1].getName() + ":", theirBestCities[i][0]), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+							# K-Mod
+							sString = theirBestCities[i][1].getName()
+							if iBestTeamLegendaryCities >= i+1:
+								sString = u"<font=2b>%s</font><font=1>: %i</font>"
+							else:
+								sString = u"%s: %i"
+							screen.setTableText(szTable, 3, iRefRow, sString %(theirBestCities[i][1].getName(), theirBestCities[i][0]), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+							# K-Mod end
+					# screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_UNKNOWN",()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY) # ??? (disabled by K-Mod)
 
 
 
 				# Starship Launch Data
-					iRow = screen.appendTableRow(szTable)
-					iRow = screen.appendTableRow(szTable)
-					screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_CONCEPT_SPACESHIP", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+					# K-Mod. The original code for this part of the Mastery Victory screen didn't work correctly; so I'm rewritten it.
+					eSpaceVictory = gc.getGame().getSpaceVictory()
+					if eSpaceVictory != -1 and (self.isApolloBuiltbyTeam(activePlayer.getTeam()) or self.isApolloBuiltbyTeam(gc.getTeam(iBestTeam))):
+						iRow = screen.appendTableRow(szTable)
+						iRow = screen.appendTableRow(szTable)
+						screen.setTableText(szTable, 0, iRow, u"<font=2b>" + localText.getText("TXT_KEY_CONCEPT_SPACESHIP", ()) + u"</font>", "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 
-					if (iBestTeam != -1):
-						bRivalLaunched = self.teamLaunchedShip(iBestTeam)
+						iVictoryTitleRow = iRow
+						iRow = screen.appendTableRow(szTable)
 
-					iNeedParts = 0
+						if self.teamLaunchedShip(activePlayer.getTeam().getID()):
+							if activePlayer.getTeam().hasSpaceshipArrived():
+								#screen.setTableText(szTable, 1, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_LAUNCHED", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+								screen.setTableText(szTable, 2, iRow, u"<font=1b>%i</font>" %(100), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+							else:
+								victoryCountdown = gc.getTeam(iActiveTeam).getVictoryCountdown(eSpaceVictory)
+								victoryDate = CyGameTextMgr().getTimeStr(gc.getGame().getGameTurn() + victoryCountdown, False)
+								screen.setTableText(szTable, 2, iVictoryTitleRow, localText.getText("TXT_KEY_SPACE_SHIP_SCREEN_ARRIVAL", ()) + ": " + victoryDate, "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+								screen.setTableText(szTable, 1, iRow, localText.getText("TXT_KEY_REPLAY_SCREEN_TURNS", ()) + ": " + str(victoryCountdown), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 
-
-					if self.teamLaunchedShip(activePlayer.getTeam().getID()):
-						screen.setTableText(szTable, 1, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_LAUNCHED", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-						screen.setTableText(szTable, 2, iRow, u"%i" %(100), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-					else:
-						screen.setTableText(szTable, 1, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_NOTLAUNCHED", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-						if (activePlayer.getTeam().getProjectCount(gc.getInfoTypeForString("PROJECT_APOLLO_PROGRAM")) > 0 ):
-							iNeedParts = 1
-
-					#if ((iBestTeam != -1) and (gc.getTeam(iBestTeam).hasMetHuman()) and (iRivalLaunched == 1)):
-					# K-Mod (changed stuff)
-					if bHasMetBest:
-						if bRivalLaunched:
-							screen.setTableText(szTable, 3, iRow, u"%s" %(localText.getText("TXT_KEY_VICTORY_SCREEN_LAUNCHED", ())), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
 						else:
-							screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_NOTLAUNCHED", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+							screen.setTableText(szTable, 1, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_NOTLAUNCHED", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+						if bHasMetBest:
+							if self.teamLaunchedShip(iBestTeam):
+								screen.setTableText(szTable, 3, iRow, u"%s" %(localText.getText("TXT_KEY_VICTORY_SCREEN_LAUNCHED", ())), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+							else:
+								screen.setTableText(szTable, 3, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_NOTLAUNCHED", ()), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+
+						if not self.teamLaunchedShip(activePlayer.getTeam().getID()) or (bHasMetBest and not self.teamLaunchedShip(iBestTeam)):
+							for i in range(gc.getNumProjectInfos()):
+								if (gc.getProjectInfo(i).getVictoryThreshold(eSpaceVictory) > 0):
+									iRow = screen.appendTableRow(szTable)
+									if (gc.getProjectInfo(i).getVictoryMinThreshold(eSpaceVictory) == gc.getProjectInfo(i).getVictoryThreshold(eSpaceVictory)):
+										szNumber = unicode(gc.getProjectInfo(i).getVictoryThreshold(eSpaceVictory))
+									else:
+										szNumber = unicode(gc.getProjectInfo(i).getVictoryMinThreshold(eSpaceVictory)) + u"-" + unicode(gc.getProjectInfo(i).getVictoryThreshold(eSpaceVictory))
+									screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_BUILDING", (szNumber, gc.getProjectInfo(i).getTextKey())), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+									screen.setTableText(szTable, 1, iRow, str(activePlayer.getTeam().getProjectCount(i)), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+									if bHasMetBest:
+										screen.setTableText(szTable, 3, iRow, unicode(gc.getTeam(iBestTeam).getProjectCount(i)), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
+
+						#add spaceship button
+						if self.isApolloBuiltbyTeam(activePlayer.getTeam()):
+							screen.setButtonGFC("SpaceShipButton" + str(eSpaceVictory), localText.getText("TXT_KEY_GLOBELAYER_STRATEGY_VIEW", ()), "", 0, 0, 15, 10, WidgetTypes.WIDGET_GENERAL, self.SPACESHIP_SCREEN_BUTTON, -1, ButtonStyles.BUTTON_STYLE_STANDARD )
+							screen.attachControlToTableCell("SpaceShipButton" + str(eSpaceVictory), szTable, iVictoryTitleRow, 1)
 					# K-Mod end
-
-					#add spaceship button
-					iSpaceshipButtonRow = screen.getTableNumRows(szTable)
-					screen.appendTableRow(szTable)
-					screen.setButtonGFC("SpaceShipButton" + str(iLoopVC), localText.getText("TXT_KEY_GLOBELAYER_STRATEGY_VIEW", ()), "", 0, 0, 15, 10, WidgetTypes.WIDGET_GENERAL, self.SPACESHIP_SCREEN_BUTTON, -1, ButtonStyles.BUTTON_STYLE_STANDARD )
-					screen.attachControlToTableCell("SpaceShipButton" + str(iLoopVC), szTable, iSpaceshipButtonRow, 1)
-
-					if (iNeedParts == 1):
-						for i in range(gc.getNumProjectInfos()):
-							for iL in range(gc.getNumVictoryInfos()):
-								if (gc.getProjectInfo(i).getVictoryMinThreshold(iL) > 0):
-									if (gc.getProjectInfo(i).isSpaceship()):
-										iRow = screen.appendTableRow(szTable)
-										if (gc.getProjectInfo(i).getVictoryMinThreshold(iL) < gc.getProjectInfo(i).getVictoryThreshold(iL)):
-                                                                                        screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_BUILDING2", (gc.getProjectInfo(i).getVictoryMinThreshold(iL), gc.getProjectInfo(i).getVictoryThreshold(iL), gc.getProjectInfo(i).getTextKey())), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_RIGHT_JUSTIFY)
-                                                                                else:
-                                                                                        screen.setTableText(szTable, 0, iRow, localText.getText("TXT_KEY_VICTORY_SCREEN_BUILDING", (gc.getProjectInfo(i).getVictoryThreshold(iL), gc.getProjectInfo(i).getTextKey())), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_RIGHT_JUSTIFY)
-
-										if not self.teamLaunchedShip(activePlayer.getTeam().getID()):
-											screen.setTableText(szTable, 1, iRow, str(activePlayer.getTeam().getProjectCount(i)), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-										#if ((iBestTeam != -1) and gc.getTeam(iBestTeam).hasMetHuman() and self.teamLaunchedShip(gc.getTeam(iBestTeam).getID()) != 1):
-										if bHasMetBest and self.teamLaunchedShip(gc.getTeam(iBestTeam).getID()) : # K-Mod
-                                                                                        screen.setTableText(szTable, 3, iRow, str(gc.getTeam(iBestTeam).getProjectCount(i)), "", WidgetTypes.WIDGET_GENERAL, -1, -1, CvUtil.FONT_LEFT_JUSTIFY)
-
-
-
 
 				# Score Totals
 					iRow = screen.appendTableRow(szTable)
@@ -2031,13 +2049,8 @@ class CvVictoryScreen:
 		# return -1
 		# Karadoc version
 		#return gc.getTeam(teamID).hasSpaceshipArrived()
-		for iProject in range(gc.getNumProjectInfos()):
-			if gc.getProjectInfo(iProject).isSpaceship():
-				eVictory = gc.getProjectInfo(iProject).getVictoryPrereq()
-				if eVictory >= 0:
-					return gc.getTeam(teamID).getVictoryDelay(eVictory) >= 0
-
-		return False
+		eVictory = gc.getGame().getSpaceVictory()
+		return eVictory >= 0 and gc.getTeam(teamID).getVictoryCountdown(eVictory) >= 0
 		# end
 
 
