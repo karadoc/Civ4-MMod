@@ -123,7 +123,7 @@
 			<CityCulture>NONE</CityCulture>
 			<iNumCultureCities>0</iNumCultureCities>
 			<iTotalCultureRatio>0</iTotalCultureRatio>
-			<iVictoryDelayTurns>20</iVictoryDelayTurns>
+			<iVictoryDelayTurns>10</iVictoryDelayTurns>
 			<VictoryMovie>ART_DEF_MOVIE_VICTORY_SPACE_RACE</VictoryMovie>
 		</VictoryInfo>
 		<VictoryInfo>

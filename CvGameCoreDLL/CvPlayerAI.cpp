@@ -18836,13 +18836,16 @@ int CvPlayerAI::AI_calculateCultureVictoryStage() const
 					int iTarget = 0;
 					for (size_t i = 0; i < countdownList.size(); i++)
 					{
-						if (countdownList[i] < iTurnsRemaining - 10 && (i < iVictoryCities + iLegendaryCount || countdownList[i] - countdownList[iTarget] < 15))
+						if (countdownList[i] < iTurnsRemaining - 10 && ((int)i < iVictoryCities + iLegendaryCount || countdownList[i] - countdownList[iTarget] < 15))
 						{
 							iTarget = i;
 						}
 					}
 					if (iTurnsRemaining < countdownList[iTarget]+12)
 						return 4;
+
+					if (iTarget <= iLegendaryCount)
+						return 1; // doesn't look like we're going to get another legendary city
 				}
 			}
 			else
