@@ -241,11 +241,17 @@ void CvGame::init(HandicapTypes eHandicap)
 		if (getEstimateEndTurn() > getGameTurn())
 		{
 			//bValid = false;
-			// Karadoc: mastery victory
+			// K-Mod. mastery victory
 			if (bMastery)
+			{
 				bValid = true;
+				// The usual time limit represents an extreme end-game.
+				// So for the mastery victory, we should reduce it to something more 'normal'.
+				int iTurns = std::max(1, (getEstimateEndTurn() - getGameTurn()) * 88 / 100); // ad hoc ratio.
+				setEstimateEndTurn(getGameTurn() + iTurns);
+			}
 			else
-			// K end.
+			// K-Mod end
 			{
 				bValid = false;
 				for (iI = 0; iI < GC.getNumVictoryInfos(); iI++)
