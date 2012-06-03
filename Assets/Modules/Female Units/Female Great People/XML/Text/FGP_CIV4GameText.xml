@@ -3377,6 +3377,30 @@
 		</Spanish>
 	</TEXT>
 	<TEXT>
+		<Tag>TXT_KEY_GREAT_PERSON_JANE_GOODALL</Tag>
+		<English>Jane Goodall</English>
+		<French>
+			<Text>Jane Goodall</Text>
+			<Gender>Female</Gender>
+			<Plural>0</Plural>
+		</French>
+		<German>
+			<Text>Jane Goodall</Text>
+			<Gender>Female</Gender>
+			<Plural>0</Plural>
+		</German>
+		<Italian>
+			<Text>Jane Goodall</Text>
+			<Gender>Female</Gender>
+			<Plural>0</Plural>
+		</Italian>
+		<Spanish>
+			<Text>Jane Goodall</Text>
+			<Gender>Female</Gender>
+			<Plural>0</Plural>
+		</Spanish>
+	</TEXT>
+	<TEXT>
 		<Tag>TXT_KEY_GREAT_PERSON_HELENA_RUBINSTEIN</Tag>
 		<English>Helena Rubinstein</English>
 		<French>
