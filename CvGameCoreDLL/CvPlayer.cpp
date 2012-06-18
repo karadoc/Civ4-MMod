@@ -11428,21 +11428,74 @@ void CvPlayer::setCurrentEra(EraTypes eNewValue)
 	int iLoop;
 	int iI;
 
+	CvGame& kGame = GC.getGameINLINE(); // K-Mod
+
 	if (getCurrentEra() != eNewValue)
 	{
+		// K-Mod. If mastery victory is enabled, then we need to adjust the turn limit
+		// every time the game reaches a new era.
+		bool bMastery = false;
+		for (VictoryTypes i = (VictoryTypes)0; !bMastery && i < GC.getNumVictoryInfos(); i=(VictoryTypes)(i+1))
+		{
+			if (GC.getVictoryInfo(i).isTotalVictory() && kGame.isVictoryValid(i))
+				bMastery = true;
+		}
+		EraTypes eOldGameEra = bMastery ? kGame.getCurrentEra() : NO_ERA; // no need to set if not mastery.
+		// K-Mod end
+
 		EraTypes eOldEra = m_eCurrentEra;
 		m_eCurrentEra = eNewValue;
 
-		if (GC.getGameINLINE().getActiveTeam() != NO_TEAM)
+		// K-Mod
+		if (bMastery && kGame.getGameState() != GAMESTATE_EXTENDED)
+		{
+			EraTypes eNewGameEra = kGame.getCurrentEra();
+			if (eNewGameEra > eOldGameEra)
+			{
+				int iCorrectionRatio = 100 * (eNewGameEra - kGame.getStartEra()) / std::max(1, GC.getNumEraInfos());
+
+				int iElapsedErasRatio = (100 * (eNewGameEra - kGame.getStartEra())+50) / std::max(1, GC.getNumEraInfos() - kGame.getStartEra());
+				int iElapsedTurnsRatio = 100 * kGame.getElapsedGameTurns() / std::max(1, kGame.getEstimateEndTurn() - kGame.getStartTurn());
+				int iTurnsRemaining = kGame.getMaxTurns() - kGame.getElapsedGameTurns();
+				FAssert(iTurnsRemaining > 0);
+
+				/* event message, just for testing.
+				{
+					CvWString message;
+					message.Format(L"New era. era ratio: %d, turns ratio %d, correction ratio: %d", iElapsedErasRatio, iElapsedTurnsRatio, iCorrectionRatio);
+					gDLL->getInterfaceIFace()->addHumanMessage(kGame.getActivePlayer(), false, GC.getEVENT_MESSAGE_TIME(), message, "AS2D_GLOBALWARMING", MESSAGE_TYPE_MAJOR_EVENT, NULL, (ColorTypes)GC.getInfoTypeForString("COLOR_HIGHLIGHT_TEXT"));
+				}
+				*/
+				if (iElapsedErasRatio > iElapsedTurnsRatio)
+				{
+					int iTrimmedTurns = iTurnsRemaining * iCorrectionRatio * (iElapsedErasRatio - iElapsedTurnsRatio) / 10000;
+					iTrimmedTurns += std::min(0, iTurnsRemaining - iTrimmedTurns - 60); // don't trim anywhere below 60 turns remaining.
+					if (iTrimmedTurns > 0)
+					{
+						kGame.changeMaxTurns(-iTrimmedTurns);
+						/* event message, just for testing.
+						{
+							CvWString message;
+							message.Format(L"Trimmed turn limit from %d to %d", kGame.getMaxTurns() + iTrimmedTurns, kGame.getMaxTurns());
+							gDLL->getInterfaceIFace()->addHumanMessage(kGame.getActivePlayer(), false, GC.getEVENT_MESSAGE_TIME(), message, "AS2D_GLOBALWARMING", MESSAGE_TYPE_MAJOR_EVENT, NULL, (ColorTypes)GC.getInfoTypeForString("COLOR_HIGHLIGHT_TEXT"));
+						}
+						*/
+					}
+				}
+			}
+		}
+		// K-Mod end
+
+		if (kGame.getActiveTeam() != NO_TEAM)
 		{
 			for (iI = 0; iI < GC.getMapINLINE().numPlotsINLINE(); iI++)
 			{
 				pLoopPlot = GC.getMapINLINE().plotByIndexINLINE(iI);
 				pLoopPlot->updateGraphicEra();
 
-				if (pLoopPlot->getRevealedImprovementType(GC.getGameINLINE().getActiveTeam(), true) != NO_IMPROVEMENT)
+				if (pLoopPlot->getRevealedImprovementType(kGame.getActiveTeam(), true) != NO_IMPROVEMENT)
 				{
-					if ((pLoopPlot->getOwnerINLINE() == getID()) || (!(pLoopPlot->isOwned()) && (getID() == GC.getGameINLINE().getActivePlayer())))
+					if ((pLoopPlot->getOwnerINLINE() == getID()) || (!(pLoopPlot->isOwned()) && (getID() == kGame.getActivePlayer())))
 					{
 						pLoopPlot->setLayoutDirty(true);
 					}
@@ -11469,14 +11522,14 @@ void CvPlayer::setCurrentEra(EraTypes eNewValue)
 		//update flag eras
 		gDLL->getInterfaceIFace()->setDirty(Flag_DIRTY_BIT, true);
 
-		if (getID() == GC.getGameINLINE().getActivePlayer())
+		if (getID() == kGame.getActivePlayer())
 		{
 			gDLL->getInterfaceIFace()->setDirty(Soundtrack_DIRTY_BIT, true);
 		}
 
-		if (isHuman() && (getCurrentEra() != GC.getGameINLINE().getStartEra()) && !GC.getGameINLINE().isNetworkMultiPlayer())
+		if (isHuman() && (getCurrentEra() != kGame.getStartEra()) && !kGame.isNetworkMultiPlayer())
 		{
-			if (GC.getGameINLINE().isFinalInitialized() && !(gDLL->GetWorldBuilderMode()))
+			if (kGame.isFinalInitialized() && !(gDLL->GetWorldBuilderMode()))
 			{
 				CvPopupInfo* pInfo = new CvPopupInfo(BUTTONPOPUP_PYTHON_SCREEN);
 				if (NULL != pInfo)

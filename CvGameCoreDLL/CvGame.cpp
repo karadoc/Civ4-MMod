@@ -93,11 +93,6 @@ CvGame::~CvGame()
 
 void CvGame::init(HandicapTypes eHandicap)
 {
-	bool bValid;
-	int iStartTurn;
-	int iEstimateEndTurn;
-	int iI;
-
 	//--------------------------------
 	// Init saved data
 	reset(eHandicap);
@@ -121,7 +116,7 @@ void CvGame::init(HandicapTypes eHandicap)
 	if (GC.getInitCore().getType() == GAME_SP_NEW ||
 		GC.getInitCore().getType() == GAME_SP_SCENARIO)
 	{
-		for (iI = 0; iI < NUM_MPOPTION_TYPES; ++iI)
+		for (int iI = 0; iI < NUM_MPOPTION_TYPES; ++iI)
 		{
 			setMPOption((MultiplayerOptionTypes)iI, false);
 		}
@@ -197,9 +192,9 @@ void CvGame::init(HandicapTypes eHandicap)
 
 	if (getGameTurn() == 0)
 	{
-		iStartTurn = 0;
+		int iStartTurn = 0;
 
-		for (iI = 0; iI < GC.getGameSpeedInfo(getGameSpeedType()).getNumTurnIncrements(); iI++)
+		for (int iI = 0; iI < GC.getGameSpeedInfo(getGameSpeedType()).getNumTurnIncrements(); iI++)
 		{
 			iStartTurn += GC.getGameSpeedInfo(getGameSpeedType()).getGameTurnInfo(iI).iNumGameTurnsPerIncrement;
 		}
@@ -229,9 +224,9 @@ void CvGame::init(HandicapTypes eHandicap)
 
 	if (getMaxTurns() == 0)
 	{
-		iEstimateEndTurn = 0;
+		int iEstimateEndTurn = 0;
 
-		for (iI = 0; iI < GC.getGameSpeedInfo(getGameSpeedType()).getNumTurnIncrements(); iI++)
+		for (int iI = 0; iI < GC.getGameSpeedInfo(getGameSpeedType()).getNumTurnIncrements(); iI++)
 		{
 			iEstimateEndTurn += GC.getGameSpeedInfo(getGameSpeedType()).getGameTurnInfo(iI).iNumGameTurnsPerIncrement;
 		}
@@ -241,28 +236,15 @@ void CvGame::init(HandicapTypes eHandicap)
 		if (getEstimateEndTurn() > getGameTurn())
 		{
 			//bValid = false;
-			// K-Mod. mastery victory
-			if (bMastery)
+			bool bValid = bMastery; // K-Mod
+			for (int iI = 0; !bValid && iI < GC.getNumVictoryInfos(); iI++)
 			{
-				bValid = true;
-				// The usual time limit represents an extreme end-game.
-				// So for the mastery victory, we should reduce it to something more 'normal'.
-				int iTurns = std::max(1, (getEstimateEndTurn() - getGameTurn()) * 88 / 100); // ad hoc ratio.
-				setEstimateEndTurn(getGameTurn() + iTurns);
-			}
-			else
-			// K-Mod end
-			{
-				bValid = false;
-				for (iI = 0; iI < GC.getNumVictoryInfos(); iI++)
+				if (isVictoryValid((VictoryTypes)iI))
 				{
-					if (isVictoryValid((VictoryTypes)iI))
+					if (GC.getVictoryInfo((VictoryTypes)iI).isEndScore())
 					{
-						if (GC.getVictoryInfo((VictoryTypes)iI).isEndScore())
-						{
-							bValid = true;
-							break;
-						}
+						bValid = true;
+						//break;
 					}
 				}
 			}
@@ -280,7 +262,7 @@ void CvGame::init(HandicapTypes eHandicap)
 
 	setStartYear(GC.getDefineINT("START_YEAR"));
 
-	for (iI = 0; iI < GC.getNumSpecialUnitInfos(); iI++)
+	for (int iI = 0; iI < GC.getNumSpecialUnitInfos(); iI++)
 	{
 		if (GC.getSpecialUnitInfo((SpecialUnitTypes)iI).isValid())
 		{
@@ -288,7 +270,7 @@ void CvGame::init(HandicapTypes eHandicap)
 		}
 	}
 
-	for (iI = 0; iI < GC.getNumSpecialBuildingInfos(); iI++)
+	for (int iI = 0; iI < GC.getNumSpecialBuildingInfos(); iI++)
 	{
 		if (GC.getSpecialBuildingInfo((SpecialBuildingTypes)iI).isValid())
 		{
