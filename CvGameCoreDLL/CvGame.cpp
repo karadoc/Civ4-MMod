@@ -3336,6 +3336,7 @@ bool CvGame::canTrainNukes() const
 
 EraTypes CvGame::getCurrentEra() const
 {
+	/* original bts code
 	int iEra;
 	int iCount;
 	int iI;
@@ -3343,8 +3344,7 @@ EraTypes CvGame::getCurrentEra() const
 	iEra = 0;
 	iCount = 0;
 
-	//for (iI = 0; iI < MAX_PLAYERS; iI++)
-	for (iI = 0; iI < MAX_CIV_PLAYERS; iI++) // K-Mod (dont' count the barbarians)
+	for (iI = 0; iI < MAX_PLAYERS; iI++)
 	{
 		if (GET_PLAYER((PlayerTypes)iI).isAlive())
 		{
@@ -3358,7 +3358,27 @@ EraTypes CvGame::getCurrentEra() const
 		return ((EraTypes)(iEra / iCount));
 	}
 
+	return NO_ERA; */
+	// K-Mod
+	int iTotal = 0;
+	int iBase = 0;
+	for (PlayerTypes i = (PlayerTypes)0; i < MAX_CIV_PLAYERS; i=(PlayerTypes)(i+1))
+	{
+		const CvPlayer& kLoopPlayer = GET_PLAYER(i);
+		if (kLoopPlayer.isAlive())
+		{
+			iTotal += kLoopPlayer.getTotalPopulation() * kLoopPlayer.getCurrentEra();
+			iBase += kLoopPlayer.getTotalPopulation();
+		}
+	}
+
+	if (iBase > 0)
+	{
+		return (EraTypes)ROUND_DIVIDE(iTotal, iBase);
+	}
+
 	return NO_ERA;
+	// K-Mod end
 }
 
 
