@@ -161,4 +161,8 @@
 		<DefineName>STANDARD_BATTLE_ANIMATION_ROUNDS</DefineName>
 		<iDefineIntVal>6</iDefineIntVal> <!-- introduced by K-Mod -->
 	</Define>
+	<Define>
+		<DefineName>RAZING_HIGH_POPULATION_LIMIT</DefineName>
+		<iDefineIntVal>8</iDefineIntVal> <!-- introduced by K-Mod -->
+	</Define>
 </Civ4Defines>

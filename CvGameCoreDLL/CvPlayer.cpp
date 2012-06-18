@@ -5365,6 +5365,14 @@ bool CvPlayer::canRaze(CvCity* pCity) const
 		{
 			return false;
 		}
+
+		// K-Mod. Max popluation for razable cities.
+		int iMaxPop = GC.getDefineINT("RAZING_HIGH_POPULATION_LIMIT");
+		if (iMaxPop >= 0 && pCity->getHighestPopulation() >= iMaxPop)
+		{
+			return false;
+		}
+		// K-Mod end
 	}
 
 	CyCity* pyCity = new CyCity(pCity);
