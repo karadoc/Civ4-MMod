@@ -3920,7 +3920,12 @@ bool CvPlayerAI::AI_isPrimaryArea(CvArea* pArea) const
 
 int CvPlayerAI::AI_militaryWeight(CvArea* pArea) const
 {
-	return (pArea->getPopulationPerPlayer(getID()) + pArea->getCitiesPerPlayer(getID()) + 1);
+	//return (pArea->getPopulationPerPlayer(getID()) + pArea->getCitiesPerPlayer(getID()) + 1);
+	// K-Mod. If pArea == NULL, count all areas.
+	return pArea
+		? pArea->getPopulationPerPlayer(getID()) + pArea->getCitiesPerPlayer(getID()) + 1
+		: getTotalPopulation() + getNumCities() + 1;
+	// K-Mod end
 }
 
 
@@ -3937,10 +3942,10 @@ int CvPlayerAI::AI_targetCityValue(CvCity* pCity, bool bRandomize, bool bIgnoreA
 /*                                                                                              */
 /* War strategy AI                                                                              */
 /************************************************************************************************/
-	if (pCity->getDefenseDamage() > 0)
+	/* if (pCity->getDefenseDamage() > 0)
 	{
 		iValue += ((pCity->getDefenseDamage() / 30) + 1);
-	}
+	} */ // disabled by K-Mod
 
 	// Significant amounting of borrowing/adapting from Mongoose AITargetCityValueFix
 	if (pCity->isCoastal(GC.getMIN_WATER_SIZE_FOR_OCEAN()))
@@ -7577,35 +7582,35 @@ int CvPlayerAI::AI_calculateStolenCityRadiusPlots(PlayerTypes ePlayer) const
 
 int CvPlayerAI::AI_getCloseBordersAttitude(PlayerTypes ePlayer) const
 {
+	const CvTeamAI& kOurTeam = GET_TEAM(getTeam()); // K-Mod
+	TeamTypes eTheirTeam = GET_PLAYER(ePlayer).getTeam(); // K-Mod
+
 	if (m_aiCloseBordersAttitudeCache[ePlayer] == MAX_INT)
 	{
 		PROFILE_FUNC();
 		int iPercent;
 
-		if (getTeam() == GET_PLAYER(ePlayer).getTeam() || GET_TEAM(getTeam()).isVassal(GET_PLAYER(ePlayer).getTeam()) || GET_TEAM(GET_PLAYER(ePlayer).getTeam()).isVassal(getTeam()))
+		if (getTeam() == eTheirTeam || kOurTeam.isVassal(eTheirTeam) || GET_TEAM(eTheirTeam).isVassal(getTeam()))
 		{
 			return 0;
 		}
 
 		iPercent = std::min(60, (AI_calculateStolenCityRadiusPlots(ePlayer) * 3));
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      06/12/10                                jdog5000      */
-/*                                                                                              */
-/* Bugfix, Victory Strategy AI                                                                  */
-/************************************************************************************************/
-		if (GET_TEAM(getTeam()).AI_isLandTarget(GET_PLAYER(ePlayer).getTeam(), true))
+		//if (GET_TEAM(getTeam()).AI_isLandTarget(GET_PLAYER(ePlayer).getTeam()))
+		// K-Mod. I've rewritten AI_isLandTarget. The condition I'm using here is equivalent to the original function.
+		if (kOurTeam.AI_hasCitiesInPrimaryArea(eTheirTeam) && kOurTeam.AI_calculateAdjacentLandPlots(eTheirTeam) >= 8)
+		// K-Mod end
 		{
 			iPercent += 40;
 		}
 
+		// bbai
 		if( AI_isDoStrategy(AI_VICTORY_CONQUEST3) )
 		{
 			iPercent = std::min( 120, (3 * iPercent)/2 );
 		}
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
+		// bbai end
 
 		m_aiCloseBordersAttitudeCache[ePlayer] = ((GC.getLeaderHeadInfo(getPersonalityType()).getCloseBordersAttitudeChange() * iPercent) / 100);
 	}
@@ -12063,7 +12068,6 @@ int CvPlayerAI::AI_maxUnitCostPerMil(CvArea* pArea, int iBuildProb) const
 	else
 	{
 		iMaxUnitSpending += bTotalWar ? 30 + iBuildProb*2/3 : 0;
-		iMaxUnitSpending += AI_isDoStrategy(AI_STRATEGY_DAGGER) ? 10 + AI_getFlavorValue(FLAVOR_MILITARY) : 0;
 		if (pArea)
 		{
 			switch (pArea->getAreaAIType(getTeam()))
@@ -12093,6 +12097,9 @@ int CvPlayerAI::AI_maxUnitCostPerMil(CvArea* pArea, int iBuildProb) const
 				break;
 
 			case AREAAI_NEUTRAL:
+				// think of 'dagger' as being prep for total war.
+				FAssert(!bTotalWar);
+				iMaxUnitSpending += AI_isDoStrategy(AI_STRATEGY_DAGGER) ? 30 + iBuildProb*2/3 : 0;
 				break;
 			default:
 				FAssert(false);
@@ -12100,7 +12107,13 @@ int CvPlayerAI::AI_maxUnitCostPerMil(CvArea* pArea, int iBuildProb) const
 		}
 		else
 		{
-			iMaxUnitSpending += GET_TEAM(getTeam()).getAnyWarPlanCount(true) ? 55 : 0;
+			if (GET_TEAM(getTeam()).getAnyWarPlanCount(true))
+				iMaxUnitSpending += 55;
+			else
+			{
+				FAssert(!bTotalWar);
+				iMaxUnitSpending += AI_isDoStrategy(AI_STRATEGY_DAGGER) ? 30 + iBuildProb*2/3 : 0;
+			}
 		}
 	}
 	return iMaxUnitSpending;
@@ -22630,7 +22643,18 @@ void CvPlayerAI::AI_updateCitySites(int iMinFoundValueThreshold, int iMaxSites)
 	std::vector<int>::iterator it;
 	int iValue;
 	int iI;
-	
+
+	// K-Mod. Always recommend the starting location on the first turn.
+	// (because we don't have enough information to overrule what the game has cooked for us.)
+	if (getNumCities() == 0 && iMaxSites > 0 && GC.getGameINLINE().getElapsedGameTurns() == 0 &&
+		m_iStartingX != INVALID_PLOT_COORD && m_iStartingY != INVALID_PLOT_COORD)
+	{
+		m_aiAICitySites.push_back(GC.getMapINLINE().plotNum(m_iStartingX, m_iStartingY));
+		//AI_recalculateFoundValues(m_iStartingX, m_iStartingY, CITY_PLOTS_RADIUS, 2 * CITY_PLOTS_RADIUS);
+		return; // don't bother trying to pick a secondary spot
+	}
+	// K-Mod end
+
 	int iPass = 0;
 	while (iPass < iMaxSites)
 	{
@@ -22749,6 +22773,24 @@ int CvPlayerAI::AI_getNumAdjacentAreaCitySites(int iWaterAreaID, int iExcludeAre
 	return iCount;
 }
 
+// K-Mod. Return the number of city sites that are in a primary area.
+int CvPlayerAI::AI_getNumPrimaryAreaCitySites() const
+{
+	int iCount = 0;
+
+	std::vector<int>::const_iterator it;
+	for (it = m_aiAICitySites.begin(); it != m_aiAICitySites.end(); it++)
+	{
+		CvPlot* pCitySitePlot = GC.getMapINLINE().plotByIndex((*it));
+		if (AI_isPrimaryArea(pCitySitePlot->area()))
+		{
+			iCount++;
+		}
+	}
+	return iCount;
+}
+// K-Mod end
+
 CvPlot* CvPlayerAI::AI_getCitySite(int iIndex) const
 {
 	FAssert(iIndex < (int)m_aiAICitySites.size());
@@ -22756,41 +22798,9 @@ CvPlot* CvPlayerAI::AI_getCitySite(int iIndex) const
 }
 
 // K-Mod
-// return true if is fair enough for the AI to know there is a city here
-bool CvPlayerAI::AI_deduceCitySite(CvCity* pCity) const
+bool CvPlayerAI::AI_deduceCitySite(const CvCity* pCity) const
 {
-	PROFILE_FUNC();
-
-	if (pCity->isRevealed(getTeam(), false))
-		return true;
-
-	// The rule is this:
-	// if we can see more than n plots of the nth culture ring, we can deduce where the city is.
-
-	int iPoints = 0;
-	int iLevel = pCity->getCultureLevel();
-
-	for (int iDX = -iLevel; iDX <= iLevel; iDX++)
-	{
-		for (int iDY = -iLevel; iDY <= iLevel; iDY++)
-		{
-			int iDist = pCity->cultureDistance(iDX, iDY);
-			if (iDist > iLevel)
-				continue;
-
-			CvPlot* pLoopPlot = plotXY(pCity->getX_INLINE(), pCity->getY_INLINE(), iDX, iDY);
-
-			if (pLoopPlot && pLoopPlot->getRevealedOwner(getTeam(), false) == pCity->getOwnerINLINE())
-			{
-				// if multiple cities have their plot in their range, then that will make it harder to deduce the precise city location.
-				iPoints += 1 + std::max(0, iLevel - iDist - pLoopPlot->getNumCultureRangeCities(pCity->getOwnerINLINE())+1);
-
-				if (iPoints > iLevel)
-					return true;
-			}
-		}
-	}
-	return false;
+	return GET_TEAM(getTeam()).AI_deduceCitySite(pCity);
 }
 
 // K-Mod. This function is essentially a merged version of two original bts functions: CvPlayer::countPotentialForeignTradeCities and CvPlayer::countPotentialForeignTradeCitiesConnected.

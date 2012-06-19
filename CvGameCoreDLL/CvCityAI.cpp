@@ -820,6 +820,7 @@ void CvCityAI::AI_chooseProduction()
 	}
 
 	bool bGetBetterUnits = kPlayer.AI_isDoStrategy(AI_STRATEGY_GET_BETTER_UNITS);
+	bool bDagger = kPlayer.AI_isDoStrategy(AI_STRATEGY_DAGGER);
 	bool bAggressiveAI = GC.getGameINLINE().isOption(GAMEOPTION_AGGRESSIVE_AI);
 	bool bAlwaysPeace = GC.getGameINLINE().isOption(GAMEOPTION_ALWAYS_PEACE);
 
@@ -2014,7 +2015,7 @@ void CvCityAI::AI_chooseProduction()
 			int iTrainInvaderChance = iBuildUnitProb + 10;
 
 			iTrainInvaderChance += (bAggressiveAI ? 15 : 0);
-			iTrainInvaderChance += (bTotalWar ? 10 : 0); // K-Mod
+			iTrainInvaderChance += (bTotalWar || bDagger ? 10 : 0); // K-Mod
 			iTrainInvaderChance /= (bAssaultAssist ? 2 : 1);
 			iTrainInvaderChance /= (bImportantCity ? 2 : 1);
 			iTrainInvaderChance /= (bGetBetterUnits ? 2 : 1);
@@ -2254,10 +2255,10 @@ void CvCityAI::AI_chooseProduction()
 	// Assault case now completely handled above
 	if (!bAssault && (!bImportantCity || bDefenseWar) && (iUnitSpending < iMaxUnitSpending))
 	{
-		if (!bFinancialTrouble && (bLandWar || (kPlayer.AI_isDoStrategy(AI_STRATEGY_DAGGER) && !bGetBetterUnits)))
+		if (!bFinancialTrouble && (bLandWar || (bDagger && !bGetBetterUnits)))
 		{
 			//int iTrainInvaderChance = iBuildUnitProb + 10;
-			int iTrainInvaderChance = iBuildUnitProb + (bTotalWar ? 16 : 8); // K-Mod
+			int iTrainInvaderChance = iBuildUnitProb + (bTotalWar || bDagger ? 16 : 8); // K-Mod
 
 			if (bAggressiveAI)
 			{
@@ -2866,9 +2867,9 @@ UnitTypes CvCityAI::AI_bestUnit(bool bAsync, AdvisorTypes eIgnoreAdvisor, UnitAI
 				if (iSuccessRatio > 0)
 				{
 					aiUnitAIVal[UNITAI_ATTACK] += iSuccessRatio * iMilitaryWeight / 800;
-					aiUnitAIVal[UNITAI_ATTACK_CITY] += iSuccessRatio * iMilitaryWeight / 800;
-					aiUnitAIVal[UNITAI_COUNTER] += iSuccessRatio * iMilitaryWeight / 1200;
-					aiUnitAIVal[UNITAI_PARADROP] += iSuccessRatio * iMilitaryWeight / 800;
+					aiUnitAIVal[UNITAI_ATTACK_CITY] += iSuccessRatio * iMilitaryWeight / 1000;
+					aiUnitAIVal[UNITAI_COUNTER] += iSuccessRatio * iMilitaryWeight / 1400;
+					aiUnitAIVal[UNITAI_PARADROP] += iSuccessRatio * iMilitaryWeight / 1000;
 				}
 			}
 			// K-Mod end
@@ -2881,6 +2882,9 @@ UnitTypes CvCityAI::AI_bestUnit(bool bAsync, AdvisorTypes eIgnoreAdvisor, UnitAI
 	{
 		aiUnitAIVal[UNITAI_SETTLE] = 0;
 		aiUnitAIVal[UNITAI_WORKER] = 0;
+		aiUnitAIVal[UNITAI_EXPLORE] = 0;
+		aiUnitAIVal[UNITAI_ATTACK_CITY] /= 3;
+		aiUnitAIVal[UNITAI_COLLATERAL] /= 2;
 	}
 	else
 	// K-Mod end
@@ -11874,6 +11878,22 @@ int CvCityAI::AI_playerCloseness(PlayerTypes eIndex, int iMaxDistance)
 	
 	return m_aiPlayerCloseness[eIndex];	
 }
+
+// K-Mod
+int CvCityAI::AI_highestTeamCloseness(TeamTypes eTeam)
+{
+	int iCloseness = -1;
+	for (PlayerTypes i = (PlayerTypes)0; i < MAX_PLAYERS; i=(PlayerTypes)(i+1))
+	{
+		if (GET_PLAYER(i).getTeam() == eTeam)
+		{
+			iCloseness = std::max(iCloseness, AI_playerCloseness(i, DEFAULT_PLAYER_CLOSENESS));
+		}
+	}
+
+	return iCloseness;
+}
+// K-Mod end
 
 void CvCityAI::AI_cachePlayerCloseness(int iMaxDistance)
 {

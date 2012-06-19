@@ -435,7 +435,7 @@ void CvTeam::addTeam(TeamTypes eTeam)
 		}
 	}
 
-	szBuffer = gDLL->getText("TXT_KEY_MISC_PLAYER_PERMANENT_ALLIANCE", getName().GetCString(), GET_TEAM(eTeam).getName().GetCString());
+	szBuffer = gDLL->getText("TXT_KEY_MISC_PLAYER_PERMANENT_ALLIANCE", getReplayName().GetCString(), GET_TEAM(eTeam).getReplayName().GetCString());
 	GC.getGameINLINE().addReplayMessage(REPLAY_MESSAGE_MAJOR_EVENT, getLeaderID(), szBuffer, -1, -1, (ColorTypes)GC.getInfoTypeForString("COLOR_HIGHLIGHT_TEXT"));
 
 
@@ -1144,28 +1144,12 @@ bool CvTeam::canChangeWarPeace(TeamTypes eTeam, bool bAllowVassal) const
 	return true;
 }
 
-
+// K-Mod, I've removed the bulk of this function and replaced it with just a call to "canEventuallyDeclareWar",
+// which contains all of the original checks. I've done this to reduce code dupliation.
 bool CvTeam::canDeclareWar(TeamTypes eTeam) const
 {
-	if (eTeam == getID())
-	{
+	if (!canEventuallyDeclareWar(eTeam))
 		return false;
-	}
-
-	if (!(isAlive()) || !(GET_TEAM(eTeam).isAlive()))
-	{
-		return false;
-	}
-
-	if (isAtWar(eTeam))
-	{
-		return false;
-	}
-
-	if (!isHasMet(eTeam))
-	{
-		return false;
-	}
 
 	if (isForcePeace(eTeam))
 	{
@@ -1183,47 +1167,10 @@ bool CvTeam::canDeclareWar(TeamTypes eTeam) const
 		}
 	}
 
-	if (!canChangeWarPeace(eTeam, true))
-	{
-		return false;
-	}
-
-	if (GC.getGameINLINE().isOption(GAMEOPTION_ALWAYS_PEACE))
-	{
-		return false;
-	}
-
-	if(GC.getUSE_CAN_DECLARE_WAR_CALLBACK())
-	{
-		CyArgsList argsList;
-		argsList.add(getID());	// Team ID
-		argsList.add(eTeam);	// pass in city class
-		long lResult=0;
-		gDLL->getPythonIFace()->callFunction(PYGameModule, "canDeclareWar", argsList.makeFunctionArgs(), &lResult);
-
-		if (lResult == 0)
-		{
-			return false;
-		}
-	}
-
 	return true;
 }
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      01/16/10                                jdog5000      */
-/*                                                                                              */
-/* War Strategy AI                                                                              */
-/************************************************************************************************/
-/// \brief Version of canDeclareWar which ignores temporary peace treaties.
-///
-/// This function is for AIs considering who to start war preparations against, so they're future
-/// plans aren't unnecessarily affected by current conditions.
-///
-/// Could not change definition of canDeclareWar, some sporadic crash-inducing compatibility issue
-/// with the DLL it seems.  Lost a lot of time tracking down the source of the crash, it really is
-/// just from adding bool bWhatever = false to canDeclareWar in CvTeam.h.  So, that's why there's
-/// this overlapping second function.
+// bbai
 bool CvTeam::canEventuallyDeclareWar(TeamTypes eTeam) const
 {
 	if (eTeam == getID())
@@ -1272,12 +1219,9 @@ bool CvTeam::canEventuallyDeclareWar(TeamTypes eTeam) const
 
 	return true;
 }
-
+// bbai end
 
 void CvTeam::declareWar(TeamTypes eTeam, bool bNewDiplo, WarPlanTypes eWarPlan, bool bCancelPacts)
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 {
 	PROFILE_FUNC();
 
@@ -1581,7 +1525,7 @@ void CvTeam::declareWar(TeamTypes eTeam, bool bNewDiplo, WarPlanTypes eWarPlan, 
 					}
 				}
 
-				szBuffer = gDLL->getText("TXT_KEY_MISC_SOMEONE_DECLARES_WAR", getName().GetCString(), GET_TEAM(eTeam).getName().GetCString());
+				szBuffer = gDLL->getText("TXT_KEY_MISC_SOMEONE_DECLARES_WAR", getReplayName().GetCString(), GET_TEAM(eTeam).getReplayName().GetCString());
 				GC.getGameINLINE().addReplayMessage(REPLAY_MESSAGE_MAJOR_EVENT, getLeaderID(), szBuffer, -1, -1, (ColorTypes)GC.getInfoTypeForString("COLOR_WARNING_TEXT"));
 			}
 		}
@@ -1853,7 +1797,7 @@ void CvTeam::makePeace(TeamTypes eTeam, bool bBumpUnits)
 			}
 		}
 
-		szBuffer = gDLL->getText("TXT_KEY_MISC_SOMEONE_MADE_PEACE", getName().GetCString(), GET_TEAM(eTeam).getName().GetCString());
+		szBuffer = gDLL->getText("TXT_KEY_MISC_SOMEONE_MADE_PEACE", getReplayName().GetCString(), GET_TEAM(eTeam).getReplayName().GetCString());
 		GC.getGameINLINE().addReplayMessage(REPLAY_MESSAGE_MAJOR_EVENT, getLeaderID(), szBuffer, -1, -1, (ColorTypes)GC.getInfoTypeForString("COLOR_HIGHLIGHT_TEXT"));
 
 		CvEventReporter::getInstance().changeWar(false, getID(), eTeam);
@@ -3346,6 +3290,25 @@ CvWString CvTeam::getName() const
 	return szBuffer;
 }
 
+// K-Mod. Name to be used in replay
+CvWString CvTeam::getReplayName() const
+{
+	CvWString szBuffer;
+
+	bool bFirst = true;
+
+	for (int iI = 0; iI < MAX_PLAYERS; iI++)
+	{
+		if (GET_PLAYER((PlayerTypes)iI).isAlive() && GET_PLAYER((PlayerTypes)iI).getTeam() == getID())
+		{
+			setListHelp(szBuffer, L"", GET_PLAYER((PlayerTypes)iI).getReplayName(), L"/", bFirst);
+			bFirst = false;
+		}
+	}
+
+	return szBuffer;
+}
+// K-Mod end
 
 int CvTeam::getNumMembers() const
 {
@@ -3903,7 +3866,8 @@ void CvTeam::changeStolenVisibilityTimer(TeamTypes eIndex, int iChange)
 }
 
 
-int CvTeam::getWarWeariness(TeamTypes eIndex) const
+// (K-Mod note: units are unhappiness per 100,000 population. ie. 1000 * percent unhappiness.)
+int CvTeam::getWarWeariness(TeamTypes eIndex) const								 
 {
 	FAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
 	FAssertMsg(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
@@ -4249,7 +4213,7 @@ void CvTeam::setDefensivePact(TeamTypes eIndex, bool bNewValue)
 
 		if (bNewValue && !GET_TEAM(eIndex).isDefensivePact(getID()))
 		{
-			CvWString szBuffer = gDLL->getText("TXT_KEY_MISC_PLAYERS_SIGN_DEFENSIVE_PACT", getName().GetCString(), GET_TEAM(eIndex).getName().GetCString());
+			CvWString szBuffer = gDLL->getText("TXT_KEY_MISC_PLAYERS_SIGN_DEFENSIVE_PACT", getReplayName().GetCString(), GET_TEAM(eIndex).getReplayName().GetCString());
 
 			GC.getGameINLINE().addReplayMessage(REPLAY_MESSAGE_MAJOR_EVENT, getLeaderID(), szBuffer, -1, -1, (ColorTypes)GC.getInfoTypeForString("COLOR_HIGHLIGHT_TEXT"));
 
@@ -4541,11 +4505,11 @@ void CvTeam::setVassal(TeamTypes eIndex, bool bNewValue, bool bCapitulated)
 
 				if (bCapitulated)
 				{
-					szReplayMessage = gDLL->getText("TXT_KEY_MISC_CAPITULATE_AGREEMENT", getName().GetCString(), GET_TEAM(eIndex).getName().GetCString());
+					szReplayMessage = gDLL->getText("TXT_KEY_MISC_CAPITULATE_AGREEMENT", getReplayName().GetCString(), GET_TEAM(eIndex).getReplayName().GetCString());
 				}
 				else
 				{
-					szReplayMessage = gDLL->getText("TXT_KEY_MISC_VASSAL_AGREEMENT", getName().GetCString(), GET_TEAM(eIndex).getName().GetCString());
+					szReplayMessage = gDLL->getText("TXT_KEY_MISC_VASSAL_AGREEMENT", getReplayName().GetCString(), GET_TEAM(eIndex).getReplayName().GetCString());
 				}
 				GC.getGameINLINE().addReplayMessage(REPLAY_MESSAGE_MAJOR_EVENT, getLeaderID(), szReplayMessage, -1, -1, (ColorTypes)GC.getInfoTypeForString("COLOR_HIGHLIGHT_TEXT"));
 
@@ -4573,11 +4537,11 @@ void CvTeam::setVassal(TeamTypes eIndex, bool bNewValue, bool bCapitulated)
 
 				if (m_bCapitulated)
 				{
-					szReplayMessage = gDLL->getText("TXT_KEY_MISC_SURRENDER_REVOLT", getName().GetCString(), GET_TEAM(eIndex).getName().GetCString());
+					szReplayMessage = gDLL->getText("TXT_KEY_MISC_SURRENDER_REVOLT", getReplayName().GetCString(), GET_TEAM(eIndex).getReplayName().GetCString());
 				}
 				else
 				{
-					szReplayMessage = gDLL->getText("TXT_KEY_MISC_VASSAL_REVOLT", getName().GetCString(), GET_TEAM(eIndex).getName().GetCString());
+					szReplayMessage = gDLL->getText("TXT_KEY_MISC_VASSAL_REVOLT", getReplayName().GetCString(), GET_TEAM(eIndex).getReplayName().GetCString());
 				}
 
 				GC.getGameINLINE().addReplayMessage(REPLAY_MESSAGE_MAJOR_EVENT, getLeaderID(), szReplayMessage, -1, -1, (ColorTypes)GC.getInfoTypeForString("COLOR_HIGHLIGHT_TEXT"));
@@ -4738,7 +4702,8 @@ void CvTeam::freeVassal(TeamTypes eVassal) const
 
 bool CvTeam::isCapitulated() const
 {
-	FAssert(isAVassal());
+	//FAssert(isAVassal());
+	FAssert(!m_bCapitulated || isAVassal()); // K-Mod
 
 	return m_bCapitulated;
 }
@@ -4954,7 +4919,7 @@ void CvTeam::changeProjectCount(ProjectTypes eIndex, int iChange)
 
 			if (GC.getGameINLINE().isFinalInitialized() && !(gDLL->GetWorldBuilderMode()))
 			{
-				szBuffer = gDLL->getText("TXT_KEY_MISC_COMPLETES_PROJECT", getName().GetCString(), kProject.getTextKeyWide());
+				szBuffer = gDLL->getText("TXT_KEY_MISC_COMPLETES_PROJECT", getReplayName().GetCString(), kProject.getTextKeyWide());
 				GC.getGameINLINE().addReplayMessage(REPLAY_MESSAGE_MAJOR_EVENT, getLeaderID(), szBuffer, -1, -1, (ColorTypes)GC.getInfoTypeForString("COLOR_HIGHLIGHT_TEXT"));
 
 				for (iI = 0; iI < MAX_PLAYERS; iI++)
@@ -5394,7 +5359,7 @@ void CvTeam::resetVictoryProgress()
 				}
 			}
 
-			CvWString szBuffer = gDLL->getText("TXT_KEY_VICTORY_RESET", getName().GetCString(), GC.getVictoryInfo((VictoryTypes)iI).getTextKeyWide());
+			CvWString szBuffer = gDLL->getText("TXT_KEY_VICTORY_RESET", getReplayName().GetCString(), GC.getVictoryInfo((VictoryTypes)iI).getTextKeyWide());
 
 			for (int iJ = 0; iJ < MAX_PLAYERS; ++iJ)
 			{
@@ -5830,7 +5795,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 							}
 						}
 
-						szBuffer = gDLL->getText("TXT_KEY_MISC_SOMEONE_FIRST_TO_TECH", GET_PLAYER(ePlayer).getName(), GC.getTechInfo(eIndex).getTextKeyWide());
+						szBuffer = gDLL->getText("TXT_KEY_MISC_SOMEONE_FIRST_TO_TECH", GET_PLAYER(ePlayer).getReplayName(), GC.getTechInfo(eIndex).getTextKeyWide());
 						GC.getGameINLINE().addReplayMessage(REPLAY_MESSAGE_MAJOR_EVENT, ePlayer, szBuffer, -1, -1, (ColorTypes)GC.getInfoTypeForString("COLOR_HIGHLIGHT_TEXT"));
 					}
 
@@ -6522,7 +6487,7 @@ void CvTeam::testCircumnavigated()
 				}
 			}
 
-			szBuffer = gDLL->getText("TXT_KEY_MISC_SOMEONE_CIRC_GLOBE", getName().GetCString());
+			szBuffer = gDLL->getText("TXT_KEY_MISC_SOMEONE_CIRC_GLOBE", getReplayName().GetCString());
 			GC.getGameINLINE().addReplayMessage(REPLAY_MESSAGE_MAJOR_EVENT, getLeaderID(), szBuffer, -1, -1, (ColorTypes)GC.getInfoTypeForString("COLOR_HIGHLIGHT_TEXT"));
 		}
 	}
