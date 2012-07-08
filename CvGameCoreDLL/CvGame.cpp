@@ -215,7 +215,7 @@ void CvGame::init(HandicapTypes eHandicap)
 	}
 	if (bMastery)
 	{
-		for (VictoryTypes i = (VictoryTypes)0; !bMastery && i < GC.getNumVictoryInfos(); i=(VictoryTypes)(i+1))
+		for (VictoryTypes i = (VictoryTypes)0; i < GC.getNumVictoryInfos(); i=(VictoryTypes)(i+1))
 		{
 			setVictoryValid(i, true);
 		}
