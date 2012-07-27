@@ -148,9 +148,9 @@ public:
 	void changeMissionTimer(int iChange);
 	void updateMissionTimer(int iSteps = 0);
 
-	bool isForceUpdate();
-	void setForceUpdate(bool bNewValue);
-	void doForceUpdate(); // K-Mod
+	inline bool isForceUpdate() { return m_bForceUpdate; } // K-Mod made inline
+	inline void setForceUpdate(bool bNewValue) { m_bForceUpdate = bNewValue; } // K-Mod made inline
+	// void doForceUpdate(); // K-Mod. (disabled. force update doesn't work the same way anymore.)
 
 	DllExport PlayerTypes getOwner() const;																															// Exposed to Python
 #ifdef _USRDLL
@@ -172,7 +172,7 @@ public:
 	CvPlot* getPathFirstPlot() const;																																		// Exposed to Python
 	CvPlot* getPathEndTurnPlot() const;																																	// Exposed to Python
 	bool generatePath(const CvPlot* pFromPlot, const CvPlot* pToPlot, int iFlags = 0, bool bReuse = false, int* piPathTurns = NULL, int iMaxPath = -1) const; // Exposed to Python (K-mod added iMaxPath)
-	void resetPath() const;					// Exposed to Python
+	// void resetPath() const; // disabled by K-mod. Use path_finder.Reset instead. (was exposed to Python)
 
 	DllExport void clearUnits();
 	DllExport bool addUnit(CvUnit* pUnit, bool bMinimalChange);

@@ -497,53 +497,29 @@ void CvUnit::convert(CvUnit* pUnit)
 }
 
 
+// K-Mod. I've made some structural change to this function, for efficiency, clarity, and sanity.
 void CvUnit::kill(bool bDelay, PlayerTypes ePlayer)
 {
 	PROFILE_FUNC();
 	
-	CLLNode<IDInfo>* pUnitNode;
-	CvUnit* pTransportUnit;
-	CvUnit* pLoopUnit;
-	CvPlot* pPlot;
-	CvWString szBuffer;
-	PlayerTypes eOwner;
-	PlayerTypes eCapturingPlayer;
-	UnitTypes eCaptureUnitType;
+	CvPlot* pPlot = plot();
+	FAssert(pPlot);
 
-	pPlot = plot();
-	FAssertMsg(pPlot != NULL, "Plot is not assigned a valid value");
-
-	static std::vector<IDInfo> oldUnits;
-	oldUnits.clear();
-	pUnitNode = pPlot->headUnitNode();
-
-	while (pUnitNode != NULL)
+	CLLNode<IDInfo>* pUnitNode = pPlot->headUnitNode();
+	while (pUnitNode)
 	{
-		oldUnits.push_back(pUnitNode->m_data);
+		CvUnit* pLoopUnit = ::getUnit(pUnitNode->m_data);
 		pUnitNode = pPlot->nextUnitNode(pUnitNode);
-	}
 
-	for (uint i = 0; i < oldUnits.size(); i++)
-	{
-		pLoopUnit = ::getUnit(oldUnits[i]);
-		
-		if (pLoopUnit != NULL)
+		FAssert(pLoopUnit);
+		if (pLoopUnit->getTransportUnit() == this)
 		{
-			if (pLoopUnit->getTransportUnit() == this)
+			if (pPlot->isValidDomainForLocation(*pLoopUnit))
 			{
-				//save old units because kill will clear the static list
-				std::vector<IDInfo> tempUnits = oldUnits;
-
-				if (pPlot->isValidDomainForLocation(*pLoopUnit))
-				{
-					pLoopUnit->setCapturingPlayer(NO_PLAYER);
-				}
-				
-				pLoopUnit->kill(false, ePlayer);
-
-				//oldUnits = tempUnits;
-				oldUnits.swap(tempUnits); // K-Mod (speed)
+				pLoopUnit->setCapturingPlayer(NO_PLAYER);
 			}
+
+			pLoopUnit->kill(false, ePlayer);
 		}
 	}
 
@@ -553,17 +529,20 @@ void CvUnit::kill(bool bDelay, PlayerTypes ePlayer)
 
 		if (NO_UNIT != getLeaderUnitType())
 		{
-			for (int iI = 0; iI < MAX_PLAYERS; iI++)
+			CvWString szBuffer;
+			szBuffer = gDLL->getText("TXT_KEY_MISC_GENERAL_KILLED", getNameKey());
+			for (PlayerTypes i = (PlayerTypes)0; i < MAX_PLAYERS; i=(PlayerTypes)(i+1))
 			{
-				if (GET_PLAYER((PlayerTypes)iI).isAlive())
+				if (GET_PLAYER(i).isAlive())
 				{
-					szBuffer = gDLL->getText("TXT_KEY_MISC_GENERAL_KILLED", getNameKey());
 					//gDLL->getInterfaceIFace()->addHumanMessage(((PlayerTypes)iI), false, GC.getEVENT_MESSAGE_TIME(), szBuffer, GC.getEraInfo(GC.getGameINLINE().getCurrentEra()).getAudioUnitDefeatScript(), MESSAGE_TYPE_MAJOR_EVENT);
-					gDLL->getInterfaceIFace()->addHumanMessage(((PlayerTypes)iI), false, GC.getEVENT_MESSAGE_TIME(), szBuffer, "AS2D_INTERCEPTED", MESSAGE_TYPE_MAJOR_EVENT); // K-Mod (the other sound is not appropriate for most civs receiving the message.)
+					gDLL->getInterfaceIFace()->addHumanMessage(i, false, GC.getEVENT_MESSAGE_TIME(), szBuffer, "AS2D_INTERCEPTED", MESSAGE_TYPE_MAJOR_EVENT); // K-Mod (the other sound is not appropriate for most civs receiving the message.)
 				}
 			}
 		}
 	}
+
+	finishMoves();
 
 	if (bDelay)
 	{
@@ -580,8 +559,6 @@ void CvUnit::kill(bool bDelay, PlayerTypes ePlayer)
 			setAttackPlot(NULL, false);
 		}
 	}
-
-	finishMoves();
 
 	if (IsSelected())
 	{
@@ -610,12 +587,7 @@ void CvUnit::kill(bool bDelay, PlayerTypes ePlayer)
 
 	FAssertMsg(!isCombat(), "isCombat did not return false as expected");
 
-	pTransportUnit = getTransportUnit();
-
-	if (pTransportUnit != NULL)
-	{
-		setTransportUnit(NULL);
-	}
+	setTransportUnit(NULL);
 
 	setReconPlot(NULL);
 	setBlockading(false);
@@ -644,9 +616,9 @@ void CvUnit::kill(bool bDelay, PlayerTypes ePlayer)
 
 	GET_PLAYER(getOwnerINLINE()).AI_changeNumAIUnits(AI_getUnitAIType(), -1);
 
-	eOwner = getOwnerINLINE();
-	eCapturingPlayer = getCapturingPlayer();
-	eCaptureUnitType = ((eCapturingPlayer != NO_PLAYER) ? getCaptureUnitType(GET_PLAYER(eCapturingPlayer).getCivilizationType()) : NO_UNIT);
+	PlayerTypes eOwner = getOwnerINLINE();
+	PlayerTypes eCapturingPlayer = getCapturingPlayer();
+	UnitTypes eCaptureUnitType = ((eCapturingPlayer != NO_PLAYER) ? getCaptureUnitType(GET_PLAYER(eCapturingPlayer).getCivilizationType()) : NO_UNIT);
 
 	setXY(INVALID_PLOT_COORD, INVALID_PLOT_COORD, true);
 
@@ -664,17 +636,21 @@ void CvUnit::kill(bool bDelay, PlayerTypes ePlayer)
 
 			if (pkCapturedUnit != NULL)
 			{
+				CvWString szBuffer;
 				szBuffer = gDLL->getText("TXT_KEY_MISC_YOU_CAPTURED_UNIT", GC.getUnitInfo(eCaptureUnitType).getTextKeyWide());
 				gDLL->getInterfaceIFace()->addHumanMessage(eCapturingPlayer, true, GC.getEVENT_MESSAGE_TIME(), szBuffer, "AS2D_UNITCAPTURE", MESSAGE_TYPE_INFO, pkCapturedUnit->getButton(), (ColorTypes)GC.getInfoTypeForString("COLOR_GREEN"), pPlot->getX_INLINE(), pPlot->getY_INLINE());
 
 				// Add a captured mission
-				CvMissionDefinition kMission;
-				kMission.setMissionTime(GC.getMissionInfo(MISSION_CAPTURED).getTime() * gDLL->getSecsPerTurn());
-				kMission.setUnit(BATTLE_UNIT_ATTACKER, pkCapturedUnit);
-				kMission.setUnit(BATTLE_UNIT_DEFENDER, NULL);
-				kMission.setPlot(pPlot);
-				kMission.setMissionType(MISSION_CAPTURED);
-				gDLL->getEntityIFace()->AddMission(&kMission);
+				if (pPlot->isActiveVisible(false)) // K-Mod
+				{
+					CvMissionDefinition kMission;
+					kMission.setMissionTime(GC.getMissionInfo(MISSION_CAPTURED).getTime() * gDLL->getSecsPerTurn());
+					kMission.setUnit(BATTLE_UNIT_ATTACKER, pkCapturedUnit);
+					kMission.setUnit(BATTLE_UNIT_DEFENDER, NULL);
+					kMission.setPlot(pPlot);
+					kMission.setMissionType(MISSION_CAPTURED);
+					gDLL->getEntityIFace()->AddMission(&kMission);
+				}
 
 				pkCapturedUnit->finishMoves();
 
@@ -685,7 +661,8 @@ void CvUnit::kill(bool bDelay, PlayerTypes ePlayer)
 					{
 						if (GET_PLAYER(eCapturingPlayer).AI_getPlotDanger(pPlot) && GC.getDefineINT("AI_CAN_DISBAND_UNITS"))
 						{
-							pkCapturedUnit->kill(false);
+							//pkCapturedUnit->kill(false);
+							pkCapturedUnit->scrap(); // K-Mod. roughly the same thing, but this is more appropriate.
 						}
 					}
 				}
@@ -1372,7 +1349,8 @@ void CvUnit::updateCombat(bool bQuick)
 		setAttackPlot(NULL, false);
 		setCombatUnit(NULL);
 
-		getGroup()->groupMove(pPlot, true, ((canAdvance(pPlot, 0)) ? this : NULL));
+		//getGroup()->groupMove(pPlot, true, ((canAdvance(pPlot, 0)) ? this : NULL));
+		getGroup()->groupMove(pPlot, true, canAdvance(pPlot, 0) ? this : NULL, true); // K-Mod
 
 		getGroup()->clearMissionQueue();
 
@@ -1596,7 +1574,8 @@ void CvUnit::updateCombat(bool bQuick)
 
 			if (pPlot->getNumVisibleEnemyDefenders(this) == 0)
 			{
-				getGroup()->groupMove(pPlot, true, ((bAdvance) ? this : NULL));
+				//getGroup()->groupMove(pPlot, true, ((bAdvance) ? this : NULL));
+				getGroup()->groupMove(pPlot, true, bAdvance ? this : NULL, true); // K-Mod
 			}
 
 			// This is is put before the plot advancement, the unit will always try to walk back
@@ -3608,7 +3587,8 @@ bool CvUnit::canSleep(const CvPlot* pPlot) const
 		return false;
 	}
 
-	if (isWaiting())
+	//if (isWaiting())
+	if (getGroup()->getActivityType() == ACTIVITY_SLEEP) // K-Mod
 	{
 		return false;
 	}
@@ -3624,7 +3604,8 @@ bool CvUnit::canFortify(const CvPlot* pPlot) const
 		return false;
 	}
 
-	if (isWaiting())
+	//if (isWaiting())
+	if (getGroup()->getActivityType() == ACTIVITY_SLEEP) // K-Mod
 	{
 		return false;
 	}
@@ -3645,7 +3626,8 @@ bool CvUnit::canAirPatrol(const CvPlot* pPlot) const
 		return false;
 	}
 
-	if (isWaiting())
+	//if (isWaiting())
+	if (getGroup()->getActivityType() == ACTIVITY_INTERCEPT) // K-Mod
 	{
 		return false;
 	}
@@ -3671,7 +3653,8 @@ bool CvUnit::canSeaPatrol(const CvPlot* pPlot) const
 		return false;
 	}
 
-	if (isWaiting())
+	//if (isWaiting())
+	if (getGroup()->getActivityType() == ACTIVITY_PATROL) // K-Mod
 	{
 		return false;
 	}
@@ -3714,7 +3697,8 @@ bool CvUnit::canHeal(const CvPlot* pPlot) const
 	if (!isHurt())
 		return false;
 
-	if (isWaiting())
+	//if (isWaiting())
+	if (getGroup()->getActivityType() == ACTIVITY_HEAL) // K-Mod
 		return false;
 
 	if (healTurns(pPlot) == MAX_INT)
@@ -3731,7 +3715,8 @@ bool CvUnit::canSentry(const CvPlot* pPlot) const
 		return false;
 	}
 
-	if (isWaiting())
+	//if (isWaiting())
+	if (getGroup()->getActivityType() == ACTIVITY_SENTRY) // K-Mod
 	{
 		return false;
 	}
@@ -4149,7 +4134,11 @@ bool CvUnit::nuke(int iX, int iY)
 	{
 		for (iI = 0; iI < MAX_PLAYERS; iI++)
 		{
-			if (GET_PLAYER((PlayerTypes)iI).isAlive())
+			//if (GET_PLAYER((PlayerTypes)iI).isAlive())
+			// K-Mod. Only show the message to players who have met the teams involved!
+			const CvPlayer& kLoopPlayer = GET_PLAYER((PlayerTypes)iI);
+			if (kLoopPlayer.isAlive() && GET_TEAM(kLoopPlayer.getTeam()).isHasMet(getTeam()) && GET_TEAM(kLoopPlayer.getTeam()).isHasMet(eBestTeam))
+			// K-Mod end
 			{
 				szBuffer = gDLL->getText("TXT_KEY_MISC_NUKE_INTERCEPTED", GET_PLAYER(getOwnerINLINE()).getNameKey(), getNameKey(), GET_TEAM(eBestTeam).getName().GetCString());
 				gDLL->getInterfaceIFace()->addHumanMessage(((PlayerTypes)iI), (((PlayerTypes)iI) == getOwnerINLINE()), GC.getEVENT_MESSAGE_TIME(), szBuffer, "AS2D_NUKE_INTERCEPTED", MESSAGE_TYPE_MAJOR_EVENT, getButton(), (ColorTypes)GC.getInfoTypeForString("COLOR_RED"), pPlot->getX_INLINE(), pPlot->getY_INLINE(), true, true);
@@ -4257,7 +4246,11 @@ bool CvUnit::nuke(int iX, int iY)
 
 	for (iI = 0; iI < MAX_PLAYERS; iI++)
 	{
-		if (GET_PLAYER((PlayerTypes)iI).isAlive())
+		//if (GET_PLAYER((PlayerTypes)iI).isAlive())
+		// K-Mod
+		const CvPlayer& kLoopPlayer = GET_PLAYER((PlayerTypes)iI);
+		if (kLoopPlayer.isAlive() && GET_TEAM(kLoopPlayer.getTeam()).isHasMet(getTeam()))
+		// K-Mod end
 		{
 			szBuffer = gDLL->getText("TXT_KEY_MISC_NUKE_LAUNCHED", GET_PLAYER(getOwnerINLINE()).getNameKey(), getNameKey());
 			gDLL->getInterfaceIFace()->addHumanMessage(((PlayerTypes)iI), (((PlayerTypes)iI) == getOwnerINLINE()), GC.getEVENT_MESSAGE_TIME(), szBuffer, "AS2D_NUKE_EXPLODES", MESSAGE_TYPE_MAJOR_EVENT, getButton(), (ColorTypes)GC.getInfoTypeForString("COLOR_RED"), pPlot->getX_INLINE(), pPlot->getY_INLINE(), true, true);
@@ -7023,11 +7016,14 @@ void CvUnit::promote(PromotionTypes ePromotion, int iLeaderUnitId)
 
 	testPromotionReady();
 
+	CvSelectionGroup::path_finder.Reset(); // K-Mod. (This currently isn't important, because the AI doesn't use promotions mid-turn anyway.)
+
 	if (IsSelected())
 	{
 		gDLL->getInterfaceIFace()->playGeneralSound(GC.getPromotionInfo(ePromotion).getSound());
 
 		gDLL->getInterfaceIFace()->setDirty(UnitInfo_DIRTY_BIT, true);
+		gDLL->getFAStarIFace()->ForceReset(&GC.getPathFinder()); // K-Mod.
 	}
 	else
 	{
@@ -7198,10 +7194,14 @@ int CvUnit::upgradePrice(UnitTypes eUnit) const
 	argsList.add(getID());
 	argsList.add((int) eUnit);
 	long lResult=0;
-	gDLL->getPythonIFace()->callFunction(PYGameModule, "getUpgradePriceOverride", argsList.makeFunctionArgs(), &lResult);
-	if (lResult >= 0)
+
+	if (GC.getUSE_UNIT_UPGRADE_PRICE_CALLBACK()) // K-Mod. block unused python callbacks
 	{
-		return lResult;
+		gDLL->getPythonIFace()->callFunction(PYGameModule, "getUpgradePriceOverride", argsList.makeFunctionArgs(), &lResult);
+		if (lResult >= 0)
+		{
+			return lResult;
+		}
 	}
 
 	if (isBarbarian())
@@ -7401,27 +7401,30 @@ CvCity* CvUnit::getUpgradeCity(UnitTypes eUnit, bool bSearch, int* iSearchValue)
 		return false;
 	}
 
-	CLLNode<IDInfo>* pUnitNode = plot()->headUnitNode();
-	while (pUnitNode != NULL)
+	if (getCargo() > 0) // K-Mod. (no point looping through everything if there is no cargo anyway.)
 	{
-		CvUnit* pLoopUnit = ::getUnit(pUnitNode->m_data);
-		pUnitNode = plot()->nextUnitNode(pUnitNode);
-
-		if (pLoopUnit->getTransportUnit() == this)
+		CLLNode<IDInfo>* pUnitNode = plot()->headUnitNode();
+		while (pUnitNode != NULL)
 		{
-			if (kUnitInfo.getSpecialCargo() != NO_SPECIALUNIT)
-			{
-				if (kUnitInfo.getSpecialCargo() != pLoopUnit->getSpecialUnitType())
-				{
-					return false;
-				}
-			}
+			CvUnit* pLoopUnit = ::getUnit(pUnitNode->m_data);
+			pUnitNode = plot()->nextUnitNode(pUnitNode);
 
-			if (kUnitInfo.getDomainCargo() != NO_DOMAIN)
+			if (pLoopUnit->getTransportUnit() == this)
 			{
-				if (kUnitInfo.getDomainCargo() != pLoopUnit->getDomainType())
+				if (kUnitInfo.getSpecialCargo() != NO_SPECIALUNIT)
 				{
-					return false;
+					if (kUnitInfo.getSpecialCargo() != pLoopUnit->getSpecialUnitType())
+					{
+						return false;
+					}
+				}
+
+				if (kUnitInfo.getDomainCargo() != NO_DOMAIN)
+				{
+					if (kUnitInfo.getDomainCargo() != pLoopUnit->getDomainType())
+					{
+						return false;
+					}
 				}
 			}
 		}
@@ -9578,8 +9581,9 @@ void CvUnit::joinGroup(CvSelectionGroup* pSelectionGroup, bool bRemoveSelected, 
 				{
 					getGroup()->setAutomateType(NO_AUTOMATE);
 					getGroup()->setActivityType(ACTIVITY_AWAKE);
-					// I'm not going to clear the mission queue. I'm just going to change to rules so that "automoves" won't start while the group is selected.
-					//getGroup()->clearMissionQueue();
+					getGroup()->clearMissionQueue();
+					// K-Mod note. the mission queue has to be cleared, because when the shift key is released, the exe automatically sends the autoMission net message.
+					// (if the mission queue isn't cleared, the units will immediately begin their message whenever units are added using shift.)
 				}
 				else if (getGroup()->AI_getMissionAIType() == MISSIONAI_GROUP || getLastMoveTurn() == GC.getGameINLINE().getTurnSlice())
 					getGroup()->setActivityType(ACTIVITY_AWAKE);

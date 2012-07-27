@@ -30,15 +30,8 @@
 #include "CvDLLEngineIFaceBase.h"
 #include "CvDLLPythonIFaceBase.h"
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      10/02/09                                jdog5000      */
-/*                                                                                              */
-/* AI logging                                                                                   */
-/************************************************************************************************/
-#include "BetterBTSAI.h"
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
+#include "BetterBTSAI.h" // bbai
+#include "CvBugOptions.h" // K-Mod
 
 // Public Functions...
 
@@ -2421,11 +2414,10 @@ void CvGame::selectUnit(CvUnit* pUnit, bool bClear, bool bToggle, bool bSound) c
 {
 	PROFILE_FUNC();
 
-	CLLNode<IDInfo>* pEntityNode;
-	CvSelectionGroup* pSelectionGroup;
 	bool bSelectGroup;
 	bool bGroup;
 
+	/* original bts code
 	if (gDLL->getInterfaceIFace()->getHeadSelectedUnit() == NULL)
 	{
 		bSelectGroup = true;
@@ -2441,7 +2433,34 @@ void CvGame::selectUnit(CvUnit* pUnit, bool bClear, bool bToggle, bool bSound) c
 	else
 	{
 		bSelectGroup = false;
+	} */
+	// K-Mod. Redesigned to make selection more sensible and predictable
+	// In 'simple mode', shift always groups and always targets a only a single unit.
+	bool bSimpleMode = getBugOptionBOOL("MainInterface__SimpleSelectionMode", false, "SIMPLE_SELECTION_MODE");
+
+	bool bExplicitDeselect = false;
+
+	if (gDLL->getInterfaceIFace()->getHeadSelectedUnit() == NULL)
+		bSelectGroup = true;
+	else if (bToggle)
+	{
+		if (pUnit->IsSelected())
+		{
+			bExplicitDeselect = true;
+			bSelectGroup = false;
+		}
+		else
+		{
+			bSelectGroup = bSimpleMode ? false : gDLL->getInterfaceIFace()->mirrorsSelectionGroup();
+		}
 	}
+	else
+	{
+		bSelectGroup = gDLL->getInterfaceIFace()->mirrorsSelectionGroup()
+			? gDLL->getInterfaceIFace()->getHeadSelectedUnit()->getGroup() != pUnit->getGroup()
+			: pUnit->IsSelected();
+	}
+	// K-Mod end
 
 	gDLL->getInterfaceIFace()->clearSelectedCities();
 
@@ -2452,17 +2471,41 @@ void CvGame::selectUnit(CvUnit* pUnit, bool bClear, bool bToggle, bool bSound) c
 	}
 	else
 	{
+		//bGroup = gDLL->getInterfaceIFace()->mirrorsSelectionGroup();
+
+		// K-Mod. If there is only one unit selected, and it is it to be toggled, just degroup it rather than unselecting it.
+		if (bExplicitDeselect && gDLL->getInterfaceIFace()->getLengthSelectionList() == 1)
+		{
+			CvMessageControl::getInstance().sendJoinGroup(pUnit->getID(), FFreeList::INVALID_INDEX);
+			return; // that's all.
+		}
+
 		bGroup = gDLL->getInterfaceIFace()->mirrorsSelectionGroup();
+		// Note: bGroup will not clear away unselected units of the group.
+		// so if we want to do that, we'll have to do it explicitly.
+		if (!bGroup && bSimpleMode && bToggle)
+		{
+			// 'toggle' should be seen as explicitly adding / removing units from a group.
+			// so lets explicitly reform the group.
+			selectionListGameNetMessage(GAMEMESSAGE_JOIN_GROUP);
+			// note: setting bGroup = true doesn't work here either,
+			// because the internals of insertIntoSelectionList apparently wants to go out of its way to make our lives difficult.
+			// (stuffed if I know what it actually does. Maybe it only sends the group signal if the units aren't already grouped or something.
+			//  in any case, we have to do it explicitly or it won't work.)
+			CvUnit* pSelectionHead = gDLL->getInterfaceIFace()->getHeadSelectedUnit();
+			if (pSelectionHead)
+				CvMessageControl::getInstance().sendJoinGroup(pUnit->getID(), pSelectionHead->getID());
+		}
+		// K-Mod end
 	}
 
 	if (bSelectGroup)
 	{
-		pSelectionGroup = pUnit->getGroup();
+		CvSelectionGroup* pSelectionGroup = pUnit->getGroup();
 
 		gDLL->getInterfaceIFace()->selectionListPreChange();
 
-		pEntityNode = pSelectionGroup->headUnitNode();
-
+		CLLNode<IDInfo>* pEntityNode = pSelectionGroup->headUnitNode();
 		while (pEntityNode != NULL)
 		{
 			FAssertMsg(::getUnit(pEntityNode->m_data), "null entity in selection group");
@@ -2476,6 +2519,11 @@ void CvGame::selectUnit(CvUnit* pUnit, bool bClear, bool bToggle, bool bSound) c
 	else
 	{
 		gDLL->getInterfaceIFace()->insertIntoSelectionList(pUnit, false, bToggle, bGroup, bSound);
+		// K-Mod. Unfortunately, removing units from the group is not correctly handled by the interface functions.
+		// so we need to do it explicitly.
+		if (bExplicitDeselect && bGroup)
+			CvMessageControl::getInstance().sendJoinGroup(pUnit->getID(), FFreeList::INVALID_INDEX);
+		// K-Mod end
 	}
 
 	gDLL->getInterfaceIFace()->makeSelectionListDirty();
@@ -2523,7 +2571,12 @@ void CvGame::selectGroup(CvUnit* pUnit, bool bShift, bool bCtrl, bool bAlt) cons
 		}
 		else
 		{
-			bGroup = gDLL->getInterfaceIFace()->mirrorsSelectionGroup();
+			//bGroup = gDLL->getInterfaceIFace()->mirrorsSelectionGroup();
+			// K-Mod. Treat shift as meaning we should always form a group
+			if (!gDLL->getInterfaceIFace()->mirrorsSelectionGroup())
+				selectionListGameNetMessage(GAMEMESSAGE_JOIN_GROUP);
+			bGroup = true; // note: sometimes this won't work. (see comments in CvGame::selectUnit.) Unfortunately, it's too fiddly to fix.
+			// K-Mod end
 		}
 
 		CvPlot* pUnitPlot = pUnit->plot();
@@ -2540,7 +2593,7 @@ void CvGame::selectGroup(CvUnit* pUnit, bool bShift, bool bCtrl, bool bAlt) cons
 
 			if (pLoopUnit->getOwnerINLINE() == getActivePlayer())
 			{
-				if (pLoopUnit->getDomainType() == eDomain && pLoopUnit->canMove()) // K-Mod added domain check
+				if (pLoopUnit->getDomainType() == eDomain && (pLoopUnit->canMove() || !pUnit->canMove())) // K-Mod added domain check and !pUnit->canMove() option.
 				{
 					//if (!isMPOption(MPOPTION_SIMULTANEOUS_TURNS) || getTurnSlice() - pLoopUnit->getLastMoveTurn() > GC.getDefineINT("MIN_TIMER_UNIT_DOUBLE_MOVES")) // disabled by K-Mod
 					{
@@ -4645,6 +4698,7 @@ void CvGame::toggleDebugMode()
 	GC.getMapINLINE().updateVisibility();
 	GC.getMapINLINE().updateSymbols();
 	GC.getMapINLINE().updateMinimapColor();
+	GC.getMapINLINE().setFlagsDirty(); // K-Mod
 	updateColoredPlots(); // K-Mod
 
 	gDLL->getInterfaceIFace()->setDirty(GameData_DIRTY_BIT, true);
@@ -5113,27 +5167,6 @@ void CvGame::setPlayerRank(PlayerTypes ePlayer, int iRank)
 {
 	FAssertMsg(ePlayer >= 0, "eIndex is expected to be non-negative (invalid Index)");
 	FAssertMsg(ePlayer < MAX_PLAYERS, "ePlayer is expected to be within maximum bounds (invalid Index)");
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      09/03/09                       poyuzhe & jdog5000     */
-/*                                                                                              */
-/* Efficiency                                                                                   */
-/************************************************************************************************/
-	// From Sanguo Mod Performance, ie the CAR Mod
-	// Attitude cache
-	if (iRank != m_aiPlayerRank[ePlayer])
-	{
-		for (int iI = 0; iI < MAX_PLAYERS; iI++)
-		{
-			if (GET_PLAYER((PlayerTypes)iI).isAlive())
-			{
-				GET_PLAYER(ePlayer).AI_invalidateAttitudeCache((PlayerTypes)iI);
-				GET_PLAYER((PlayerTypes)iI).AI_invalidateAttitudeCache(ePlayer);
-			}
-		}
-	}
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 	m_aiPlayerRank[ePlayer] = iRank;
 	FAssert(getPlayerRank(ePlayer) >= 0);
 }
@@ -5777,37 +5810,6 @@ void CvGame::setHolyCity(ReligionTypes eIndex, CvCity* pNewValue, bool bAnnounce
 		}
 
 		AI_makeAssignWorkDirty();
-
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      09/26/09                       poyuzhe & jdog5000     */
-/*                                                                                              */
-/* Efficiency                                                                                   */
-/************************************************************************************************/
-		// From Sanguo Mod Performance, ie the CAR Mod
-		// Attitude cache
-		if (GC.getGameINLINE().isFinalInitialized())
-		{
-			for (int iJ = 0; iJ < MAX_CIV_PLAYERS; iJ++)
-			{
-				if (GET_PLAYER((PlayerTypes)iJ).isAlive() && GET_PLAYER((PlayerTypes)iJ).getStateReligion() == eIndex)
-				{
-					if( pNewValue != NULL )
-					{
-						GET_PLAYER(pNewValue->getOwnerINLINE()).AI_invalidateAttitudeCache((PlayerTypes)iJ);
-						GET_PLAYER((PlayerTypes)iJ).AI_invalidateAttitudeCache(pNewValue->getOwnerINLINE());
-					}
-					
-					if( pOldValue != NULL )
-					{
-						GET_PLAYER(pOldValue->getOwnerINLINE()).AI_invalidateAttitudeCache((PlayerTypes)iJ);
-						GET_PLAYER((PlayerTypes)iJ).AI_invalidateAttitudeCache(pOldValue->getOwnerINLINE());
-					}
-				}
-			}
-		}
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 	}
 }
 
@@ -6019,40 +6021,28 @@ void CvGame::addGreatPersonBornName(const CvWString& szName)
 
 // Protected Functions...
 
+// K-Mod note: I've made some unmarked style adjustments to this function.
 void CvGame::doTurn()
 {
 	PROFILE_BEGIN("CvGame::doTurn()");
-
-	int aiShuffle[MAX_PLAYERS];
-	int iLoopPlayer;
-	int iI;
 
 	// END OF TURN
 	CvEventReporter::getInstance().beginGameTurn( getGameTurn() );
 
 	doUpdateCacheOnTurn();
 
-	CvSelectionGroup::path_finder.Reset(); // K-Mod. (one of the few manual resets we need)
-	m_ActivePlayerCycledGroups.clear(); // K-Mod
-	// K-Mod - fixing a problem from the CAR mod.
-	// (CvTeamAI::AI_doCounter has a couple of things which invalidate the cache without clearing it. So I'm clearing the cache here to avoid OOS errors.)
-	for (iI = 0; iI < MAX_PLAYERS; iI++)
-	{
-		GET_PLAYER((PlayerTypes)iI).AI_invalidateAttitudeCache();
-	}
-	// K-Mod end
-
 	updateScore();
 
 	doDeals();
 
+	/* original bts code
 	for (iI = 0; iI < MAX_TEAMS; iI++)
 	{
 		if (GET_TEAM((TeamTypes)iI).isAlive())
 		{
 			GET_TEAM((TeamTypes)iI).doTurn();
 		}
-	}
+	} */ // disabled by K-Mod. CvTeam::doTurn is now called at the the same time as CvPlayer::doTurn, to fix certain turn-order imbalances.
 
 	GC.getMapINLINE().doTurn();
 
@@ -6088,48 +6078,42 @@ void CvGame::doTurn()
 
 	if (isMPOption(MPOPTION_SIMULTANEOUS_TURNS))
 	{
+		int aiShuffle[MAX_PLAYERS];
+
 		shuffleArray(aiShuffle, MAX_PLAYERS, getSorenRand());
+		std::set<TeamTypes> active_teams; // K-Mod.
 
-		for (iI = 0; iI < MAX_PLAYERS; iI++)
+		for (int iI = 0; iI < MAX_PLAYERS; iI++)
 		{
-			iLoopPlayer = aiShuffle[iI];
+			PlayerTypes eLoopPlayer = (PlayerTypes)aiShuffle[iI];
 
-			if (GET_PLAYER((PlayerTypes)iLoopPlayer).isAlive())
+			CvPlayer& kLoopPlayer = GET_PLAYER(eLoopPlayer);
+			if (kLoopPlayer.isAlive())
 			{
-				GET_PLAYER((PlayerTypes)iLoopPlayer).setTurnActive(true);
+				// K-Mod. call CvTeam::doTurn when the first player from each team is activated.
+				if (active_teams.insert(kLoopPlayer.getTeam()).second)
+					GET_TEAM(kLoopPlayer.getTeam()).doTurn();
+				// K-Mod end
+				kLoopPlayer.setTurnActive(true);
 			}
 		}
 	}
 	else if (isSimultaneousTeamTurns())
 	{
-		for (iI = 0; iI < MAX_TEAMS; iI++)
+		for (int iI = 0; iI < MAX_TEAMS; iI++)
 		{
 			CvTeam& kTeam = GET_TEAM((TeamTypes)iI);
 			if (kTeam.isAlive())
 			{
 				kTeam.setTurnActive(true);
 				FAssert(getNumGameTurnActive() == kTeam.getAliveCount());
-/*************************************************************************************************/
-/* UNOFFICIAL_PATCH                       06/10/10                       snarko & jdog5000       */
-/*                                                                                               */
-/* Bugfix                                                                                        */
-/*************************************************************************************************/
-/* original bts code
-			}
-
-			break;
-*/
-				// Break only after first found alive player
 				break;
 			}
-/*************************************************************************************************/
-/* UNOFFICIAL_PATCH                         END                                                  */
-/*************************************************************************************************/
 		}
 	}
 	else
 	{
-		for (iI = 0; iI < MAX_PLAYERS; iI++)
+		for (int iI = 0; iI < MAX_PLAYERS; iI++)
 		{
 			if (GET_PLAYER((PlayerTypes)iI).isAlive())
 			{
@@ -6177,10 +6161,23 @@ void CvGame::doDeals()
 
 	verifyDeals();
 
+	std::set<PlayerTypes> trade_players; // K-Mod. List of players involved in trades.
 	for(pLoopDeal = firstDeal(&iLoop); pLoopDeal != NULL; pLoopDeal = nextDeal(&iLoop))
 	{
+		// K-Mod
+		trade_players.insert(pLoopDeal->getFirstPlayer());
+		trade_players.insert(pLoopDeal->getSecondPlayer());
+		// K-Mod end
 		pLoopDeal->doTurn();
 	}
+
+	// K-Mod. Update the attitude cache for all trade players
+	for (std::set<PlayerTypes>::iterator it = trade_players.begin(); it != trade_players.end(); ++it)
+	{
+		FAssert(*it != NO_PLAYER);
+		GET_PLAYER(*it).AI_updateAttitudeCache();
+	}
+	// K-Mod end
 }
 
 /*
@@ -9326,6 +9323,11 @@ void CvGame::doUpdateCacheOnTurn()
 			}
 		}
 	}
+
+	// K-Mod. (todo: move all of that stuff above somewhere else. That doesn't need to be updated every turn!)
+	CvSelectionGroup::path_finder.Reset(); // (one of the few manual resets we need)
+	m_ActivePlayerCycledGroups.clear();
+	// K-Mod end
 }
 
 VoteSelectionData* CvGame::getVoteSelection(int iID) const

@@ -169,22 +169,16 @@ public:
 
 	DllExport void chooseTech(int iDiscover = 0, CvWString szText = "", bool bFront = false);				// Exposed to Python
 
-	int calculateScore(bool bFinal = false, bool bVictory = false);
+	int calculateScore(bool bFinal = false, bool bVictory = false) const;
 
 	int findBestFoundValue() const;																																				// Exposed to Python
 
 	int upgradeAllPrice(UnitTypes eUpgradeUnit, UnitTypes eFromUnit);
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      11/14/09                                jdog5000      */
-/*                                                                                              */
-/* General AI                                                                                   */
-/************************************************************************************************/
+	// note: bbai added bIncludeTraining to the following two functions.
 	int countReligionSpreadUnits(CvArea* pArea, ReligionTypes eReligion, bool bIncludeTraining = false) const;														// Exposed to Python
 	int countCorporationSpreadUnits(CvArea* pArea, CorporationTypes eCorporation, bool bIncludeTraining = false) const;														// Exposed to Python
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
+
 	int countNumCoastalCities() const;																																		// Exposed to Python
 	int countNumCoastalCitiesByArea(CvArea* pArea) const;																									// Exposed to Python
 	int countTotalCulture() const;																																				// Exposed to Python
@@ -198,7 +192,7 @@ public:
 	bool doesImprovementConnectBonus(ImprovementTypes eImprovement, BonusTypes eBonus) const; // K-Mod
 
 	DllExport bool canContact(PlayerTypes ePlayer) const;																									// Exposed to Python
-	DllExport bool canContactAndTalk(PlayerTypes ePlayer) const; // K-Mod. this checks willingness to talk on both sides
+	bool canContactAndTalk(PlayerTypes ePlayer) const; // K-Mod. this checks willingness to talk on both sides
 	void contact(PlayerTypes ePlayer);																															// Exposed to Python
 	DllExport void handleDiploEvent(DiploEventTypes eDiploEvent, PlayerTypes ePlayer, int iData1, int iData2);
 	bool canTradeWith(PlayerTypes eWhoTo) const;																													// Exposed to Python
@@ -250,7 +244,7 @@ public:
 
 	int getBuildCost(const CvPlot* pPlot, BuildTypes eBuild) const;
 	bool canBuild(const CvPlot* pPlot, BuildTypes eBuild, bool bTestEra = false, bool bTestVisible = false) const;	// Exposed to Python
-	RouteTypes getBestRoute(CvPlot* pPlot = NULL) const;																						// Exposed to Python
+	RouteTypes getBestRoute(const CvPlot* pPlot = NULL) const;																						// Exposed to Python
 	int getImprovementUpgradeRate() const;																													// Exposed to Python
 
 	int calculateTotalYield(YieldTypes eYield) const;																											// Exposed to Python
@@ -482,7 +476,7 @@ public:
 	int getFreeMilitaryUnitsPopulationPercent() const;																										// Exposed to Python
 	void changeFreeMilitaryUnitsPopulationPercent(int iChange);											
 
-	int getTypicalUnitValue(UnitAITypes eUnitAI) const; // K-Mod
+	int getTypicalUnitValue(UnitAITypes eUnitAI, DomainTypes eDomain = NO_DOMAIN) const; // K-Mod
 
 	// K-Mod note: GoldPerUnit and GoldPerMilitaryUnit are now in units of 1/100 gold.
 	int getGoldPerUnit() const;																																								// Exposed to Python
@@ -680,6 +674,7 @@ public:
 
 	DllExport bool isTurnActive() const;																			
 	DllExport void setTurnActive(bool bNewValue, bool bDoTurn = true);
+	void onTurnLogging() const; // K-Mod
 
 	bool isAutoMoves() const;
 	DllExport void setAutoMoves(bool bNewValue);
@@ -1061,6 +1056,8 @@ public:
 	DllExport const CvArtInfoUnit* getUnitArtInfo(UnitTypes eUnit, int iMeshGroup = 0) const;
 	DllExport bool hasSpaceshipArrived() const;
 
+	// K-Mod note: Adding new virtual functions to this list seems to cause unpredictable behaviour during the initialization of the game.
+	// So beware!
 	virtual void AI_init() = 0;
 	virtual void AI_reset(bool bConstructor) = 0;
 	virtual void AI_doTurnPre() = 0;
@@ -1367,7 +1364,7 @@ protected:
 	virtual void read(FDataStreamBase* pStream);
 	virtual void write(FDataStreamBase* pStream);
 	
-	void doUpdateCacheOnTurn();	// adopted by K-Mod (originally was empty)
+	void doUpdateCacheOnTurn();
 	int getResearchTurnsLeftTimes100(TechTypes eTech, bool bOverflow) const;
 
 	void getTradeLayerColors(std::vector<NiColorA>& aColors, std::vector<CvPlotIndicatorData>& aIndicators) const;  // used by Globeview trade layer

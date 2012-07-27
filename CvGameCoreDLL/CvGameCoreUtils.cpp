@@ -720,7 +720,7 @@ __int64 getBinomialCoefficient(int iN, int iK)
 // Calculates combat odds, given two units
 // Returns value from 0-1000
 // Written by DeepO
-int getCombatOdds(CvUnit* pAttacker, CvUnit* pDefender)
+int getCombatOdds(const CvUnit* pAttacker, const CvUnit* pDefender)
 {
 	float fOddsEvent;
 	float fOddsAfterEvent;
@@ -2699,9 +2699,10 @@ void getMissionAIString(CvWString& szString, MissionAITypes eMissionAI)
 // K-Mod
 #define mission_string(x) case x: szString = L#x; break;
 	mission_string(MISSIONAI_GUARD_COAST)
+	mission_string(MISSIONAI_REINFORCE)
 	mission_string(MISSIONAI_SPREAD_CORPORATION)
 	mission_string(MISSIONAI_RECON_SPY)
-	mission_string(MISSIONAI_JOIN)
+	mission_string(MISSIONAI_JOIN_CITY)
 	mission_string(MISSIONAI_TRADE)
 	mission_string(MISSIONAI_INFILTRATE)
 	mission_string(MISSIONAI_CHOKE)

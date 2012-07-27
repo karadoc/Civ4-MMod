@@ -146,11 +146,16 @@ public:
 	bool AI_demandRebukedWar(PlayerTypes ePlayer) const;
 	bool AI_hasTradedWithTeam(TeamTypes eTeam) const;
 
+	void AI_updateAttitudeCache(); // K-Mod (for all players)
+	void AI_updateAttitudeCache(PlayerTypes ePlayer); // K-Mod
+	void AI_changeCachedAttitude(PlayerTypes ePlayer, int iChange); // K-Mod
 	AttitudeTypes AI_getAttitude(PlayerTypes ePlayer, bool bForced = true) const;
 	int AI_getAttitudeVal(PlayerTypes ePlayer, bool bForced = true) const;
 	static AttitudeTypes AI_getAttitudeFromValue(int iAttitudeVal);
 
 	int AI_calculateStolenCityRadiusPlots(PlayerTypes ePlayer) const;
+	void AI_updateCloseBorderAttitudeCache(); // K-Mod
+	void AI_updateCloseBorderAttitudeCache(PlayerTypes ePlayer); // K-Mod
 	int AI_getCloseBordersAttitude(PlayerTypes ePlayer) const;
 
 	int AI_getWarAttitude(PlayerTypes ePlayer) const;
@@ -313,6 +318,11 @@ public:
 	int AI_getMemoryCount(PlayerTypes eIndex1, MemoryTypes eIndex2) const;
 	void AI_changeMemoryCount(PlayerTypes eIndex1, MemoryTypes eIndex2, int iChange);
 
+	// K-Mod
+	int AI_getCityTargetTimer() const;
+	void AI_setCityTargetTimer(int iTurns);
+	// K-Mod end
+
 	int AI_calculateGoldenAgeValue(bool bConsiderRevolution = true) const;
 
 	void AI_doCommerce();
@@ -397,7 +407,7 @@ public:
 	bool AI_isPlotCitySite(CvPlot* pPlot) const;
 	int AI_getNumAreaCitySites(int iAreaID, int& iBestValue) const;
 	int AI_getNumAdjacentAreaCitySites(int iWaterAreaID, int iExcludeArea, int& iBestValue) const;
-	int AI_getNumPrimaryAreaCitySites() const; // K-Mod
+	int AI_getNumPrimaryAreaCitySites(int iMinimumValue = 0) const; // K-Mod
 	CvPlot* AI_getCitySite(int iIndex) const;
 
 	bool AI_deduceCitySite(const CvCity* pCity) const; // K-Mod
@@ -431,23 +441,11 @@ public:
 
 	bool AI_isFirstTech(TechTypes eTech) const;
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      09/03/09                       poyuzhe & jdog5000     */
-/*                                                                                              */
-/* Efficiency                                                                                   */
-/************************************************************************************************/
-	// From Sanguo Mod Performance, ie the CAR Mod
-	// Attitude cache
-	void AI_invalidateAttitudeCache(PlayerTypes ePlayer) const;
-	void AI_invalidateAttitudeCache() const;
 	void AI_ClearConstructionValueCache(); // K-Mod
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 
 	// for serialization
-  virtual void read(FDataStreamBase* pStream);
-  virtual void write(FDataStreamBase* pStream);
+	virtual void read(FDataStreamBase* pStream);
+	virtual void write(FDataStreamBase* pStream);
 
 protected:
 
@@ -459,6 +457,7 @@ protected:
 	int m_iCivicTimer;
 	int m_iReligionTimer;
 	int m_iExtraGoldTarget;
+	int m_iCityTargetTimer; // K-Mod
 
 	/* original bts code
 	mutable int m_iStrategyHash;
@@ -509,19 +508,10 @@ protected:
 	int* m_aiUnitCombatWeights;
 	std::map<UnitClassTypes, int> m_GreatPersonWeights; // K-Mod
 
-	mutable int* m_aiCloseBordersAttitudeCache;
+	//mutable int* m_aiCloseBordersAttitudeCache;
+	std::vector<int> m_aiCloseBordersAttitudeCache; // K-Mod. (the original system was prone to mistakes.)
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      09/03/09                       poyuzhe & jdog5000     */
-/*                                                                                              */
-/* Efficiency                                                                                   */
-/************************************************************************************************/
-	// From Sanguo Mod Performance, ie the CAR Mod
-	// Attitude cache
-	mutable int* m_aiAttitudeCache;
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
+	std::vector<int> m_aiAttitudeCache; // K-Mod
 
 	bool* m_abFirstContact;
 
@@ -551,7 +541,7 @@ protected:
 	int AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTriggeredData) const;
 
 	void AI_doEnemyUnitData();
-	void AI_invalidateCloseBordersAttitudeCache();
+	//void AI_invalidateCloseBordersAttitudeCache(); // disabled by K-Mod
 
 	friend class CvGameTextMgr;
 };

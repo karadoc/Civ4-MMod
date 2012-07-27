@@ -715,6 +715,7 @@ public:
 	DllExport void setDefineFLOAT( const char * szName, float fValue );
 	DllExport void setDefineSTRING( const char * szName, const char * szValue );
 
+	inline int getEXTRA_YIELD() { return m_iEXTRA_YIELD; } // K-Mod (why aren't all these functions inline?)
 	int getMOVE_DENOMINATOR();
 	int getNUM_UNIT_PREREQ_OR_BONUSES();
 	int getNUM_BUILDING_PREREQ_OR_BONUSES();
@@ -808,6 +809,7 @@ public:
 
 	inline bool getUSE_DO_PILLAGE_GOLD_CALLBACK() { return m_bUSE_DO_PILLAGE_GOLD_CALLBACK; }
 	inline bool getUSE_GET_EXPERIENCE_NEEDED_CALLBACK() { return m_bUSE_GET_EXPERIENCE_NEEDED_CALLBACK; }
+	inline bool getUSE_UNIT_UPGRADE_PRICE_CALLBACK() { return m_bUSE_UNIT_UPGRADE_PRICE_CALLBACK; }
 	inline bool getUSE_DO_COMBAT_CALLBACK() { return m_bUSE_DO_COMBAT_CALLBACK; }
 
 	// more reliable versions of the 'gDLL->xxxKey' functions:
@@ -815,6 +817,8 @@ public:
 	inline bool ctrlKey() { return (GetKeyState(VK_CONTROL) & 0x8000); }
 	inline bool shiftKey() { return (GetKeyState(VK_SHIFT) & 0x8000); }
 	// NOTE: I've replaced all calls to the gDLL key functions with calls to these functions.
+
+	inline bool suppressCycling() { return (GetKeyState('X') & 0x8000); } // hold X to temporarily suppress automatic unit cycling.
 	// K-Mod end
 
 	DllExport int getMAX_CIV_PLAYERS();
@@ -1159,6 +1163,7 @@ protected:
 
 	FVariableSystem* m_VarSystem;
 
+	int m_iEXTRA_YIELD; // K-Mod
 	int m_iMOVE_DENOMINATOR;
 	int m_iNUM_UNIT_PREREQ_OR_BONUSES;
 	int m_iNUM_BUILDING_PREREQ_OR_BONUSES;
@@ -1252,6 +1257,7 @@ protected:
 
 	bool m_bUSE_DO_PILLAGE_GOLD_CALLBACK;
 	bool m_bUSE_GET_EXPERIENCE_NEEDED_CALLBACK;
+	bool m_bUSE_UNIT_UPGRADE_PRICE_CALLBACK;
 	bool m_bUSE_DO_COMBAT_CALLBACK;
 	// K-Mod end
 

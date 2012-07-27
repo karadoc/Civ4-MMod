@@ -437,7 +437,8 @@ void CvGame::updateSelectionList()
 {
 	CvUnit* pHeadSelectedUnit;
 
-	if (GET_PLAYER(getActivePlayer()).isOption(PLAYEROPTION_NO_UNIT_CYCLING))
+	//if (GET_PLAYER(getActivePlayer()).isOption(PLAYEROPTION_NO_UNIT_CYCLING))
+	if (GC.suppressCycling() || GET_PLAYER(getActivePlayer()).isOption(PLAYEROPTION_NO_UNIT_CYCLING)) // K-Mod
 	{
 		return;
 	}
@@ -470,7 +471,7 @@ void CvGame::updateSelectionList()
 void CvGame::updateTestEndTurn()
 {
 	bool bAny;
-	bool bShift = GC.shiftKey() || (GetKeyState(VK_SHIFT) & 0x8000); // K-Mod.
+	bool bShift = GC.shiftKey();
 
 	bAny = ((gDLL->getInterfaceIFace()->getHeadSelectedUnit() != NULL) && !(GET_PLAYER(getActivePlayer()).isOption(PLAYEROPTION_NO_UNIT_CYCLING)));
 
@@ -489,7 +490,7 @@ void CvGame::updateTestEndTurn()
 			{
 				if (!(gDLL->getInterfaceIFace()->isForcePopup()))
 				{
-					if (!bShift) // K-Mod
+					if (!bShift && !GC.suppressCycling()) // K-Mod
 						gDLL->getInterfaceIFace()->setForcePopup(true);
 				}
 				else
@@ -499,7 +500,7 @@ void CvGame::updateTestEndTurn()
 						//if (!(GC.shiftKey()))
 						// K-Mod. Don't start automoves if we currently have a group selected which would move.
 						CvUnit* pSelectedUnit = gDLL->getInterfaceIFace()->getHeadSelectedUnit();
-						if (!GC.shiftKey() && (pSelectedUnit == NULL || !pSelectedUnit->getGroup()->readyToAuto()))
+						if (!bShift && !GC.suppressCycling() && (pSelectedUnit == NULL || !pSelectedUnit->getGroup()->readyToAuto()))
 						// K-Mod end
 						{
 							CvMessageControl::getInstance().sendAutoMoves();
@@ -776,6 +777,10 @@ void CvGame::cycleSelectionGroups(bool bClear, bool bForward, bool bWorkers) con
 void CvGame::cycleSelectionGroups_delayed(int iDelay, bool bIncremental, bool bDelayOnly) const
 {
 	PROFILE_FUNC(); // I'm just hoping that the python call doesn't hurt the respose times
+
+	if (GC.suppressCycling()) // cf. GvGame::updateSelectionList
+		return;
+
 	// Only rapid-cycle when not doing auto-play.
 	// Also note, cycleSelectionGroups currently causes a crash if the game is not initialised.
 	// (and this function is indirectly called during the set of up a new game - so we currently need that init check.)
@@ -1080,8 +1085,8 @@ void CvGame::selectionListGameNetMessage(int eMessage, int iData2, int iData3, i
 						{
 							CvMessageControl::getInstance().sendJoinGroup(pSelectedUnit->getID(), FFreeList::INVALID_INDEX);
 						}
-
-						CvMessageControl::getInstance().sendJoinGroup(pSelectedUnit->getID(), pHeadSelectedUnit->getID());
+						else // K-Mod
+							CvMessageControl::getInstance().sendJoinGroup(pSelectedUnit->getID(), pHeadSelectedUnit->getID());
 					}
 				}
 
@@ -1773,30 +1778,16 @@ void CvGame::doControl(ControlTypes eControl)
 		break;
 
 	case CONTROL_RETIRE:
-		if (!isGameMultiPlayer() || countHumanPlayersAlive() == 1)
+		// K-Mod. (original code moved into CvGame::retire)
 		{
-			if (gDLL->GetAutorun())
+			CvPopupInfo* pInfo = new CvPopupInfo(BUTTONPOPUP_CONFIRM_MENU);
+			if (NULL != pInfo)
 			{
-				GC.getInitCore().setSlotStatus(getActivePlayer(), SS_COMPUTER);
-			}
-			else
-			{
-				setGameState(GAMESTATE_OVER);
-				gDLL->getInterfaceIFace()->setDirty(Soundtrack_DIRTY_BIT, true);
+				pInfo->setData1(2);
+				gDLL->getInterfaceIFace()->addPopup(pInfo, GC.getGameINLINE().getActivePlayer(), true);
 			}
 		}
-		else
-		{
-			if (isNetworkMultiPlayer())
-			{
-				gDLL->sendMPRetire();
-				gDLL->getInterfaceIFace()->exitingToMainMenu();
-			}
-			else
-			{
-				gDLL->handleRetirement(getActivePlayer());
-			}
-		}
+		// K-Mod end
 		break;
 
 	case CONTROL_SAVE_GROUP:
@@ -1960,19 +1951,16 @@ void CvGame::doControl(ControlTypes eControl)
 		break;
 
 	case CONTROL_WORLD_BUILDER:
-		if (GC.getInitCore().getAdminPassword().empty())
+		// K-Mod. (original code moved into CvGame::retire)
 		{
-			gDLL->getInterfaceIFace()->setWorldBuilder(!(gDLL->GetWorldBuilderMode()));
-		}
-		else
-		{
-			CvPopupInfo* pInfo = new CvPopupInfo(BUTTONPOPUP_ADMIN_PASSWORD);
+			CvPopupInfo* pInfo = new CvPopupInfo(BUTTONPOPUP_CONFIRM_MENU);
 			if (NULL != pInfo)
 			{
-				pInfo->setData1((int)CONTROL_WORLD_BUILDER);
-				gDLL->getInterfaceIFace()->addPopup(pInfo, NO_PLAYER, true);
+				pInfo->setData1(4);
+				gDLL->getInterfaceIFace()->addPopup(pInfo, GC.getGameINLINE().getActivePlayer(), true);
 			}
 		}
+		// K-Mod end
 		break;
 
 	case CONTROL_ESPIONAGE_SCREEN:
@@ -2002,6 +1990,56 @@ void CvGame::doControl(ControlTypes eControl)
 		break;
 	}
 }
+
+// K-Mod. This code use to be inside CvGame::doControl. I've moved it here and told doControl to simply create a confirmation popup.
+void CvGame::retire()
+{
+	FAssert(canDoControl(CONTROL_RETIRE));
+
+	if (!isGameMultiPlayer() || countHumanPlayersAlive() == 1)
+	{
+		if (gDLL->GetAutorun())
+		{
+			GC.getInitCore().setSlotStatus(getActivePlayer(), SS_COMPUTER);
+		}
+		else
+		{
+			setGameState(GAMESTATE_OVER);
+			gDLL->getInterfaceIFace()->setDirty(Soundtrack_DIRTY_BIT, true);
+		}
+	}
+	else
+	{
+		if (isNetworkMultiPlayer())
+		{
+			gDLL->sendMPRetire();
+			gDLL->getInterfaceIFace()->exitingToMainMenu();
+		}
+		else
+		{
+			gDLL->handleRetirement(getActivePlayer());
+		}
+	}
+}
+
+void CvGame::enterWorldBuilder()
+{
+	FAssert(canDoControl(CONTROL_WORLD_BUILDER));
+	if (GC.getInitCore().getAdminPassword().empty())
+	{
+		gDLL->getInterfaceIFace()->setWorldBuilder(!(gDLL->GetWorldBuilderMode()));
+	}
+	else
+	{
+		CvPopupInfo* pInfo = new CvPopupInfo(BUTTONPOPUP_ADMIN_PASSWORD);
+		if (NULL != pInfo)
+		{
+			pInfo->setData1((int)CONTROL_WORLD_BUILDER);
+			gDLL->getInterfaceIFace()->addPopup(pInfo, NO_PLAYER, true);
+		}
+	}
+}
+// K-Mod end
 
 void CvGame::getGlobeLayers(std::vector<CvGlobeLayerData>& aLayers) const
 {

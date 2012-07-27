@@ -139,6 +139,7 @@ m_aeTurnRightDirection(NULL),
 //m_aPlayerOptionsInfo(NULL),
 m_Profiler(NULL),
 m_VarSystem(NULL),
+m_iEXTRA_YIELD(0), // K-Mod
 m_iMOVE_DENOMINATOR(0),
 m_iNUM_UNIT_PREREQ_OR_BONUSES(0),
 m_iNUM_BUILDING_PREREQ_OR_BONUSES(0),
@@ -228,6 +229,7 @@ m_bUSE_DO_GREAT_PEOPLE_CALLBACK(false),
 m_bUSE_DO_MELTDOWN_CALLBACK(false),
 m_bUSE_DO_PILLAGE_GOLD_CALLBACK(false),
 m_bUSE_GET_EXPERIENCE_NEEDED_CALLBACK(false),
+m_bUSE_UNIT_UPGRADE_PRICE_CALLBACK(false),
 m_bUSE_DO_COMBAT_CALLBACK(false),
 // K-Mod end
 m_paHints(NULL),
@@ -2642,6 +2644,7 @@ FVariableSystem* CvGlobals::getDefinesVarSystem()
 
 void CvGlobals::cacheGlobals()
 {
+	m_iEXTRA_YIELD = getDefineINT("EXTRA_YIELD"); // K-Mod
 	m_iMOVE_DENOMINATOR = getDefineINT("MOVE_DENOMINATOR");
 	m_iNUM_UNIT_PREREQ_OR_BONUSES = getDefineINT("NUM_UNIT_PREREQ_OR_BONUSES");
 	m_iNUM_BUILDING_PREREQ_OR_BONUSES = getDefineINT("NUM_BUILDING_PREREQ_OR_BONUSES");
@@ -2735,6 +2738,7 @@ void CvGlobals::cacheGlobals()
 
 	m_bUSE_DO_PILLAGE_GOLD_CALLBACK = getDefineINT("USE_DO_PILLAGE_GOLD_CALLBACK") != 0;
 	m_bUSE_GET_EXPERIENCE_NEEDED_CALLBACK = getDefineINT("USE_GET_EXPERIENCE_NEEDED_CALLBACK") != 0;
+	m_bUSE_UNIT_UPGRADE_PRICE_CALLBACK = getDefineINT("USE_UNIT_UPGRADE_PRICE_CALLBACK") != 0;
 	m_bUSE_DO_COMBAT_CALLBACK = getDefineINT("USE_DO_COMBAT_CALLBACK") != 0;
 	// K-Mod end
 
@@ -3641,11 +3645,12 @@ int CvGlobals::getInfoTypeForString(const char* szType, bool hideAssert) const
 		return it->second;
 	}
 
-	if(!hideAssert)
+	//if(!hideAssert)
+	if (!hideAssert && !(strcmp(szType, "NONE")==0 || strcmp(szType, "")==0)) // K-Mod
 	{
 		CvString szError;
 		szError.Format("info type %s not found, Current XML file is: %s", szType, GC.getCurrentXMLFile().GetCString());
-		FAssertMsg(strcmp(szType, "NONE")==0 || strcmp(szType, "")==0, szError.c_str());
+		//FAssertMsg(strcmp(szType, "NONE")==0 || strcmp(szType, "")==0, szError.c_str());
 		gDLL->logMsg("xml.log", szError);
 	}
 

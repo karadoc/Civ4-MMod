@@ -265,6 +265,7 @@ void CvPlot::setupGraphical()
 	updateMinimapColor();
 
 	updateVisibility();
+	updateCenterUnit(); // K-Mod (This is required now that CvMap::updateCenterUnit doesn't always update the whole map.)
 }
 
 void CvPlot::updateGraphicEra()
@@ -772,10 +773,10 @@ void CvPlot::updateCenterUnit()
 		setCenterUnit(getBestDefender(GC.getGameINLINE().getActivePlayer()));
 	}
 
-	if (getCenterUnit() == NULL)
+	/* if (getCenterUnit() == NULL)
 	{
 		setCenterUnit(getBestDefender(NO_PLAYER, GC.getGameINLINE().getActivePlayer(), gDLL->getInterfaceIFace()->getHeadSelectedUnit(), true));
-	}
+	} */ // disabled by K-Mod. I don't think its relevent whether or not the best defender can move.
 
 	if (getCenterUnit() == NULL)
 	{
@@ -6272,7 +6273,8 @@ int CvPlot::calculateImprovementYieldChange(ImprovementTypes eImprovement, Yield
 
 		if( bBestRoute && ePlayer != NO_PLAYER )
 		{
-			eRoute = GET_PLAYER(ePlayer).getBestRoute(GC.getMapINLINE().plotSorenINLINE(getX_INLINE(), getY_INLINE()));
+			//eRoute = GET_PLAYER(ePlayer).getBestRoute(GC.getMapINLINE().plotSorenINLINE(getX_INLINE(), getY_INLINE()));
+			eRoute = GET_PLAYER(ePlayer).getBestRoute(this); // K-Mod. (obvious?)
 		}
 
 		if (eRoute != NO_ROUTE)
@@ -6288,6 +6290,8 @@ int CvPlot::calculateImprovementYieldChange(ImprovementTypes eImprovement, Yield
 			iYield += GC.getImprovementInfo(eImprovement).getTechYieldChanges(iI, eYield);
 		}
 
+		// K-Mod note: this doesn't calculate the 'optimal' yield, because it will count negative effects and it will count effects from competing civics.
+		// Maybe I'll fix it later.
 		for (iI = 0; iI < GC.getNumCivicInfos(); ++iI)
 		{
 			iYield += GC.getCivicInfo((CivicTypes) iI).getImprovementYieldChanges(eImprovement, eYield);
@@ -6437,7 +6441,7 @@ int CvPlot::calculateYield(YieldTypes eYield, bool bDisplay) const
 		{
 			if (iYield >= GET_PLAYER(ePlayer).getExtraYieldThreshold(eYield))
 			{
-				iYield += GC.getDefineINT("EXTRA_YIELD");
+				iYield += GC.getEXTRA_YIELD();
 			}
 		}
 
@@ -8152,7 +8156,8 @@ void CvPlot::updateFlagSymbol()
 	PlayerTypes ePlayer = NO_PLAYER;
 	PlayerTypes ePlayerOffset = NO_PLAYER;
 
-	CvUnit* pCenterUnit = getCenterUnit();
+	//CvUnit* pCenterUnit = getCenterUnit();
+	CvUnit* pCenterUnit = getDebugCenterUnit(); // K-Mod
 
 	//get the plot's unit's flag
 	if (pCenterUnit != NULL)

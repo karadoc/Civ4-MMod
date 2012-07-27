@@ -154,12 +154,7 @@ bool CvSelectionGroupAI::AI_separateEmptyTransports()
 // Returns true if the group has become busy...
 bool CvSelectionGroupAI::AI_update()
 {
-	CLLNode<IDInfo>* pEntityNode;
-	CvUnit* pLoopUnit;
-	bool bDead;
-	bool bFollow;
-
-	PROFILE("CvSelectionGroupAI::AI_update");
+	PROFILE_FUNC();
 
 	FAssert(getOwnerINLINE() != NO_PLAYER);
 
@@ -173,28 +168,23 @@ bool CvSelectionGroupAI::AI_update()
 		return false;
 	}
 
-	// K-Mod / BBAI
-	if (getActivityType() == ACTIVITY_SLEEP && !isHuman() && !getHeadUnit()->isCargo())
-	{
-		setForceUpdate(true);
-	}
-	// end
-
+	// K-Mod. (replacing the original "isForceUpdate" stuff.)
 	if (isForceUpdate())
-	{
-		doForceUpdate(); // K-Mod (based on old code)
-	}
+		AI_cancelGroupAttack(); // note: we haven't toggled the update flag, nor woken the group from sleep.
+	// K-Mod end
 
 	//FAssert(!(GET_PLAYER(getOwnerINLINE()).isAutoMoves())); // (no longer true in K-Mod)
 
 	int iTempHack = 0; // XXX
 
-	bDead = false;
+	bool bDead = false;
 	
 	bool bFailedAlreadyFighting = false;
 	//while ((m_bGroupAttack && !bFailedAlreadyFighting) || readyToMove())
 	while ((AI_isGroupAttack() && !isBusy()) || readyToMove()) // K-Mod
 	{
+		setForceUpdate(false); // K-Mod. Force update just means we should get into this loop at least once.
+
 		iTempHack++;
 		if (iTempHack > 100)
 		{
@@ -263,24 +253,32 @@ bool CvSelectionGroupAI::AI_update()
 
 	if (!bDead)
 	{
+		// K-Mod. this is how we deal with force update when some group memebers can't move.
+		if (isForceUpdate())
+		{
+			setForceUpdate(false);
+			AI_cancelGroupAttack();
+			setActivityType(ACTIVITY_AWAKE);
+		}
+		// K-Mod end
 		if (!isHuman())
 		{
-			bFollow = false;
+			bool bFollow = false;
 
 			// if we not group attacking, then check for follow action
 			if (!AI_isGroupAttack())
 			{
-				pEntityNode = headUnitNode();
+				CLLNode<IDInfo>* pEntityNode = headUnitNode();
 				// K-Mod note: I've rearranged a few things below, and added 'bFirst'.
 				bool bFirst = true;
 
 				while ((pEntityNode != NULL) && readyToMove(true))
 				{
-					pLoopUnit = ::getUnit(pEntityNode->m_data);
+					CvUnit* pLoopUnit = ::getUnit(pEntityNode->m_data);
 					pEntityNode = nextUnitNode(pEntityNode);
 
 					if (bFirst)
-						resetPath();
+						path_finder.Reset();
 
 					if (pLoopUnit->canMove())
 					{
@@ -308,16 +306,6 @@ bool CvSelectionGroupAI::AI_update()
 					pushMission(MISSION_SKIP);
 				}
 			}
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      04/28/10                                jdog5000      */
-/*                                                                                              */
-/* Unit AI                                                                                      */
-/************************************************************************************************/
-			// AI should never put units to sleep, how does this ever happen?
-			//FAssert( getHeadUnit()->isCargo() || getActivityType() != ACTIVITY_SLEEP );
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 		}
 	}
 
@@ -380,7 +368,7 @@ CvUnit* CvSelectionGroupAI::AI_getBestGroupAttacker(const CvPlot* pPlot, bool bP
 	CLLNode<IDInfo>* pUnitNode = headUnitNode();
 
 	bool bIsHuman = (pUnitNode != NULL) ? GET_PLAYER(::getUnit(pUnitNode->m_data)->getOwnerINLINE()).isHuman() : true;
-			
+
 	while (pUnitNode != NULL)
 	{
 		CvUnit* pLoopUnit = ::getUnit(pUnitNode->m_data);
@@ -423,21 +411,21 @@ CvUnit* CvSelectionGroupAI::AI_getBestGroupAttacker(const CvPlot* pPlot, bool bP
 						else 
 						{
 							int iOdds = pLoopUnit->AI_attackOdds(pPlot, bPotentialEnemy);
-							
+
 							int iValue = iOdds;
 							FAssertMsg(iValue > 0, "iValue is expected to be greater than 0");
-	
+
 							if (pLoopUnit->collateralDamage() > 0)
 							{
 								int iPossibleTargets = std::min((pPlot->getNumVisibleEnemyDefenders(pLoopUnit) - 1), pLoopUnit->collateralDamageMaxUnits());
-	
+
 								if (iPossibleTargets > 0)
 								{
 									iValue *= (100 + ((pLoopUnit->collateralDamage() * iPossibleTargets) / 5));
 									iValue /= 100;
 								}
 							}
-	
+
 							// if non-human, prefer the last unit that has the best value (so as to avoid splitting the group)
 							if (iValue > iBestValue || (!bIsHuman && iValue > 0 && iValue == iBestValue))
 							{
@@ -454,7 +442,7 @@ CvUnit* CvSelectionGroupAI::AI_getBestGroupAttacker(const CvPlot* pPlot, bool bP
 			}
 		}
 	}
-	
+
 	iUnitOdds = iBestOdds;
 	return pBestUnit;
 }

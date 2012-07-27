@@ -200,6 +200,8 @@ inline CvPlot* plotXY(int iX, int iY, int iDX, int iDY)																// Expose
 	return GC.getMapINLINE().plotINLINE((iX + iDX), (iY + iDY));
 }
 
+inline CvPlot* plotXY(const CvPlot* pPlot, int iDX, int iDY) { return plotXY(pPlot->getX_INLINE(), pPlot->getY_INLINE(), iDX, iDY); } // K-Mod
+
 inline DirectionTypes directionXY(int iDX, int iDY)																		// Exposed to Python
 {
 	if ((abs(iDX) > DIRECTION_RADIUS) || (abs(iDY) > DIRECTION_RADIUS))
@@ -275,7 +277,7 @@ bool isTeamProject(ProjectTypes eProject);														// Exposed to Python
 bool isLimitedProject(ProjectTypes eProject);													// Exposed to Python
 
 __int64 getBinomialCoefficient(int iN, int iK);
-int getCombatOdds(CvUnit* pAttacker, CvUnit* pDefender);							// Exposed to Python
+int getCombatOdds(const CvUnit* pAttacker, const CvUnit* pDefender); // Exposed to Python
 int estimateCollateralWeight(const CvPlot* pPlot, TeamTypes eDefenceTeam); // K-Mod
 
 int getEspionageModifier(TeamTypes eOurTeam, TeamTypes eTargetTeam);							// Exposed to Python

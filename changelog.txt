@@ -1,6 +1,122 @@
-This is K-Mod version 1.31.
+This is K-Mod version 1.34.
 If you have any questions, comments, suggestions, bug reports, etc. Post here: http://forums.civfanatics.com/showthread.php?p=10094243
 
+v1.34 changelist
+
+Game
+
++ The anti-double-move rule in simultaneous turns mode now only applies after meeting another human.
++ Fixed an original BtS bug which messed up the conditions for random events that depend on corporations. (In particular, this bug allowed 'corporate expansion' and 'hostile takeover' to trigger for civs which did not own the HQ.)
++ Halved the number of islands settled to complete the Blessed Sea quest. (Eg. on a standard size map, the goal has been been reduced from 10 islands to 5 islands - which is still a lot, but less insane.)
++ Fortify, sentry, heal, and sea-patrol no longer block each other. (eg. the 'sentry' command will still be available when a unit is fortified or healing; so the unit doesn't need to be woken before changing its orders.)
++ Fixed a bug which prevented the financial advisor from ever reporting zero units in the supply cost. (The cost was accurate, but the number of units had a non-zero floor.)
++ Added xml option to block python callback for unit upgrade cost. (Blocked by default, for efficiency.)
++ Minor efficiency improvements.
+
+AI
+
++ Made a large number of behind-the-scenes changes to the AI to allow them to use and understand the 'fortify' command. (This is an aesthetics change only. Using the 'skip' command has the same effect in terms of game mechanics; but 'fortify' makes the units appear ready for combat graphically.)
++ Made some adjustments to the AI's cost war analysis for some more complex war situations
+  + Reduced the power estimate for secondary targets in offence wars. (eg. teams brought in by defensive pacts now only have part of their power counted.)
+  + The relative productivity estimate now includes productivity of vassals and of other enemies from different wars.
+  + The cost of war weariness from vassal-wars is now counted (in addition to war weariness from the primary war).
+  + When planning war on a vassal, the AI will now estimate unit strength based on the master's units rather then the vassal's units.
+  + The total commitment cost of war is now adjusted by a non-zero percentage at the end of the calculation. This is meant to represent the fact that teams will have some military spending regardless of any wars; and this minimum military cost might be all that's required for the war.
++ Fixed a set bugs which prevented the AI from taking defensive pacts into account when planning war against a vassal.
++ Restored check for 'peace not possible' when negotiating capitulation. (This can't happen with the usual rules anyway.)
++ Voluntary vassalage now checks for 'war not possible' for the would-be master. (Taking on a voluntary vassal causes the master to automatically declare war on anyone the vassal is currently at war with. Without this 'war not possible' check, the vassal trade could be used to bypass peace treaties.)
++ The AI will now refuse to take on a vassal if it would mean declaring war on someone they usually wouldn't consider war with.
++ When the AI considers starting a war with a vassal, they will now use the maximum 'no war prob' of the target and of the master.
++ The AI is now slightly more likely to make basic preparation for a cultural victory in the early game.
++ Made several changes to the AI's city site evaluation.
+  + All plots above the food-per-pop threshold are now counted as 'special food plus'. (previously it was only counted for features, water, and bonuses.)
+  + Fixed some minor problems and inconsistencies in the way plot features are evaluated.
+  + Changed the way yield is counted on the city plot to better reflect the actual game mechanics. (For example, the AI will be less discouraged from settling on bonuses which would give them 3 food on the city plot; especially if they wouldn't get much more than that from the plot anyway.)
+  + Added a new factor to decrease the value of sites which lack hammers.
+  + Fixed a bug which prevented sea resources from being evaluated. (Previously, the food was counted, but not the value of the resource itself.)
+  + Value of resources (bonuses) now scales based on how many the civ has.
+  + Changed the way resources are evaluated for starting locations. (unique bonuses will be worth slightly more; and duplicate bonuses worth slightly less.)
+  + 'Easy culture' is now taken into account for bonus value as well as for yield value; so that the AI doesn't always feel they need to get strategic resources in their inner circle.
+  + 'Ambitious' civs now value bonuses more highly.
+  + Changed the way water plots are evaluated. (In general, water is worth slightly less than before but coastal cities are worth slightly more.)
+  + Tweaked some of the yield values.
++ Made some changes to the AI's usage of nukes
+  + The AI will now be slightly more likely to use nukes against civs that have nuked them in the past.
+  + Increased the tendency for civs that build the Manhattan Project to want to build nukes.
+  + The AI will now include cargo units when evaluating potential nuke targets.
+  + Fixed a bug which sometimes prevented the AI from moving its tactical nukes.
++ Stack size thresholds in naval assault missions are now reduced when en route, to discourage the AI from changing its mind half-way.
++ Naval reinforcements missions will no longer be allowed to declare war.
++ When upgrading unit types, the AI will now put slightly more care into its choice of which upgrade to choose for each unit.
+
+
+--
+v1.33 changelist
+
+Game
+
++ XML balance adjustments to several units.
+  + Production cost of war elephants (and ballista elephants) increased from 60 to 70.
+  + Maximum collateral damage targets reduced from 7 to 6 for cannons, and 8 to 7 for artillery and mobile artillery.
+  + Grenadiers now get +10% city attack.
+  + Panzers now get 1-2 first strikes.
+  + Submarines and Attack Submarines now get +10% ocean attack.
+  + Ships of the Line strength increased from 8 to 10; but bonus vs frigates decreased from +50% to +20%.
+  + Stealth Destroyers strength increased from 30 to 36.
++ Fixed a bug which prevented players from trading techs immediately after completing the research. (This behaviour was an unintended side-effect of a change in the previous version of K-Mod. -- Note: it will now also be possible to trade techs immediately after bulbing them.)
++ Corrected some minor anomalies in the new handling of CvTeam::doTurn in simultaneous turns mode.
++ Fixed a bug which allowed players to queue multiple nuke targets with a single nuke unit. (Previously, this could cause some strange behaviour.)
++ Fixed a potential infinite loop in mods that have improvements which when pillaged become the same improvement (either directly or indirectly).
+
+UI
+
++ Implemented unit cycling suppression with the X key. ie. If you hold X while issuing an order, the unit will remain selected even when it has no moves left.
++ Added a new option to the BUG options screen: Simple [Shift] Unit Selection. With this option enabled, the selection with the shift key will behave in a more rigid and predictable way.
++ Fixed several bugs and inconsistencies in the default selection rules when using the shift key.
++ Units deselected with shift key will now be ungrouped. (Previously, units would be added the the group when selected, but not removed from the group when deselected.)
++ Previously when selecting units with either ctrl or alt, units with no remaining moves would be excluded from the selection. This has been changed so that if the player explicitly clicks on a unit with no moves (while holding ctrl or alt) then the selection will include all units regardless of their moves.
++ 'Retire' and 'WorldBuilder' controls now always require confirmation. (eg. if you press ctrl+q the game will now give a prompt asking of you want to retire rather than instantly ending the game.)
++ Confirmation prompts, such as those for 'Retire' or 'Exit to Desktop', will now say explicitly what it is that you are confirming. (Previously these prompts simply said "Are you sure? Yes/No", with no hint of what they were talking about.)
++ Changed the way the game updates which unit should be displayed on top of each plot. This change significantly improves the game's response time when selecting units. (Previously the game would update every plot on the map every time a unit was selected. Now, it only updates plots in the locale of the selected unit.)
++ When pointing to an enemy stack to see combat odds, the game will now update the top unit in the enemy stack to accurately reflect which enemy unit will fight first. (Previously the top unit was accurate when the player had only a single attacker selected, but was sometimes inaccurate if the player had a whole stack selected. It should now always be accurate - but only after displaying the combat odds!) (Exception: If the attacking playing has a spy or some other unit on the target plot, that unit will always be on top.)
++ Fixed a bug which prevented the "friendlies" combat odds from being displayed. (Holding alt when pointing to a plot should give combat odds regardless of who owns the target units.)
++ The city capture sound is now played when the city is actually captured rather than when the city capture popup is displayed. This change prevents the sound from repeating if the player chooses to examine the city.
++ When a corporation expands into ones own city, the player will now only receive one message to describe what the corp. has brought to the city. They will no longer get the general "corp has spread" message.
++ Religion spread and religion removal event messages now have the standard duration rather than extended duration.
++ Nuke messages (eg. player X's nuke exploded, or player Y intercepted X's nuke) are now only shown to civs who player who have met the civilizations involved in the event.
++ Fixed a bug which caused the espionage slider to still be shown when using the "no espionage" option.
+
+--
+v1.32 changelist
+
+Game / Back-end
+
++ Ship of the Line can now be built with copper as well as with iron. (This gives ironless civs a decent naval ship if they go for the right tech.)
++ Rearranged to order of certain turn-counting game mechanics to fix some balance problems. Most notably, the turn counter for counter-espionage missions now counts down at the start of the team's turn rather than at the end of all players' turns. This means that the duration of counter-espionage missions will now be independent of which team is doing the mission and who the target team is.
++ Fixed a problem in the player colour was handled in replays. (This problem sometimes caused player names to not use the correct colour in the replay; and it also caused some special map scripts to crash the game.)
++ Rewrote the system for attitude cache, and close-border attitude cache; so that the cache is only updated at explicitly specified times. (In the previous system, if the cache was not marked as invalid at precisely the right times then it could cause OOS errors. This was an endless headache for me to manage. In the new system, attitude cache inaccuracies can no longer cause OOS. At worst, they will just cause a delay in when the attitude is updated.)
++ Fixed the triggering of unit movement animation in a couple of places.
++ The xml log will no longer report that "NONE" was not found.
+
+AI
+
++ Redesigned and rewrote the way the AI chooses when to aim for a conquest victory. (The old version basically said "if we're very strong, then we're going for conquest". The new version is far more nuanced. It primarily depends on history, personality, attitude, and power.)
++ Redesigned and rewrote the evaluation system for the AI's use of nukes. (The old system basically said "if we're at war and furious, hit 'em with everything we've got!” The new version ... doesn't do that.)
++ Made many adjustments to the AI war evaluation functions which were introduced in the previous version.
+  + The evaluation now scales more smoothly into the late-game.
+  + War commitment cost is now more strongly linked to productivity.
+  + Holy cities without the shrine building are seen as being less valuable.
+  + Relative sea-unit strength now has a significant effect on the cost of overseas wars.
+  + The effect of unit strength in general has been changed.
+  + The adjustment for distant wars has been tweaked.
+  + (and so on)
++ Tweaked the effects of the 'dagger' strategy.
++ Slightly reduced the number of siege attack units the AI likes to build.
++ Air recon units are now given top movement priority (along with spies).
++ The AI will now re-evaluate war-plans when switching out of the 'preparing' phase; and it will abandon the plans if the war is deemed to be a bad idea.
++ Fixed a couple of problems in the way the AI decides whether or not to go to war over a rebuked demand.
+
+--
 v1.31 changelist
 
 Game / UI
