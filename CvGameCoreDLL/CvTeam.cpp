@@ -680,6 +680,7 @@ void CvTeam::addTeam(TeamTypes eTeam)
 	{
 		if ((iI != getID()) && (iI != eTeam))
 		{
+			// K-Mod note: many of the things here have no effect; because the values have already been equalised by CvTeam::shareCounters.
 			GET_TEAM((TeamTypes)iI).setWarWeariness(getID(), ((GET_TEAM((TeamTypes)iI).getWarWeariness(getID()) + GET_TEAM((TeamTypes)iI).getWarWeariness(eTeam)) / 2));
 			GET_TEAM((TeamTypes)iI).setStolenVisibilityTimer(getID(), ((GET_TEAM((TeamTypes)iI).getStolenVisibilityTimer(getID()) + GET_TEAM((TeamTypes)iI).getStolenVisibilityTimer(eTeam)) / 2));
 			GET_TEAM((TeamTypes)iI).AI_setAtWarCounter(getID(), ((GET_TEAM((TeamTypes)iI).AI_getAtWarCounter(getID()) + GET_TEAM((TeamTypes)iI).AI_getAtWarCounter(eTeam)) / 2));
@@ -1817,6 +1818,24 @@ void CvTeam::meet(TeamTypes eTeam, bool bNewDiplo)
 	}
 }
 
+// K-Mod
+void CvTeam::signPeaceTreaty(TeamTypes eTeam)
+{
+	TradeData item;
+	setTradeItem(&item, TRADE_PEACE_TREATY);
+
+	if (GET_PLAYER(getLeaderID()).canTradeItem(GET_TEAM(eTeam).getLeaderID(), item) && GET_PLAYER(GET_TEAM(eTeam).getLeaderID()).canTradeItem(getLeaderID(), item))
+	{
+		CLinkList<TradeData> ourList;
+		CLinkList<TradeData> theirList;
+
+		ourList.insertAtEnd(item);
+		theirList.insertAtEnd(item);
+
+		GC.getGameINLINE().implementDeal(getLeaderID(), (GET_TEAM(eTeam).getLeaderID()), &ourList, &theirList);
+	}
+}
+// K-Mod end
 
 void CvTeam::signOpenBorders(TeamTypes eTeam)
 {
@@ -2504,30 +2523,6 @@ bool CvTeam::canVassalRevolt(TeamTypes eMaster) const
 /*                                                                                              */
 /* General AI                                                                                   */
 /************************************************************************************************/
-int CvTeam::getCurrentMasterPower(bool bIncludeVassals) const
-{
-	if( isAVassal() )
-	{
-		for( int iI = 0; iI < MAX_CIV_TEAMS; iI++)
-		{
-			if (GET_TEAM((TeamTypes)iI).isAlive())
-			{
-				if (iI != getID())
-				{
-					if (isVassal((TeamTypes)iI))
-					{
-						return GET_TEAM((TeamTypes)iI).getPower(bIncludeVassals);
-					}
-				}
-			}
-		}
-	}
-
-	// Should never get here
-	FAssert(false);
-	return 0;
-}
-
 bool CvTeam::isMasterPlanningLandWar(CvArea* pArea)
 {
 	if( !isAVassal() )
@@ -2968,7 +2963,7 @@ int CvTeam::getTypicalUnitValue(UnitAITypes eUnitAI, DomainTypes eDomain) const
 	{
 		if (GET_PLAYER((PlayerTypes)iI).getTeam() == getID())
 		{
-			iMax = std::max(iMax, GET_PLAYER((PlayerTypes)iI).getTypicalUnitValue(eUnitAI));
+			iMax = std::max(iMax, GET_PLAYER((PlayerTypes)iI).getTypicalUnitValue(eUnitAI, eDomain));
 		}
 	}
 	return iMax;
@@ -3800,11 +3795,12 @@ void CvTeam::changeStolenVisibilityTimer(TeamTypes eIndex, int iChange)
 
 
 // (K-Mod note: units are unhappiness per 100,000 population. ie. 1000 * percent unhappiness.)
-int CvTeam::getWarWeariness(TeamTypes eIndex) const								 
+int CvTeam::getWarWeariness(TeamTypes eIndex, bool bUseEnemyModifer) const
 {
 	FAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
 	FAssertMsg(eIndex < MAX_TEAMS, "eIndex is expected to be within maximum bounds (invalid Index)");
-	return m_aiWarWeariness[eIndex];
+	//return m_aiWarWeariness[eIndex];
+	return bUseEnemyModifer ? m_aiWarWeariness[eIndex] * std::max(0, 100 + GET_TEAM(eIndex).getEnemyWarWearinessModifier())/100 : m_aiWarWeariness[eIndex]; // K-Mod
 }
 
 
@@ -5902,8 +5898,8 @@ void CvTeam::changeImprovementYieldChange(ImprovementTypes eIndex1, YieldTypes e
 // I created this function to make the situation a bit more clear...
 bool CvTeam::doesImprovementConnectBonus(ImprovementTypes eImprovement, BonusTypes eBonus) const
 {
-	FAssert(eImprovement <= GC.getNumImprovementInfos());
-	FAssert(eBonus <= GC.getNumBonusInfos());
+	FAssert(eImprovement < GC.getNumImprovementInfos());
+	FAssert(eBonus < GC.getNumBonusInfos());
 
 	if (eImprovement == NO_IMPROVEMENT || eBonus == NO_BONUS)
 		return false;
@@ -6377,7 +6373,8 @@ void CvTeam::testCircumnavigated()
 
 	GC.getGameINLINE().makeCircumnavigated();
 
-	if (GC.getGameINLINE().getElapsedGameTurns() > 0)
+	//if (GC.getGameINLINE().getElapsedGameTurns() > 0)
+	if (GC.getGameINLINE().getElapsedGameTurns() > 1) // K-Mod (due to changes in when CvTeam::doTurn is called)
 	{
 		if (GC.getDefineINT("CIRCUMNAVIGATE_FREE_MOVES") != 0)
 		{

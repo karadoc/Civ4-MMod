@@ -2570,6 +2570,7 @@ CvWString CvPlayer::getNewCityName() const
 	CvWString szName;
 	int iI;
 
+	/* original bts code
 	for (pNode = headCityNameNode(); (pNode != NULL); pNode = nextCityNameNode(pNode))
 	{
 		szName = gDLL->getText(pNode->m_data);
@@ -2578,7 +2579,19 @@ CvWString CvPlayer::getNewCityName() const
 			szName = pNode->m_data;
 			break;
 		}
+	} */
+	// K-Mod
+	for (pNode = headCityNameNode(); pNode && szName.empty(); pNode = nextCityNameNode(pNode))
+	{
+		szName = gDLL->getText(pNode->m_data); // (temp use of the buffer)
+
+		if (isCityNameValid(szName, true))
+			szName = pNode->m_data;
+		else
+			szName.clear(); // clear the buffer if the name is not valid!
 	}
+	// Note: unfortunately, the name-skipping system in getCivilizationCityName does not apply here.
+	// K-Mod end
 
 	if (szName.empty())
 	{
@@ -2617,6 +2630,7 @@ void CvPlayer::getCivilizationCityName(CvWString& szBuffer, CivilizationTypes eC
 	int iLoopName;
 	int iI;
 
+	/* original bts code
 	if (isBarbarian() || isMinorCiv())
 	{
 		iRandOffset = GC.getGameINLINE().getSorenRandNum(GC.getCivilizationInfo(eCivilization).getNumCityNames(), "Place Units (Player)");
@@ -2624,7 +2638,13 @@ void CvPlayer::getCivilizationCityName(CvWString& szBuffer, CivilizationTypes eC
 	else
 	{
 		iRandOffset = 0;
-	}
+	} */
+	// K-Mod
+	if (eCivilization != getCivilizationType() || isBarbarian() || isMinorCiv())
+		iRandOffset = GC.getGameINLINE().getSorenRandNum(GC.getCivilizationInfo(eCivilization).getNumCityNames(), "City name offset");
+	else
+		iRandOffset = std::max(0, getPlayerRecord()->getNumCitiesBuilt() - getNumCityNames()); // note: the explicit city names list is checked before this function is called.
+	// K-Mod end
 
 	for (iI = 0; iI < GC.getCivilizationInfo(eCivilization).getNumCityNames(); iI++)
 	{
@@ -3377,10 +3397,6 @@ void CvPlayer::doTurn()
 	doResearch();
 
 	doEspionagePoints();
-
-	// K-Mod / BBAI centralized production. - Currently not enabled. (the function hasn't been writen yet)
-	//GET_PLAYER(getID()).AI_doCentralizedProduction();
-	//
 
 	for (pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
 	{
@@ -7394,6 +7410,8 @@ int CvPlayer::calculateInflationRate() const
 
 int CvPlayer::calculateInflatedCosts() const
 {
+	PROFILE_FUNC();
+
 	int iCosts;
 
 	iCosts = calculatePreInflatedCosts();
@@ -9511,6 +9529,7 @@ int CvPlayer::getTypicalUnitValue(UnitAITypes eUnitAI, DomainTypes eDomain) cons
 			(eDomain == NO_DOMAIN || GC.getUnitInfo(eLoopUnit).getDomainType() == eDomain) &&
 			canTrain(eLoopUnit))
 		{
+			// Note: currently the above checks do not consider any resource prerequites.
 			int iValue = GC.getGameINLINE().AI_combatValue(eLoopUnit);
 			if (iValue > iHighestValue)
 			{
@@ -10005,7 +10024,8 @@ void CvPlayer::updateWarWearinessPercentAnger()
 			{
 				if (kTeam.isAtWar(getTeam()))
 				{
-					iNewWarWearinessPercentAnger += (GET_TEAM(getTeam()).getWarWeariness((TeamTypes)iI) * std::max(0, 100 + kTeam.getEnemyWarWearinessModifier())) / 10000;
+					//iNewWarWearinessPercentAnger += (GET_TEAM(getTeam()).getWarWeariness((TeamTypes)iI) * std::max(0, 100 + kTeam.getEnemyWarWearinessModifier())) / 10000;
+					iNewWarWearinessPercentAnger += GET_TEAM(getTeam()).getWarWeariness((TeamTypes)iI, true) / 100; // K-Mod
 				}
 			}
 		}
@@ -11082,28 +11102,6 @@ void CvPlayer::setTurnActive(bool bNewValue, bool bDoTurn)
 				if (isAlive())
 				{
 					doTurn();
-					// K-Mod. Call CvTeam::doTurn when all members of this team have finished their turn.
-					// (actually, no. CvTeam::doTurn should be called at the start of the team's turn, not the end.
-					//  otherwise, things like the counter-espionage counter will not work as expected.)
-					/*
-					if (GC.getGameINLINE().isSimultaneousTeamTurns())
-					{
-						if (!GET_TEAM(getTeam()).isTurnActive())
-							GET_TEAM(getTeam()).doTurn();
-					}
-					else
-					{
-						bool bMoreTeammates = false;
-						for (PlayerTypes i = (PlayerTypes)(getID() + 1); !bMoreTeammates && i < MAX_PLAYERS; i=(PlayerTypes)(i+1))
-						{
-							const CvPlayer& kLoopPlayer = GET_PLAYER(i);
-							if (kLoopPlayer.isAlive() && kLoopPlayer.getTeam() == getTeam())
-								bMoreTeammates = true;
-						}
-						if (!bMoreTeammates)
-							GET_TEAM(getTeam()).doTurn();
-					} */
-					// K-Mod end
 				}
 
 				if ((GC.getGameINLINE().isPbem() || GC.getGameINLINE().isHotSeat()) && isHuman() && GC.getGameINLINE().countHumanPlayersAlive() > 1)
@@ -13788,7 +13786,14 @@ CvSelectionGroup* CvPlayer::getSelectionGroup(int iID) const
 
 CvSelectionGroup* CvPlayer::addSelectionGroup()
 {
-	return ((CvSelectionGroup *)(m_selectionGroups.add()));
+	//return ((CvSelectionGroup *)(m_selectionGroups.add()));
+	// K-Mod. Make sure that every time we add a group, it also gets added to the group cycle list.
+	// (we can update the specific position in the cycle list later; but it's important it gets into the list.)
+	CvSelectionGroup* pGroup = m_selectionGroups.add();
+	if (pGroup)
+		m_groupCycle.insertAtEnd(pGroup->getID());
+	return pGroup;
+	// K-Mod end
 }
 
 
@@ -14105,6 +14110,14 @@ void CvPlayer::updateEspionageHistory(int iTurn, int iBestEspionage)
 {
 	m_mapEspionageHistory[iTurn] = iBestEspionage;
 }
+
+// K-Mod. Note, this function is a friend of CvEventReporter, so that it can access the data we need.
+// (This saves us from having to use the built-in CyStatistics class)
+const CvPlayerRecord* CvPlayer::getPlayerRecord() const
+{
+	return CvEventReporter::getInstance().m_kStatistics.getPlayerRecord(getID());
+}
+// K-Mod end
 
 std::string CvPlayer::getScriptData() const
 {

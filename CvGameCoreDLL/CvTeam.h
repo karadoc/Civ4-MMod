@@ -56,6 +56,7 @@ public:
 	//bool canContact(TeamTypes eTeam) const; // Exposed to Python
 	bool canContact(TeamTypes eTeam, bool bCheckWillingness = false) const; // K-Mod, Exposed to Python
 	void meet(TeamTypes eTeam, bool bNewDiplo);																		// Exposed to Python
+	void signPeaceTreaty(TeamTypes eTeam); // K-Mod
 	void signOpenBorders(TeamTypes eTeam);																				// Exposed to Python
 	void signDefensivePact(TeamTypes eTeam);																			// Exposed to Python
 	bool canSignDefensivePact(TeamTypes eTeam);
@@ -75,7 +76,6 @@ public:
 /*                                                                                              */
 /*                                                                                              */
 /************************************************************************************************/
-	int getCurrentMasterPower( bool bIncludeVassals ) const;
 	bool isMasterPlanningLandWar(CvArea* pArea);
 	bool isMasterPlanningSeaWar(CvArea* pArea);
 	int getAtWarCount(bool bIgnoreMinors, bool bIgnoreVassals = false) const;																				// Exposed to Python
@@ -232,7 +232,7 @@ public:
 	void setStolenVisibilityTimer(TeamTypes eIndex, int iNewValue);
 	void changeStolenVisibilityTimer(TeamTypes eIndex, int iChange);
 
-	int getWarWeariness(TeamTypes eIndex) const;																				// Exposed to Python
+	int getWarWeariness(TeamTypes eIndex, bool bUseEnemyModifer = false) const; // Exposed to Python. K-Mod added bUseEnemyModifier.
 	void setWarWeariness(TeamTypes eIndex, int iNewValue);												// Exposed to Python
 	void changeWarWeariness(TeamTypes eIndex, int iChange);												// Exposed to Python
 

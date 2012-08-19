@@ -313,7 +313,7 @@ int CvTeamAI::AI_countMilitaryWeight(CvArea* pArea) const
 	return iCount;
 }
 
-// K-Mod. return the total production of the team, estimated by averaging over the last few turns of the productivity graph.
+// K-Mod. return the total yield of the team, estimated by averaging over the last few turns of the yield's history graph.
 int CvTeamAI::AI_estimateTotalYieldRate(YieldTypes eYield) const
 {
 	PROFILE_FUNC();
@@ -1625,28 +1625,6 @@ int CvTeamAI::AI_warCommitmentCost(TeamTypes eTarget, WarPlanTypes eWarPlan) con
 			iCommitmentPerMil /= std::max(1, iEnemyTotalProduction + 6 * iOurTotalProduction);
 		}
 
-		// Adjust for overseas wars
-		if (!AI_hasSharedPrimaryArea(eTarget))
-		{
-			int iOurNavy = getTypicalUnitValue(NO_UNITAI, DOMAIN_SEA);
-			int iEnemyNavy = kTargetMasterTeam.getTypicalUnitValue(NO_UNITAI, DOMAIN_SEA);
-
-			// rescale (unused)
-			/* {
-				int x = std::max(2, iOurNavy + iEnemyNavy) / 2;
-				iOurNavy = iOurNavy * 100 / x;
-				iEnemyNavy = iEnemyNavy * 100 / x;
-			} */
-
-			if (bTotalWar)
-			{
-				iCommitmentPerMil = iCommitmentPerMil * (4*iOurNavy + 5*iEnemyNavy) / (8*iOurNavy + 1*iEnemyNavy);
-				iCommitmentPerMil = iCommitmentPerMil * 5/4;
-			}
-			else
-				iCommitmentPerMil = iCommitmentPerMil * (1*iOurNavy + 4*iEnemyNavy) / (4*iOurNavy + 1*iEnemyNavy);
-		}
-
 		// scale based on the relative strengths of our units
 		{
 			int iEnemyUnit = std::max(30, kTargetMasterTeam.getTypicalUnitValue(NO_UNITAI, DOMAIN_LAND));
@@ -1656,6 +1634,29 @@ int CvTeamAI::AI_warCommitmentCost(TeamTypes eTarget, WarPlanTypes eWarPlan) con
 			int iLowScale = 10 + 90 * std::min(iOurAttackUnit, iOurDefenceUnit) / iEnemyUnit;
 
 			iCommitmentPerMil = std::min(iCommitmentPerMil, 300) * 100 / iHighScale + std::max(0, iCommitmentPerMil - 300) * 100 / iLowScale;
+
+			// Adjust for overseas wars
+			if (!AI_hasSharedPrimaryArea(eTarget))
+			{
+				int iOurNavy = getTypicalUnitValue(NO_UNITAI, DOMAIN_SEA);
+				int iEnemyNavy = std::max(1, kTargetMasterTeam.getTypicalUnitValue(NO_UNITAI, DOMAIN_SEA)); // (using max here to avoid div-by-zero later on)
+
+				// rescale (unused)
+				/* {
+					int x = std::max(2, iOurNavy + iEnemyNavy) / 2;
+					iOurNavy = iOurNavy * 100 / x;
+					iEnemyNavy = iEnemyNavy * 100 / x;
+				} */
+
+				if (bTotalWar)
+				{
+					iCommitmentPerMil = iCommitmentPerMil * (4*iOurNavy + 5*iEnemyNavy) / (8*iOurNavy + 1*iEnemyNavy);
+					//iCommitmentPerMil = iCommitmentPerMil * 5/4;
+					iCommitmentPerMil = iCommitmentPerMil * 200 / std::min(200, iLowScale + iHighScale);
+				}
+				else
+					iCommitmentPerMil = iCommitmentPerMil * (1*iOurNavy + 4*iEnemyNavy) / (4*iOurNavy + 1*iEnemyNavy);
+			}
 		}
 
 		// increase the cost for distant targets...
@@ -1708,16 +1709,15 @@ int CvTeamAI::AI_warCommitmentCost(TeamTypes eTarget, WarPlanTypes eWarPlan) con
 	}
 
 	// war weariness
-	int iEstimatedPercentAnger = 0;
+	int iTotalWw = 0;
 	for (TeamTypes i = (TeamTypes)0; i < MAX_CIV_TEAMS; i=(TeamTypes)(i+1))
 	{
 		const CvTeamAI& kLoopTeam = GET_TEAM(i);
 		if (kLoopTeam.isAlive() && (i == eTargetMaster || kLoopTeam.isVassal(eTargetMaster)))
-			iEstimatedPercentAnger += getWarWeariness(i);
+			iTotalWw += getWarWeariness(i, true)/100;
 	}
-	iEstimatedPercentAnger /= 1000;
-	// note: getWarWeariness has units of anger per 100,000 population
-	if (iEstimatedPercentAnger > 5)
+	// note: getWarWeariness has units of anger per 100,000 population, and it is customary to divide it by 100 immediately
+	if (iTotalWw > 50)
 	{
 		int iS = isAtWar(eTarget) ? -1 : 1;
 		int iWwCost = 0;
@@ -1726,6 +1726,7 @@ int CvTeamAI::AI_warCommitmentCost(TeamTypes eTarget, WarPlanTypes eWarPlan) con
 			const CvPlayerAI& kLoopPlayer = GET_PLAYER(eLoopPlayer);
 			if (kLoopPlayer.getTeam() == getID() && kLoopPlayer.isAlive())
 			{
+				int iEstimatedPercentAnger = kLoopPlayer.getModifiedWarWearinessPercentAnger(iTotalWw) / 10; // (ugly, I know. But that's just how it's done.)
 				// note. Unfortunately, we haven't taken the effect of jails into account.
 				iWwCost += iS * kLoopPlayer.getNumCities() * kLoopPlayer.AI_getHappinessWeight(iS * iEstimatedPercentAnger * (100 + kLoopPlayer.getWarWearinessModifier())/100, 0, true) / 20;
 			}
@@ -1768,6 +1769,10 @@ int CvTeamAI::AI_warDiplomacyCost(TeamTypes eTarget) const
 			if (kLoopTeam.AI_getAttitude(eTarget) >= ATTITUDE_PLEASED && AI_getAttitude(i) >= ATTITUDE_PLEASED)
 			{
 				iDiploCost += iPop * (100 + AI_getAttitudeWeight(i)) / 200;
+			}
+			else if (kLoopTeam.isAtWar(eTarget))
+			{
+				iDiploCost -= iPop * (100 + AI_getAttitudeWeight(i)) / 400;
 			}
 		}
 	}
@@ -1989,55 +1994,53 @@ int CvTeamAI::AI_startWarVal(TeamTypes eTeam) const
 // XXX this should consider area power...
 int CvTeamAI::AI_endWarVal(TeamTypes eTeam) const
 {
-	int iValue;
-
 	FAssertMsg(eTeam != getID(), "shouldn't call this function on ourselves");
 	FAssertMsg(isAtWar(eTeam), "Current AI Team instance is expected to be at war with eTeam");
 
-	iValue = 100;
+	const CvTeam& kWarTeam = GET_TEAM(eTeam); // K-Mod
+
+	int iValue = 100;
 
 	iValue += (getNumCities() * 3);
-	iValue += (GET_TEAM(eTeam).getNumCities() * 3);
+	iValue += (kWarTeam.getNumCities() * 3);
 
 	iValue += getTotalPopulation();
-	iValue += GET_TEAM(eTeam).getTotalPopulation();
+	iValue += kWarTeam.getTotalPopulation();
 
-	iValue += (GET_TEAM(eTeam).AI_getWarSuccess(getID()) * 20);
+	iValue += (kWarTeam.AI_getWarSuccess(getID()) * 20);
 
 	int iOurPower = std::max(1, getPower(true));
-	int iTheirPower = std::max(1, GET_TEAM(eTeam).getDefensivePower(getID()));
+	int iTheirPower = std::max(1, kWarTeam.getDefensivePower(getID()));
 
 	iValue *= iTheirPower + 10;
 	iValue /= std::max(1, iOurPower + iTheirPower + 10);
-	
+
 	WarPlanTypes eWarPlan = AI_getWarPlan(eTeam);
 
 	// if we are not human, do we want to continue war for strategic reasons?
 	// only check if our power is at least 120% of theirs
-	if (!isHuman() && iOurPower > ((120 * iTheirPower) / 100))
+	if (!isHuman() && iOurPower > 120 * iTheirPower / 100)
 	{
 		bool bDagger = false;
-		
+
 		bool bAnyFinancialTrouble = false;
 		for (int iI = 0; iI < MAX_PLAYERS; iI++)
 		{
-			if (GET_PLAYER((PlayerTypes)iI).isAlive())
+			const CvPlayerAI& kLoopPlayer = GET_PLAYER((PlayerTypes)iI); // K-Mod
+			if (kLoopPlayer.isAlive() && kLoopPlayer.getTeam() == getID())
 			{
-				if (GET_PLAYER((PlayerTypes)iI).getTeam() == getID())
+				if (kLoopPlayer.AI_isDoStrategy(AI_STRATEGY_DAGGER))
 				{
-					if (GET_PLAYER((PlayerTypes)iI).AI_isDoStrategy(AI_STRATEGY_DAGGER))
-					{
-						bDagger = true;
-					}
-					
-					if (GET_PLAYER((PlayerTypes)iI).AI_isFinancialTrouble())
-					{
-						bAnyFinancialTrouble = true;
-					}
+					bDagger = true;
+				}
+
+				if (kLoopPlayer.AI_isFinancialTrouble())
+				{
+					bAnyFinancialTrouble = true;
 				}
 			}
 		}
-		
+
 		// if dagger, value peace at 90% * power ratio
 		if (bDagger)
 		{
@@ -2047,7 +2050,7 @@ int CvTeamAI::AI_endWarVal(TeamTypes eTeam) const
 		
 	    // for now, we will always do the land mass check for domination
 		// if we have more than half the land, then value peace at 90% * land ratio 
-		int iLandRatio = ((getTotalLand(true) * 100) / std::max(1, GET_TEAM(eTeam).getTotalLand(true)));
+		int iLandRatio = getTotalLand(true) * 100 / std::max(1, kWarTeam.getTotalLand(true));
 	    if (iLandRatio > 120)
 	    {
 			iValue *= 9 * 100;
@@ -2113,20 +2116,20 @@ int CvTeamAI::AI_endWarVal(TeamTypes eTeam) const
 	{
 		iValue *= 2;
 	}
-	else if (AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_CULTURE3) || AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_SPACE3))
+	else if (AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_CULTURE3 | AI_VICTORY_SPACE3))
 	{
 		iValue *= 4;
 		iValue /= 3;
 	}
 	// K-Mod end
 
-	if ((!(isHuman()) && (eWarPlan == WARPLAN_TOTAL)) ||
-		  (!(GET_TEAM(eTeam).isHuman()) && (GET_TEAM(eTeam).AI_getWarPlan(getID()) == WARPLAN_TOTAL)))
+	if ((!isHuman() && eWarPlan == WARPLAN_TOTAL) ||
+		(!kWarTeam.isHuman() && kWarTeam.AI_getWarPlan(getID()) == WARPLAN_TOTAL))
 	{
 		iValue *= 2;
 	}
-	else if ((!(isHuman()) && (eWarPlan == WARPLAN_DOGPILE) && (GET_TEAM(eTeam).getAtWarCount(true) > 1)) ||
-		       (!(GET_TEAM(eTeam).isHuman()) && (GET_TEAM(eTeam).AI_getWarPlan(getID()) == WARPLAN_DOGPILE) && (getAtWarCount(true) > 1)))
+	else if ((!isHuman() && eWarPlan == WARPLAN_DOGPILE && kWarTeam.getAtWarCount(true) > 1) ||
+		     (!kWarTeam.isHuman() && kWarTeam.AI_getWarPlan(getID()) == WARPLAN_DOGPILE && getAtWarCount(true) > 1))
 	{
 		iValue *= 3;
 		iValue /= 2;
@@ -2150,7 +2153,7 @@ int CvTeamAI::AI_endWarVal(TeamTypes eTeam) const
 	}
 
 	int iAttackerRatio = (100 * iOurAttackers) / std::max(1 + GC.getGameINLINE().getCurrentEra(), iTheirAttackers);
-		
+
 	if( GC.getGameINLINE().isOption(GAMEOPTION_AGGRESSIVE_AI) )
 	{
 		iValue *= 150;
@@ -2184,11 +2187,12 @@ int CvTeamAI::AI_knownTechValModifier(TechTypes eTech) const
 	int iTechCivs = 0;
 	int iCivsMet = 0;
 
-	for (int iI = 0; iI < MAX_CIV_TEAMS; iI++)
+	for (TeamTypes i = (TeamTypes)0; i < MAX_CIV_TEAMS; i=(TeamTypes)(i+1))
 	{
-		if (GET_TEAM((TeamTypes)iI).isAlive() && iI != getID() && isHasMet((TeamTypes)iI))
+		const CvTeam& kLoopTeam = GET_TEAM(i);
+		if (i != getID() && kLoopTeam.isAlive() && isHasMet(i))
 		{
-			if (GET_TEAM((TeamTypes)iI).isHasTech(eTech))
+			if (kLoopTeam.isHasTech(eTech))
 				iTechCivs++;
 
 			iCivsMet++;
@@ -2775,8 +2779,9 @@ DenialTypes CvTeamAI::AI_surrenderTrade(TeamTypes eTeam, int iPowerMultiplier) c
 /************************************************************************************************/
 /* BETTER_BTS_AI_MOD                       END                                                  */
 /************************************************************************************************/
-		int iMasterPower = GET_TEAM(eTeam).getPower(false);
-		int iVassalPower = (getPower(true) * (iPowerMultiplier + iPersonalityModifier / std::max(1, iMembers))) / 100;
+		int iMasterPower = kMasterTeam.getPower(false);
+		int iOurPower = getPower(true); // K-Mod (this value is used a bunch of times separately)
+		int iVassalPower = (iOurPower * (iPowerMultiplier + iPersonalityModifier / std::max(1, iMembers))) / 100;
 
 		if (isAtWar(eTeam))
 		{
@@ -2816,20 +2821,16 @@ DenialTypes CvTeamAI::AI_surrenderTrade(TeamTypes eTeam, int iPowerMultiplier) c
 		}
 		else
 		{
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      06/12/10                                jdog5000      */
-/*                                                                                              */
-/* Diplomacy AI                                                                                 */
-/************************************************************************************************/
 			if (!GET_TEAM(eTeam).AI_isLandTarget(getID()))
 			{
 				iMasterPower /= 2;
 			}
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 		}
 
+		// K-Mod. (condition moved here from lower down; for efficiency.)
+		if (3 * iVassalPower > 2 * iMasterPower)
+			return DENIAL_POWER_US;
+		// K-Mod end
 
 		for (int iLoopTeam = 0; iLoopTeam < MAX_CIV_TEAMS; iLoopTeam++)
 		{
@@ -2843,21 +2844,25 @@ DenialTypes CvTeamAI::AI_surrenderTrade(TeamTypes eTeam, int iPowerMultiplier) c
 					{
 						if (iLoopTeam != eTeam)
 						{
-							if (kLoopTeam.getPower(true) > getPower(true))
+							int iLoopPower = kLoopTeam.getPower(true); // K-Mod
+							if (iLoopPower > iOurPower)
 							{
-								if (kLoopTeam.isAtWar(eTeam) && !kLoopTeam.isAtWar(getID()))
+								//if (kLoopTeam.isAtWar(eTeam) && !kLoopTeam.isAtWar(getID()))
+								if (kLoopTeam.isAtWar(eTeam) && !kLoopTeam.isAtWar(getID()) && (!isAtWar(eTeam) || iMasterPower < 2 * iLoopPower)) // K-Mod
 								{
 									return DENIAL_POWER_YOUR_ENEMIES;
 								}
 
-								iAveragePower = (2 * iAveragePower * kLoopTeam.getPower(true)) / std::max(1, kLoopTeam.getPower(true) + getPower(true));
+								iAveragePower = (2 * iAveragePower * iLoopPower) / std::max(1, iLoopPower + iOurPower);
 
-								iAttitudeModifier += (3 * kLoopTeam.getPower(true)) / std::max(1, getPower(true)) - 2;
+								//iAttitudeModifier += (3 * kLoopTeam.getPower(true)) / std::max(1, getPower(true)) - 2;
+								iAttitudeModifier += (6 * iLoopPower / std::max(1, iOurPower) - 5)/2; // K-Mod. (effectively -2.5 instead of 2)
 							}
 
 							if (!kLoopTeam.isAtWar(eTeam) && kLoopTeam.isAtWar(getID()))
 							{
-								iAveragePower = (iAveragePower * (getPower(true) + GET_TEAM(eTeam).getPower(false))) / std::max(1, getPower(true));
+								//iAveragePower = (iAveragePower * (getPower(true) + GET_TEAM(eTeam).getPower(false))) / std::max(1, getPower(true));
+								iAveragePower = iAveragePower * (iOurPower + iMasterPower) / std::max(1, iOurPower + std::max(iOurPower, iLoopPower)); // K-Mod
 							}
 						}
 					}
@@ -2882,18 +2887,8 @@ DenialTypes CvTeamAI::AI_surrenderTrade(TeamTypes eTeam, int iPowerMultiplier) c
 			return DENIAL_POWER_US;
 		}
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      06/02/09                                jdog5000      */
-/*                                                                                              */
-/* War Strategy AI                                                                              */
-/************************************************************************************************/
-/* original bts code
-		if (iVassalPower > iAveragePower || 3 * iVassalPower > 2 * iMasterPower)
-*/
-		if (5*iVassalPower > 4*iAveragePower || 3 * iVassalPower > 2 * iMasterPower)
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
+		// if (iVassalPower > iAveragePower || 3 * iVassalPower > 2 * iMasterPower)
+		if (5*iVassalPower > 4*iAveragePower) // K-Mod. (second condition already checked)
 		{
 			return DENIAL_POWER_US;
 		}
@@ -3189,7 +3184,8 @@ int CvTeamAI::AI_getEnemyPowerPercent( bool bConsiderOthers ) const
 	//return (iEnemyPower/std::max(1, (isAVassal() ? getCurrentMasterPower(true) : getPower(true))));
 	// K-Mod - Lets not rely too much on our vassals...
 	int iOurPower = getPower(false);
-	iOurPower += isAVassal() ? getCurrentMasterPower(true) : getPower(true);
+	const CvTeam& kMasterTeam = GET_TEAM(getMasterTeam());
+	iOurPower += kMasterTeam.getPower(true);
 	iOurPower /= 2;
 	return iEnemyPower/std::max(1, iOurPower);
 	// K-Mod end
@@ -3274,9 +3270,12 @@ bool CvTeamAI::AI_refusePeace(TeamTypes ePeaceTeam) const
 }
 // K-Mod end
 
+// the following is a bbai function which has been edited for K-Mod (most of the K-Mod changes are unmarked)
 bool CvTeamAI::AI_acceptSurrender( TeamTypes eSurrenderTeam ) const
 {
 	PROFILE_FUNC();
+
+	const CvTeamAI& kSurrenderTeam = GET_TEAM(eSurrenderTeam);
 
 	if( isHuman() )
 	{
@@ -3288,33 +3287,32 @@ bool CvTeamAI::AI_acceptSurrender( TeamTypes eSurrenderTeam ) const
 		return true;
 	}
 
-	if( GET_TEAM(eSurrenderTeam).AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_SPACE3) )
+	if (kSurrenderTeam.AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_SPACE3 | AI_VICTORY_CULTURE3))
 	{
 		// Capturing capital or Apollo city will stop space
-		return false;
-	}
-
-	if( GET_TEAM(eSurrenderTeam).AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_CULTURE3) )
-	{
 		// Capturing top culture cities will stop culture
 		return false;
 	}
 
 	// Check for whether another team has won enough to cause capitulation
+	bool bMightCapToOther = false; // K-Mod
 	for( int iI = 0; iI < MAX_CIV_TEAMS; iI++ )
 	{
 		if (GET_TEAM((TeamTypes)iI).isAlive())
 		{
 			if (iI != getID() && !(GET_TEAM((TeamTypes)iI).isVassal(getID())) )
 			{
-				if (GET_TEAM(eSurrenderTeam).isAtWar((TeamTypes)iI))
+				if (kSurrenderTeam.isAtWar((TeamTypes)iI))
 				{
-					if (GET_TEAM(eSurrenderTeam).AI_getAtWarCounter((TeamTypes)iI) >= 10)
+					if (kSurrenderTeam.AI_getAtWarCounter((TeamTypes)iI) >= 10)
 					{
-						if( (GET_TEAM(eSurrenderTeam).AI_getWarSuccess((TeamTypes)iI) + std::min(GET_TEAM(eSurrenderTeam).getNumCities(), 4) * GC.getWAR_SUCCESS_CITY_CAPTURING()) < GET_TEAM((TeamTypes)iI).AI_getWarSuccess(eSurrenderTeam))
+						if( (kSurrenderTeam.AI_getWarSuccess((TeamTypes)iI) + std::min(kSurrenderTeam.getNumCities(), 4) * GC.getWAR_SUCCESS_CITY_CAPTURING()) < GET_TEAM((TeamTypes)iI).AI_getWarSuccess(eSurrenderTeam))
 						{
-							// K-Mod todo: that's nothing like the capitulation condition. I'll have to come back and fix this later.
-							return true;
+							//return true;
+							// K-Mod: that's not the only capitulation condition. I might revise it later, but in the mean time I'll just relax the effect.
+							bMightCapToOther = true;
+							break;
+							//
 						}
 					}
 				}
@@ -3327,14 +3325,12 @@ bool CvTeamAI::AI_acceptSurrender( TeamTypes eSurrenderTeam ) const
 	int iValuableCitiesThreatenedByUs = 0;
 	int iCitiesThreatenedByOthers = 0;
 
-	CvCity* pLoopCity;
-	int iLoop;
-
 	for (int iI = 0; iI < MAX_CIV_PLAYERS; iI++)
 	{
 		if( GET_PLAYER((PlayerTypes)iI).getTeam() == eSurrenderTeam && GET_PLAYER((PlayerTypes)iI).isAlive() )
 		{
-			for (pLoopCity = GET_PLAYER((PlayerTypes)iI).firstCity(&iLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER((PlayerTypes)iI).nextCity(&iLoop))
+			int iLoop;
+			for (CvCity* pLoopCity = GET_PLAYER((PlayerTypes)iI).firstCity(&iLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER((PlayerTypes)iI).nextCity(&iLoop))
 			{
 				bool bValuable = false;
 
@@ -3350,11 +3346,11 @@ bool CvTeamAI::AI_acceptSurrender( TeamTypes eSurrenderTeam ) const
 				{
 					bValuable = true;
 				}
-				else if( AI_isPrimaryArea(pLoopCity->area()) && (GET_TEAM(eSurrenderTeam).countNumCitiesByArea(pLoopCity->area()) < 3) )
+				else if( AI_isPrimaryArea(pLoopCity->area()) && (kSurrenderTeam.countNumCitiesByArea(pLoopCity->area()) < 3) )
 				{
 					bValuable = true;
 				}
-				else if( pLoopCity->isCapital() && (GET_TEAM(eSurrenderTeam).getNumCities() > GET_TEAM(eSurrenderTeam).getNumMembers() || countNumCitiesByArea(pLoopCity->area()) > 0) )
+				else if( pLoopCity->isCapital() && (kSurrenderTeam.getNumCities() > kSurrenderTeam.getNumMembers() || countNumCitiesByArea(pLoopCity->area()) > 0) )
 				{
 					bValuable = true;
 				}
@@ -3442,37 +3438,6 @@ bool CvTeamAI::AI_acceptSurrender( TeamTypes eSurrenderTeam ) const
 		}
 	}
 
-	if( iValuableCitiesThreatenedByUs > 0 )
-	{
-		// Press for capture of valuable city
-		return false;
-	}
-
-	if( iCitiesThreatenedByOthers > (1 + iCitiesThreatenedByUs/2) )
-	{
-		// Keep others from capturing spoils, but let it go if surrender civ is too small
-		// to care about
-		/* original BBAI code
-		if( 6*(iValuableCities + GET_TEAM(eSurrenderTeam).getNumCities()) > getNumCities() )
-		{
-			return true;
-		} */
-		// K-Mod. That looks like it's the opposite of what you said it should do.
-		if (6*(iValuableCities + GET_TEAM(eSurrenderTeam).getNumCities()) < getNumCities())
-		{
-			return true;
-		}
-		// K-Mod end
-	}
-
-	// If we're low on the totem poll, accept so enemies don't drag anyone else into war with us
-	// Top rank is 0, second is 1, etc.
-	int iTeamRank = GC.getGameINLINE().getTeamRank(getID());
-	if( iTeamRank > (1 + GC.getGameINLINE().countCivTeamsAlive()/3) )
-	{
-		return true;
-	}
-
 	int iOurWarSuccessRating = AI_getWarSuccessRating();
 	if( iOurWarSuccessRating < -30 )
 	{
@@ -3480,50 +3445,70 @@ bool CvTeamAI::AI_acceptSurrender( TeamTypes eSurrenderTeam ) const
 		return true;
 	}
 
-	int iWarCount = 0;
-	for (int iI = 0; iI < MAX_CIV_TEAMS; iI++)
+	if( iValuableCitiesThreatenedByUs > 0 )
 	{
-		if (GET_TEAM((TeamTypes)iI).isAlive() && !(GET_TEAM((TeamTypes)iI).isMinorCiv()))
+		// Press for capture of valuable city
+		return false;
+	}
+
+	if (iCitiesThreatenedByOthers > (1 + iCitiesThreatenedByUs/2) && (bMightCapToOther || iCitiesThreatenedByOthers >= iValuableCities)) // K-Mod
+	{
+		// Keep others from capturing spoils, but let it go if surrender civ is too small to care about
+		/* original BBAI code
+		if( 6*(iValuableCities + kSurrenderTeam.getNumCities()) > getNumCities() )
 		{
-			if ((TeamTypes)iI != eSurrenderTeam && !(GET_TEAM((TeamTypes)iI).isVassal(eSurrenderTeam)))
+			return true;
+		} */
+		// K-Mod
+		if (5*iValuableCities + 3*(kSurrenderTeam.getNumCities()-iCitiesThreatenedByUs) > getNumCities())
+			return true;
+		// K-Mod end
+	}
+
+	// If we're low on the totem poll, accept so enemies don't drag anyone else into war with us
+	// Top rank is 0, second is 1, etc.
+	if ((bMightCapToOther || iOurWarSuccessRating < 60) && GC.getGameINLINE().getTeamRank(getID()) > 1 + GC.getGameINLINE().countCivTeamsAlive()/3)
+	{
+		return true;
+	}
+
+	if (iOurWarSuccessRating < 50)
+	{
+		// Accept if we have other wars to fight
+		for (TeamTypes i = (TeamTypes)0; i < MAX_CIV_TEAMS; i=(TeamTypes)(i+1))
+		{
+			const CvTeam& kLoopTeam = GET_TEAM(i);
+			if (isAtWar(i) && kLoopTeam.isAlive() && !kLoopTeam.isMinorCiv() && i != eSurrenderTeam && !kLoopTeam.isVassal(eSurrenderTeam))
 			{
-				if (isAtWar((TeamTypes)iI))
+				if (kLoopTeam.AI_getWarSuccess(getID()) > 5*GC.getDefineINT("WAR_SUCCESS_ATTACKING"))
 				{
-					if( GET_TEAM((TeamTypes)iI).AI_getWarSuccess(getID()) > 5*GC.getDefineINT("WAR_SUCCESS_ATTACKING") )
-					{
-						iWarCount++;
-					}
+					return true;
 				}
 			}
 		}
 	}
 
-	if( iWarCount > 0 && iOurWarSuccessRating < 50 )
-	{
-		// Accept if we have other wars to fight
-		return true;
-	}
-
 	// War weariness
 	int iWearinessThreshold = (GC.getGameINLINE().isOption(GAMEOPTION_AGGRESSIVE_AI) ? 300 : 240);
-	iWearinessThreshold += 10*iValuableCities + 20*iCitiesThreatenedByUs;
-
-	for (int iI = 0; iI < MAX_CIV_PLAYERS; iI++)
+	if (!bMightCapToOther)
 	{
-		if (GET_PLAYER((PlayerTypes)iI).isAlive())
-		{
-			if (GET_PLAYER((PlayerTypes)iI).getTeam() == getID() )
-			{
-				int iWarWearinessPercentAnger = (getWarWeariness(eSurrenderTeam) * std::max(0, 100 + GET_TEAM(eSurrenderTeam).getEnemyWarWearinessModifier())) / 10000;
-				iWarWearinessPercentAnger = GET_PLAYER((PlayerTypes)iI).getModifiedWarWearinessPercentAnger(iWarWearinessPercentAnger);
+		iWearinessThreshold += 20*iValuableCities + 30*iCitiesThreatenedByUs;
+		iWearinessThreshold += 10*std::max(0, GC.getWorldInfo(GC.getMapINLINE().getWorldSize()).getTargetNumCities() - kSurrenderTeam.getNumCities()); // (to help finish off small civs)
+	}
 
-				// Significant war weariness from eSurrenderTeam, 1000 = 100%
-				if( iWarWearinessPercentAnger > 100 ) // was 50 (K-Mod. And note, this isn't really "percent")
+	for (PlayerTypes i = (PlayerTypes)0; i < MAX_CIV_PLAYERS; i=(PlayerTypes)(i+1))
+	{
+		const CvPlayer& kLoopPlayer = GET_PLAYER(i);
+
+		if (kLoopPlayer.isAlive() && kLoopPlayer.getTeam() == getID())
+		{
+			if (kLoopPlayer.getWarWearinessPercentAnger() > iWearinessThreshold) // K-Mod note: it isn't really "percent". The API lies.
+			{
+				int iWwPerMil = kLoopPlayer.getModifiedWarWearinessPercentAnger(getWarWeariness(eSurrenderTeam, true) / 100);
+
+				if (iWwPerMil > iWearinessThreshold/2)
 				{
-					if( GET_PLAYER((PlayerTypes)iI).getWarWearinessPercentAnger() > iWearinessThreshold )
-					{
-						return true;
-					}
+					return true;
 				}
 			}
 		}
@@ -3535,7 +3520,7 @@ bool CvTeamAI::AI_acceptSurrender( TeamTypes eSurrenderTeam ) const
 		return false;
 	}
 
-	if( GET_TEAM(eSurrenderTeam).getNumCities() < (getNumCities()/4 - (AI_maxWarRand()/100)) )
+	if( kSurrenderTeam.getNumCities() < (getNumCities()/4 - (AI_maxWarRand()/100)) )
 	{
 		// Too small to bother leaving alive
 		return false;
@@ -3816,9 +3801,10 @@ DenialTypes CvTeamAI::AI_makePeaceTrade(TeamTypes ePeaceTeam, TeamTypes eTeam) c
 	} */
 	// K-Mod
 	if (AI_refusePeace(ePeaceTeam))
-	{
 		return DENIAL_VICTORY;
-	}
+
+	if (!GET_PLAYER(getLeaderID()).canContactAndTalk(GET_TEAM(ePeaceTeam).getLeaderID()) || GET_TEAM(ePeaceTeam).AI_refusePeace(getID()))
+		return DENIAL_CONTACT_THEM;
 	// K-Mod end
 
 	return NO_DENIAL;

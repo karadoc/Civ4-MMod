@@ -274,6 +274,7 @@ void CvPlayerAI::AI_reset(bool bConstructor)
 	//m_iUpgradeUnitsCacheTurn = -1;
 	//m_iUpgradeUnitsCachedExpThreshold = 0;
 	m_iUpgradeUnitsCachedGold = 0;
+	m_iAvailableIncome = 0; // K-Mod
 
 	m_aiAICitySites.clear();
 	
@@ -339,6 +340,7 @@ void CvPlayerAI::updateCacheData()
 		// note. total upgrade gold is currently used in AI_hurry, which is used by production-automated.
 		// Therefore, we need to get total upgrade gold for human players as well as AI players.
 		AI_updateGoldToUpgradeAllUnits();
+		AI_updateAvailableIncome(); // K-Mod
 	}
 }
 // K-Mod end
@@ -670,17 +672,11 @@ void CvPlayerAI::AI_doTurnUnitsPost()
 /* BETTER_BTS_AI_MOD                       END                                                  */
 /************************************************************************************************/
 
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                       06/16/09                                jdog5000      */
-/*                                                                                              */
-/* Bugfix                                                                                       */
-/************************************************************************************************/
-	// Moved here per alexman's suggestion
-	AI_doSplit();	
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                        END                                                  */
-/************************************************************************************************/
-
+	// UF bugfix: AI_doSplit moved here per alexman's suggestion
+	AI_doSplit();
+	// K-Mod note: the reason for moving it here is that player turn ordering can get messed up if a
+	// new player is created, recycling an old player number, while no one else's turn is 'active'.
+	// I can't help but think there is a more natural solution to this problem...
 }
 
 
@@ -1065,6 +1061,7 @@ void CvPlayerAI::AI_updateFoundValues(bool bStartingLoc)
 					iValue = AI_foundValue_bulk(pLoopPlot->getX_INLINE(), pLoopPlot->getY_INLINE(), kFoundSet); // K-Mod
 				}
 
+				FAssert(iValue <= MAX_SHORT); // K-Mod. If this assert fails, the foundValue calculation may need to be changed.
 				iValue = std::min((long)MAX_SHORT, iValue); // K-Mod
 				pLoopPlot->setFoundValue(getID(), (short)iValue);
 
@@ -1073,6 +1070,14 @@ void CvPlayerAI::AI_updateFoundValues(bool bStartingLoc)
 					pLoopPlot->area()->setBestFoundValue(getID(), iValue);
 				}
 			}
+			// K-Mod. Clear out any junk found values.
+			// (I've seen legacy AI code which makes use of the found values of unrevealed plots.
+			//  It shouldn't use those values at all, but if it does use them, I'd prefer them not to be junk!)
+			else
+			{
+				pLoopPlot->setFoundValue(getID(), 0);
+			}
+			// K-Mod end
 		}
 		if (!isBarbarian())
 		{
@@ -2270,6 +2275,7 @@ int CvPlayerAI::AI_yieldWeight(YieldTypes eYield, const CvCity* pCity) const // 
 
 int CvPlayerAI::AI_commerceWeight(CommerceTypes eCommerce, const CvCity* pCity) const
 {
+	PROFILE_FUNC();
 	int iWeight;
 
 	iWeight = GC.getCommerceInfo(eCommerce).getAIWeightPercent();
@@ -2291,26 +2297,22 @@ int CvPlayerAI::AI_commerceWeight(CommerceTypes eCommerce, const CvCity* pCity) 
 		}
 		break;
 	case COMMERCE_GOLD:
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      06/12/09                                jdog5000      */
-/*                                                                                              */
-/* Gold AI                                                                        */
-/************************************************************************************************/
-		if (getCommercePercent(COMMERCE_GOLD) > 70)
+		if (getCommercePercent(COMMERCE_GOLD) > 80) // originally == 100
 		{
 			//avoid strikes
-			if (getGoldPerTurn() < -getGold()/100)
+			//if (getGoldPerTurn() < -getGold()/100)
+			if (calculateGoldRate() < -getGold()/100) // K-Mod
 			{
 				iWeight += 15;
 			}
 		}
-		else if (getCommercePercent(COMMERCE_GOLD) < 25)
+		else if (getCommercePercent(COMMERCE_GOLD) < 25) // originally == 0 (bbai)
 		{
 			//put more money towards other commerce types
-			int iGoldPerTurn = getGoldPerTurn(); // K-Mod
+			int iGoldPerTurn = calculateGoldRate(); // K-Mod (the original code used getGoldPerTurn, which is faster, but the wrong number.)
 			if (iGoldPerTurn > -getGold()/40)
 			{
-				iWeight -= 25 - getCommercePercent(COMMERCE_GOLD);
+				iWeight -= 25 - getCommercePercent(COMMERCE_GOLD); // originally 15 (bbai)
 				iWeight -= (iGoldPerTurn > 0 && getCommercePercent(COMMERCE_GOLD) == 0) ? 10 : 0; // K-Mod. just a bit extra. (I'd like to compare getGold to AI_goldTarget; but it's too expensive.)
 			}
 		}
@@ -2323,9 +2325,7 @@ int CvPlayerAI::AI_commerceWeight(CommerceTypes eCommerce, const CvCity* pCity) 
 			iWeight *= pCity->getTotalCommerceRateModifier(COMMERCE_GOLD);
 			iWeight /= AI_averageCommerceMultiplier(COMMERCE_GOLD);
 		}
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
+		//
 		break;
 	case COMMERCE_CULTURE:
 		// COMMERCE_CULTURE AIWeightPercent is 25% in default xml
@@ -4541,28 +4541,10 @@ bool CvPlayerAI::AI_isFinancialTrouble() const
 
 	//if (getCommercePercent(COMMERCE_GOLD) > 50)
 	{
-		/* original bts code
-		int iNetCommerce = 1 + getCommerceRate(COMMERCE_GOLD) + getCommerceRate(COMMERCE_RESEARCH) + std::max(0, getGoldPerTurn()); */
-		// K-Mod: have you heard of "cultural victory"? How about "espionage economy"?
-		// Lets try it a more general way. (hopefully this doesn't slow it down too much...)
-		int iTotalRaw = calculateTotalYield(YIELD_COMMERCE);
-
-		int iNetCommerce = iTotalRaw * AI_averageCommerceMultiplier(COMMERCE_GOLD) / 100;
-		iNetCommerce += std::max(0, getGoldPerTurn());
-		iNetCommerce += getCommerceRate(COMMERCE_GOLD) - iTotalRaw * AI_averageCommerceMultiplier(COMMERCE_GOLD) * getCommercePercent(COMMERCE_GOLD) / 10000;
-		// K-Mod end
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                       06/11/09                       jdog5000 & DanF5771    */
-/*                                                                                              */
-/* Bugfix                                                                                       */
-/************************************************************************************************/
-/* original BTS code
-		int iNetExpenses = calculateInflatedCosts() + std::min(0, getGoldPerTurn());
-*/
-		int iNetExpenses = calculateInflatedCosts() + std::max(0, -getGoldPerTurn());
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                        END                                                  */
-/************************************************************************************************/		
+		//int iNetCommerce = 1 + getCommerceRate(COMMERCE_GOLD) + getCommerceRate(COMMERCE_RESEARCH) + std::max(0, getGoldPerTurn());
+		//int iNetExpenses = calculateInflatedCosts() + std::min(0, getGoldPerTurn());
+		int iNetCommerce = AI_getAvailableIncome(); // K-Mod
+		int iNetExpenses = calculateInflatedCosts() + std::max(0, -getGoldPerTurn()); // unofficial patch
 		
 		int iFundedPercent = (100 * (iNetCommerce - iNetExpenses)) / std::max(1, iNetCommerce);
 		
@@ -5589,6 +5571,11 @@ int CvPlayerAI::AI_techValue( TechTypes eTech, int iPathLength, bool bIgnoreCost
 			for (int iK = 0; iK < NUM_COMMERCE_TYPES; iK++)
 			{
 				int iTempValue = (GC.getProcessInfo((ProcessTypes)iJ).getProductionToCommerceModifier(iK) * 4);
+
+				// K-Mod. (check out what would happen to "bIsGoodProcess" without this bit.  "oops.")
+				if (iTempValue <= 0)
+					continue;
+				// K-Mod end
 
 				iTempValue *= AI_commerceWeight((CommerceTypes)iK);
 				iTempValue /= 100;
@@ -7836,6 +7823,8 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 
 	VoteTypes eVote = kVoteData.eVote;
 
+	CvTeamAI& kOurTeam = GET_TEAM(getTeam()); // K-Mod
+
 	if (GC.getGameINLINE().isTeamVote(eVote))
 	{
 		if (GC.getGameINLINE().isTeamVoteEligible(getTeam(), eVoteSource))
@@ -7860,12 +7849,12 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 			{
 				if (GC.getGameINLINE().isTeamVoteEligible((TeamTypes)iI, eVoteSource))
 				{
-					if (GET_TEAM(getTeam()).isVassal((TeamTypes)iI))
+					if (kOurTeam.isVassal((TeamTypes)iI))
 					{
 						return (PlayerVoteTypes)iI;
 					}
 
-					iValue = GET_TEAM(getTeam()).AI_getAttitudeVal((TeamTypes)iI);
+					iValue = kOurTeam.AI_getAttitudeVal((TeamTypes)iI);
 
 					if (iValue > iBestValue)
 					{
@@ -7911,7 +7900,7 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 				}
 				else
 				{
-					bFriendlyToSecretary = (GET_TEAM(getTeam()).AI_getAttitude(eSecretaryGeneral) == ATTITUDE_FRIENDLY);
+					bFriendlyToSecretary = (kOurTeam.AI_getAttitude(eSecretaryGeneral) == ATTITUDE_FRIENDLY);
 				}
 			}
 		}
@@ -8006,7 +7995,7 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 			if (GC.getVoteInfo(eVote).isNoNukes())
 			{
 				int iVoteBanThreshold = 0;
-				iVoteBanThreshold += GET_TEAM(getTeam()).getNukeInterception() / 3;
+				iVoteBanThreshold += kOurTeam.getNukeInterception() / 3;
 				iVoteBanThreshold += GC.getLeaderHeadInfo(getPersonalityType()).getBuildUnitProb();
 				iVoteBanThreshold *= std::max(1, GC.getLeaderHeadInfo(getPersonalityType()).getWarmongerRespect());
 				if (GC.getGameINLINE().isOption(GAMEOPTION_AGGRESSIVE_AI))
@@ -8027,7 +8016,7 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 					}
 				}
 
-				if (!bAnyHasSdi && GET_TEAM(getTeam()).getNukeInterception() > 0 && GET_TEAM(getTeam()).getNumNukeUnits() > 0)
+				if (!bAnyHasSdi && kOurTeam.getNukeInterception() > 0 && kOurTeam.getNumNukeUnits() > 0)
 				{
 					iVoteBanThreshold *= 2;
 				}
@@ -8052,7 +8041,7 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 				{
 					bValid = false;
 				}
-				else if ((GET_TEAM(getTeam()).getNumNukeUnits() / std::max(1, GET_TEAM(getTeam()).getNumMembers())) < (GC.getGameINLINE().countTotalNukeUnits() / std::max(1, GC.getGameINLINE().countCivPlayersAlive())))
+				else if ((kOurTeam.getNumNukeUnits() / std::max(1, kOurTeam.getNumMembers())) < (GC.getGameINLINE().countTotalNukeUnits() / std::max(1, GC.getGameINLINE().countCivPlayersAlive())))
 				{
 					bValid = false;
 				}
@@ -8092,7 +8081,7 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 					{
 						if (iI != getTeam())
 						{
-							if (GET_TEAM(getTeam()).isOpenBorders((TeamTypes)iI))
+							if (kOurTeam.isOpenBorders((TeamTypes)iI))
 							{
 								iOpenCount += GET_TEAM((TeamTypes)iI).getNumCities();
 							}
@@ -8141,7 +8130,7 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 					{
 						if (GET_TEAM((TeamTypes)iI).isVotingMember(eVoteSource))
 						{
-							if (NO_DENIAL != GET_TEAM(getTeam()).AI_openBordersTrade((TeamTypes)iI))
+							if (NO_DENIAL != kOurTeam.AI_openBordersTrade((TeamTypes)iI))
 							{
 								bValid = false;
 								break;
@@ -8173,7 +8162,7 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 					{
 						if (GET_TEAM((TeamTypes)iI).isVotingMember(eVoteSource))
 						{
-							if (NO_DENIAL != GET_TEAM(getTeam()).AI_defensivePactTrade((TeamTypes)iI))
+							if (NO_DENIAL != kOurTeam.AI_defensivePactTrade((TeamTypes)iI))
 							{
 								bValid = false;
 								break;
@@ -8308,19 +8297,19 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 				}
 				else if (GET_TEAM(ePeaceTeam).isAtWar(getTeam()))
 				{
-					bool bWantsToEndWar = (GET_TEAM(getTeam()).AI_endWarVal(ePeaceTeam) > (3*GET_TEAM(ePeaceTeam).AI_endWarVal(getTeam()))/2);
+					bool bWantsToEndWar = (kOurTeam.AI_endWarVal(ePeaceTeam) > (3*GET_TEAM(ePeaceTeam).AI_endWarVal(getTeam()))/2);
 					bValid = bWantsToEndWar;
 
 					if( bValid )
 					{
-						bValid = bWinningBig || (iWarsWinning > iWarsLosing) || (GET_TEAM(getTeam()).getAtWarCount(true, true) > 1);
+						bValid = bWinningBig || (iWarsWinning > iWarsLosing) || (kOurTeam.getAtWarCount(true, true) > 1);
 					}
 
 					if (!bValid && bThisPlayerWinning && (iWarsLosing >= iWarsWinning) && !bPropose )
 					{
-						if( !GET_TEAM(getTeam()).isAVassal() )
+						if( !kOurTeam.isAVassal() )
 						{
-							if( (GET_TEAM(getTeam()).getAtWarCount(true) == 1) || bLosingBig )
+							if( (kOurTeam.getAtWarCount(true) == 1) || bLosingBig )
 							{
 								// Can we continue this war with defiance penalties?
 								if( !AI_isFinancialTrouble() )
@@ -8339,14 +8328,14 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 
 					if( !bValid && !bDefy && !bPropose )
 					{
-						if((GET_TEAM(getTeam()).AI_getAttitude(eSecretaryGeneral) > GC.getLeaderHeadInfo(getPersonalityType()).getVassalRefuseAttitudeThreshold()) )
+						if((kOurTeam.AI_getAttitude(eSecretaryGeneral) > GC.getLeaderHeadInfo(getPersonalityType()).getVassalRefuseAttitudeThreshold()) )
 						{
 							// Influence by secretary
-							if( NO_DENIAL == GET_TEAM(getTeam()).AI_makePeaceTrade(ePeaceTeam, eSecretaryGeneral) )
+							if( NO_DENIAL == kOurTeam.AI_makePeaceTrade(ePeaceTeam, eSecretaryGeneral) )
 							{
 								bValid = true;
 							}
-							else if( eSecretaryGeneral != NO_TEAM && GET_TEAM(getTeam()).isVassal(eSecretaryGeneral) )
+							else if( eSecretaryGeneral != NO_TEAM && kOurTeam.isVassal(eSecretaryGeneral) )
 							{
 								bValid = true;
 							}
@@ -8355,12 +8344,12 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 				}
 				else
 				{
-					if( GET_TEAM(getTeam()).AI_getWarPlan(ePeaceTeam) != NO_WARPLAN )
+					if( kOurTeam.AI_getWarPlan(ePeaceTeam) != NO_WARPLAN )
 					{
 						// Keep planned enemy occupied
 						bValid = false;
 					}
-					else if( GET_TEAM(getTeam()).AI_shareWar(ePeaceTeam)  && !(GET_TEAM(getTeam()).isVassal(ePeaceTeam)) )
+					else if( kOurTeam.AI_shareWar(ePeaceTeam)  && !(kOurTeam.isVassal(ePeaceTeam)) )
 					{
 						// Keep ePeaceTeam at war with our common enemies
 						bValid = false;
@@ -8368,17 +8357,17 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 					else if(iWarsLosing > iWarsWinning)
 					{
 						// Feel pity for team that is losing (if like them enough to not declare war on them)
-						bValid = (GET_TEAM(getTeam()).AI_getAttitude(ePeaceTeam) >= GC.getLeaderHeadInfo(getPersonalityType()).getDeclareWarThemRefuseAttitudeThreshold());
+						bValid = (kOurTeam.AI_getAttitude(ePeaceTeam) >= GC.getLeaderHeadInfo(getPersonalityType()).getDeclareWarThemRefuseAttitudeThreshold());
 					}
 					else 
 					{
 						// Stop a team that is winning (if don't like them enough to join them in war)
-						bValid = (GET_TEAM(getTeam()).AI_getAttitude(ePeaceTeam) < GC.getLeaderHeadInfo(getPersonalityType()).getDeclareWarRefuseAttitudeThreshold());
+						bValid = (kOurTeam.AI_getAttitude(ePeaceTeam) < GC.getLeaderHeadInfo(getPersonalityType()).getDeclareWarRefuseAttitudeThreshold());
 					}
 
 					if( !bValid )
 					{
-						if( bFriendlyToSecretary && !GET_TEAM(getTeam()).isVassal(ePeaceTeam) )
+						if( bFriendlyToSecretary && !kOurTeam.isVassal(ePeaceTeam) )
 						{
 							// Influence by secretary
 							bValid = true;
@@ -8420,12 +8409,12 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 						bValid = (NO_DENIAL == AI_stopTradingTrade(eEmbargoTeam, kVoteData.ePlayer));
 						if (bValid)
 						{
-							bValid = (GET_TEAM(getTeam()).AI_getAttitude(eEmbargoTeam) <= ATTITUDE_CAUTIOUS);
+							bValid = (kOurTeam.AI_getAttitude(eEmbargoTeam) <= ATTITUDE_CAUTIOUS);
 						}
 					}
 					else
 					{
-						bValid = (GET_TEAM(getTeam()).AI_getAttitude(eEmbargoTeam) < ATTITUDE_CAUTIOUS);
+						bValid = (kOurTeam.AI_getAttitude(eEmbargoTeam) < ATTITUDE_CAUTIOUS);
 					}
 				}
 /************************************************************************************************/
@@ -8453,12 +8442,12 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 				}
 				else if (GET_TEAM(eWarTeam).isAtWar(getTeam()))
 */
-				else if (eWarTeam == getTeam() || GET_TEAM(getTeam()).isVassal(eWarTeam))
+				else if (eWarTeam == getTeam() || kOurTeam.isVassal(eWarTeam))
 				{
 					// Explicit rejection by all who will definitely be attacked
 					bValid = false;
 				}
-				else if ( GET_TEAM(getTeam()).AI_getWarPlan(eWarTeam) != NO_WARPLAN )
+				else if ( kOurTeam.AI_getWarPlan(eWarTeam) != NO_WARPLAN )
 /************************************************************************************************/
 /* BETTER_BTS_AI_MOD                       END                                                  */
 /************************************************************************************************/
@@ -8479,20 +8468,21 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 						bValid = (GET_TEAM(getTeam()).AI_getAttitude(eWarTeam) < ATTITUDE_CAUTIOUS);
 					}
 */
-					if( !bPropose && GET_TEAM(getTeam()).isAVassal() )
+					if( !bPropose && kOurTeam.isAVassal() )
 					{
 						// Vassals always deny war trade requests and thus previously always voted no
 						bValid = false;
 
-						if( GET_TEAM(getTeam()).getAnyWarPlanCount(true) == 0 )
+						if( kOurTeam.getAnyWarPlanCount(true) == 0 )
 						{
-							if( eSecretaryGeneral == NO_TEAM || (GET_TEAM(getTeam()).AI_getAttitude(eSecretaryGeneral) > GC.getLeaderHeadInfo(getPersonalityType()).getDeclareWarRefuseAttitudeThreshold()) )
+							if( eSecretaryGeneral == NO_TEAM || (kOurTeam.AI_getAttitude(eSecretaryGeneral) > GC.getLeaderHeadInfo(getPersonalityType()).getDeclareWarRefuseAttitudeThreshold()) )
 							{
-								if( eSecretaryGeneral != NO_TEAM && GET_TEAM(getTeam()).isVassal(eSecretaryGeneral) )
+								if( eSecretaryGeneral != NO_TEAM && kOurTeam.isVassal(eSecretaryGeneral) )
 								{
 									bValid = true;
 								}
-								else if( (GET_TEAM(getTeam()).isAVassal() ? GET_TEAM(getTeam()).getCurrentMasterPower(true) : GET_TEAM(getTeam()).getPower(true)) > GET_TEAM(eWarTeam).getDefensivePower() )
+								//else if( (GET_TEAM(getTeam()).isAVassal() ? GET_TEAM(getTeam()).getCurrentMasterPower(true) : GET_TEAM(getTeam()).getPower(true)) > GET_TEAM(eWarTeam).getDefensivePower() )
+								else if (GET_TEAM(kOurTeam.getMasterTeam()).getPower(true) > GET_TEAM(eWarTeam).getDefensivePower())
 								{
 									bValid = true;
 								}
@@ -8501,12 +8491,12 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 					}
 					else
 					{
-						bValid = (bPropose || NO_DENIAL == GET_TEAM(getTeam()).AI_declareWarTrade(eWarTeam, eSecretaryGeneral));
+						bValid = (bPropose || NO_DENIAL == kOurTeam.AI_declareWarTrade(eWarTeam, eSecretaryGeneral));
 					}
 
 					if (bValid)
 					{
-						int iNoWarOdds = GC.getLeaderHeadInfo(getPersonalityType()).getNoWarAttitudeProb((GET_TEAM(getTeam()).AI_getAttitude(eWarTeam)));
+						int iNoWarOdds = GC.getLeaderHeadInfo(getPersonalityType()).getNoWarAttitudeProb((kOurTeam.AI_getAttitude(eWarTeam)));
 						bValid = ((iNoWarOdds < 30) || (GC.getGame().getSorenRandNum(100, "AI War Vote Attitude Check (Force War)") > iNoWarOdds));
 					}
 					/*
@@ -8716,9 +8706,6 @@ bool CvPlayerAI::AI_considerOffer(PlayerTypes ePlayer, const CLinkList<TradeData
 {
 	const CvTeamAI& kOurTeam = GET_TEAM(getTeam()); // K-Mod
 
-	CLLNode<TradeData>* pNode;
-	int iThreshold;
-
 	FAssertMsg(ePlayer != getID(), "shouldn't call this function on ourselves");
 
 	if (AI_goldDeal(pTheirList) && AI_goldDeal(pOurList))
@@ -8728,7 +8715,7 @@ bool CvPlayerAI::AI_considerOffer(PlayerTypes ePlayer, const CLinkList<TradeData
 
 	if (iChange > -1)
 	{
-		for (pNode = pOurList->head(); pNode; pNode = pOurList->next(pNode))
+		for (CLLNode<TradeData>* pNode = pOurList->head(); pNode; pNode = pOurList->next(pNode))
 		{
 			if (getTradeDenial(ePlayer, pNode->m_data) != NO_DENIAL)
 			{
@@ -8746,6 +8733,7 @@ bool CvPlayerAI::AI_considerOffer(PlayerTypes ePlayer, const CLinkList<TradeData
 	if (atWar(getTeam(), GET_PLAYER(ePlayer).getTeam()))
 	{
 		bool bEndWar = false;
+		CLLNode<TradeData>* pNode;
 		for (pNode = pTheirList->head(); !bEndWar && pNode; pNode = pTheirList->next(pNode))
 		{
 			if (CvDeal::isEndWar(pNode->m_data.m_eItemType))
@@ -8771,7 +8759,7 @@ bool CvPlayerAI::AI_considerOffer(PlayerTypes ePlayer, const CLinkList<TradeData
 	bool bVassalTrade = false;
 	if (iChange > -1) // K-Mod
 	{
-		for (pNode = pTheirList->head(); pNode; pNode = pTheirList->next(pNode))
+		for (CLLNode<TradeData>* pNode = pTheirList->head(); pNode; pNode = pTheirList->next(pNode))
 		{
 			if( pNode->m_data.m_eItemType == TRADE_VASSAL )
 			{
@@ -8802,6 +8790,25 @@ bool CvPlayerAI::AI_considerOffer(PlayerTypes ePlayer, const CLinkList<TradeData
 			}
 		}
 	}
+	// K-Mod. This is our opportunity for canceling a vassal deal.
+	else
+	{
+		for (CLLNode<TradeData>* pNode = pOurList->head(); pNode; pNode = pOurList->next(pNode))
+		{
+			if (pNode->m_data.m_eItemType == TRADE_VASSAL || pNode->m_data.m_eItemType == TRADE_SURRENDER)
+			{
+				bVassalTrade = true;
+				// The trade denial calculation for vassal trades is actually a bit nuanced.
+				// Rather than trying to restructure it, or write new code and risk inconsistencies, I'm just going use it.
+				if (kOurTeam.AI_surrenderTrade(GET_PLAYER(ePlayer).getTeam(), pNode->m_data.m_eItemType == TRADE_SURRENDER ? 125 : 75) != NO_DENIAL)
+					return false;
+				// note: AI_vassalTrade calls AI_surrenderTrade after doing a bunch of war checks and so on. So we don't need that.
+				// CvPlayer::getTradeDenial, unfortunately, will reject any vassal deal by an AI player on a human team - we don't want that here.
+				// (regarding the power multiplier, cf. values used in getTradeDenial)
+			}
+		}
+	}
+	// K-Mod end
 	
 	if( !bVassalTrade )
 	{
@@ -8887,22 +8894,14 @@ bool CvPlayerAI::AI_considerOffer(PlayerTypes ePlayer, const CLinkList<TradeData
 			}
 		}
 
-		iThreshold = (kOurTeam.AI_getHasMetCounter(GET_PLAYER(ePlayer).getTeam()) + 50);
+		int iThreshold = (kOurTeam.AI_getHasMetCounter(GET_PLAYER(ePlayer).getTeam()) + 50);
 
 		iThreshold *= 2;
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      06/12/10                                jdog5000      */
-/*                                                                                              */
-/* Diplomacy AI                                                                                 */
-/************************************************************************************************/
 		if (GET_TEAM(GET_PLAYER(ePlayer).getTeam()).AI_isLandTarget(getTeam()))
 		{
 			iThreshold *= 3;
 		}
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
 
 		iThreshold *= (GET_TEAM(GET_PLAYER(ePlayer).getTeam()).getPower(false) + 100);
 		iThreshold /= (kOurTeam.getPower(false) + 100);
@@ -12382,9 +12381,10 @@ int CvPlayerAI::AI_executiveValue(CvArea* pArea, CorporationTypes eCorporation, 
 	{
 		int iHqValue = 0;
 		CvCity* kHqCity = kGame.getHeadquarters(eCorporation);
-		for (int i = 0; i < NUM_COMMERCE_TYPES; i++)
+		for (CommerceTypes i = (CommerceTypes)0; i < NUM_COMMERCE_TYPES; i=(CommerceTypes)(i+1))
 		{
-			iHqValue += kCorp.getHeadquarterCommerce(i) * kHqCity->getTotalCommerceRateModifier((CommerceTypes)i) * AI_commerceWeight((CommerceTypes)i)/100;
+			if (kCorp.getHeadquarterCommerce(i))
+				iHqValue += kCorp.getHeadquarterCommerce(i) * kHqCity->getTotalCommerceRateModifier(i) * AI_commerceWeight(i)/100;
 		}
 
 		iSpreadExternalValue += iHqValue;
@@ -13410,7 +13410,9 @@ int CvPlayerAI::AI_civicValue(CivicTypes eCivic) const
 		// additional bonuses
 		for (CommerceTypes i = (CommerceTypes)0; i < NUM_COMMERCE_TYPES; i = (CommerceTypes)(i+1))
 		{
-			iSpecialistValue += (getSpecialistExtraCommerce(i) + kCivic.getSpecialistExtraCommerce(i)) * AI_commerceWeight(i);
+			int c = getSpecialistExtraCommerce(i) + kCivic.getSpecialistExtraCommerce(i);
+			if (c)
+				iSpecialistValue += c * AI_commerceWeight(i);
 		}
 		iSpecialistValue += 2*std::max(0, AI_averageGreatPeopleMultiplier()-100);
 		iValue += iCities * iSpecialistValue / 100;
@@ -13630,10 +13632,13 @@ int CvPlayerAI::AI_civicValue(CivicTypes eCivic) const
 					iTempValue -= iCorpCities * ((AI_averageCommerceMultiplier(i) * kCorpInfo.getCommerceProduced(i))/100 * iBonuses * GC.getWorldInfo(GC.getMapINLINE().getWorldSize()).getCorporationMaintenancePercent()) / 10000;
 				}
 
-				iTempValue *= AI_commerceWeight(i);
-				iTempValue /= 100;
+				if (iTempValue != 0)
+				{
+					iTempValue *= AI_commerceWeight(i);
+					iTempValue /= 100;
 
-				iCorpValue += iTempValue;
+					iCorpValue += iTempValue;
+				}
 
 				iMaintenance += kCorpInfo.getHeadquarterCommerce(i) * iCorpCities;
 			}
@@ -14000,11 +14005,13 @@ int CvPlayerAI::AI_civicValue(CivicTypes eCivic) const
 
 		iTempValue /= 100; // (for the 3 things above)
 
-		iTempValue *= AI_commerceWeight((CommerceTypes)iI);
+		if (iTempValue)
+		{
+			iTempValue *= AI_commerceWeight((CommerceTypes)iI);
+			iTempValue /= 100;
 
-		iTempValue /= 100;
-
-		iValue += iTempValue;
+			iValue += iTempValue;
+		}
 	}
 
 	for (int iI = 0; iI < GC.getNumBuildingClassInfos(); iI++)
@@ -17608,6 +17615,10 @@ void CvPlayerAI::read(FDataStreamBase* pStream)
 	//pStream->Read(&m_iUpgradeUnitsCacheTurn); // disabled by K-Mod
 	//pStream->Read(&m_iUpgradeUnitsCachedExpThreshold); // disabled by K-Mod
 	pStream->Read(&m_iUpgradeUnitsCachedGold);
+	// K-Mod
+	if (uiFlag >= 7)
+		pStream->Read(&m_iAvailableIncome);
+	// K-Mod end
 
 	pStream->Read(NUM_UNITAI_TYPES, m_aiNumTrainAIUnits);
 	pStream->Read(NUM_UNITAI_TYPES, m_aiNumAIUnits);
@@ -17686,7 +17697,7 @@ void CvPlayerAI::write(FDataStreamBase* pStream)
 	uint uiFlag=0;
 */
 	// Flag for type of save
-	uint uiFlag=6;
+	uint uiFlag=7;
 	pStream->Write(uiFlag);		// flag for expansion
 
 	pStream->Write(m_iPeaceWeight);
@@ -17714,6 +17725,7 @@ void CvPlayerAI::write(FDataStreamBase* pStream)
 	//pStream->Write(m_iUpgradeUnitsCacheTurn); // disabled by K-Mod
 	//pStream->Write(m_iUpgradeUnitsCachedExpThreshold); // disabled by K-Mod
 	pStream->Write(m_iUpgradeUnitsCachedGold);
+	pStream->Write(m_iAvailableIncome); // K-Mod. uiFlag >= 7
 
 	pStream->Write(NUM_UNITAI_TYPES, m_aiNumTrainAIUnits);
 	pStream->Write(NUM_UNITAI_TYPES, m_aiNumAIUnits);
@@ -20905,6 +20917,20 @@ void CvPlayerAI::AI_updateGoldToUpgradeAllUnits()
 	//return iTotalGold;
 }
 
+// K-Mod. 'available income' is meant to roughly represent the amount of gold-per-turn the player would produce with 100% gold on the commerce slider.
+// (without subtracting costs)
+// In the original code, this value was essentially calculated by simply adding total gold to total science.
+// This new version is better able to handle civs which are using culture or espionage on their commerce slider.
+void CvPlayerAI::AI_updateAvailableIncome()
+{
+	int iTotalRaw = calculateTotalYield(YIELD_COMMERCE);
+
+	m_iAvailableIncome = iTotalRaw * AI_averageCommerceMultiplier(COMMERCE_GOLD) / 100;
+	m_iAvailableIncome += std::max(0, getGoldPerTurn());
+	m_iAvailableIncome += getCommerceRate(COMMERCE_GOLD) - iTotalRaw * AI_averageCommerceMultiplier(COMMERCE_GOLD) * getCommercePercent(COMMERCE_GOLD) / 10000;
+}
+// K-Mod end
+
 int CvPlayerAI::AI_goldTradeValuePercent() const
 {
 	int iValue = 2;
@@ -22509,7 +22535,8 @@ int CvPlayerAI::AI_getMinFoundValue() const
 	PROFILE_FUNC();
 	//int iValue = 600;
 	int iValue = GC.getDefineINT("BBAI_MINIMUM_FOUND_VALUE"); // K-Mod
-	int iNetCommerce = 1 + getCommerceRate(COMMERCE_GOLD) + getCommerceRate(COMMERCE_RESEARCH) + std::max(0, getGoldPerTurn());
+	//int iNetCommerce = 1 + getCommerceRate(COMMERCE_GOLD) + getCommerceRate(COMMERCE_RESEARCH) + std::max(0, getGoldPerTurn());
+	int iNetCommerce = AI_getAvailableIncome(); // K-Mod
 	int iNetExpenses = calculateInflatedCosts() + std::max(0, -getGoldPerTurn());
 
 	iValue *= iNetCommerce;

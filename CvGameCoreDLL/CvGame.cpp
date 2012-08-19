@@ -1564,7 +1564,21 @@ void CvGame::normalizeAddFoodBonuses()
 											}
 											else
 											{
-												iFoodBonus += 3;
+												//iFoodBonus += 3;
+												// K-Mod
+												int iNaturalFood = pLoopPlot->calculateBestNatureYield(YIELD_FOOD, kLoopPlayer.getTeam());
+												int iHighFoodThreshold = 2*iFoodPerPop; // ie. 4 food.
+												bool bHighFood = iNaturalFood + 1 >= iHighFoodThreshold; // (+1 just as a shortcut to save time for obvious cases.)
+
+												for (ImprovementTypes eImp = (ImprovementTypes)0; !bHighFood && eImp < GC.getNumImprovementInfos(); eImp=(ImprovementTypes)(eImp+1))
+												{
+													if (GC.getImprovementInfo(eImp).isImprovementBonusTrade((BonusTypes)iK))
+													{
+														bHighFood = iNaturalFood + pLoopPlot->calculateImprovementYieldChange(eImp, YIELD_FOOD, (PlayerTypes)iI, false, false) >= iHighFoodThreshold;
+													}
+												}
+												iFoodBonus += bHighFood ? 3 : 2;
+												// K-Mod end
 											}
 											break;
 										}
@@ -2581,6 +2595,8 @@ void CvGame::selectGroup(CvUnit* pUnit, bool bShift, bool bCtrl, bool bAlt) cons
 
 		CvPlot* pUnitPlot = pUnit->plot();
 		DomainTypes eDomain = pUnit->getDomainType(); // K-Mod
+		bool bCheckMoves = pUnit->canMove() || pUnit->IsSelected(); // K-Mod.
+		// (Note: the IsSelected check is to stop selected units with no moves from make it hard to select moveable units by clicking on the map.)
 
 		CLLNode<IDInfo>* pUnitNode = pUnitPlot->headUnitNode();
 
@@ -2593,7 +2609,7 @@ void CvGame::selectGroup(CvUnit* pUnit, bool bShift, bool bCtrl, bool bAlt) cons
 
 			if (pLoopUnit->getOwnerINLINE() == getActivePlayer())
 			{
-				if (pLoopUnit->getDomainType() == eDomain && (pLoopUnit->canMove() || !pUnit->canMove())) // K-Mod added domain check and !pUnit->canMove() option.
+				if (pLoopUnit->getDomainType() == eDomain && (!bCheckMoves || pLoopUnit->canMove())) // K-Mod added domain check and bCheckMoves.
 				{
 					//if (!isMPOption(MPOPTION_SIMULTANEOUS_TURNS) || getTurnSlice() - pLoopUnit->getLastMoveTurn() > GC.getDefineINT("MIN_TIMER_UNIT_DOUBLE_MOVES")) // disabled by K-Mod
 					{
@@ -3141,9 +3157,11 @@ int CvGame::countFreeTeamsAlive() const
 {
 	int iCount = 0;
 
-	for (int iI = 0; iI < MAX_CIV_TEAMS; iI++)
+	for (TeamTypes i = (TeamTypes)0; i < MAX_CIV_TEAMS; i=(TeamTypes)(i+1))
 	{
-		if (GET_TEAM((TeamTypes)iI).isAlive() && !GET_TEAM((TeamTypes)iI).isAVassal())
+		const CvTeam& kLoopTeam = GET_TEAM(i);
+		//if (kLoopTeam.isAlive() && !kLoopTeam.isCapitulated())
+		if (kLoopTeam.isAlive() && !kLoopTeam.isAVassal()) // I'm in two minds about which of these to use here.
 		{
 			iCount++;
 		}
@@ -3151,6 +3169,7 @@ int CvGame::countFreeTeamsAlive() const
 
 	return iCount;
 }
+// K-Mod end
 
 int CvGame::countTotalCivPower()
 {
