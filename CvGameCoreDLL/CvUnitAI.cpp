@@ -453,10 +453,26 @@ bool CvUnitAI::AI_follow(bool bFirst)
 	}
 
 	// I've changed attack-follow code so that it will only attack with a single unit, not the whole group.
-	if (bFirst && AI_cityAttack(1, 70, 0, true))
+	if (bFirst && AI_cityAttack(1, 65, 0, true))
 		return true;
-	if (bFirst && AI_anyAttack(1, 70, 0, 2, true, true))
-		return true;
+	if (bFirst)
+	{
+		bool bMoveGroup = false; // to large groups to leave some units behind.
+		if (getGroup()->getNumUnits() >= 16)
+		{
+			int iCanMove = 0;
+			CLLNode<IDInfo>* pEntityNode = getGroup()->headUnitNode();
+			while (pEntityNode)
+			{
+				CvUnit* pLoopUnit = ::getUnit(pEntityNode->m_data);
+				pEntityNode = getGroup()->nextUnitNode(pEntityNode);
+				iCanMove += (pLoopUnit->canMove() ? 1 : 0);
+			}
+			bMoveGroup = 5 * iCanMove >= 4 * getGroup()->getNumUnits() || iCanMove >= 20; // if 4/5 of our group can still move.
+		}
+		if (AI_anyAttack(1, isEnemy(plot()->getTeam()) ? 65 : 70, 0, bMoveGroup ? 0 : 2, true, true))
+			return true;
+	}
 	//
 
 	if (isEnemy(plot()->getTeam()))
@@ -2170,6 +2186,7 @@ void CvUnitAI::AI_attackMove()
 	const CvPlayerAI& kOwner = GET_PLAYER(getOwnerINLINE()); // K-Mod
 
 	bool bDanger = (kOwner.AI_getAnyPlotDanger(plot(), 3));
+	bool bLandWar = kOwner.AI_isLandWar(area()); // K-Mod
 
 	// K-Mod note. We'll split the group up later if we need to. (bbai group splitting code deleted.)
 	FAssert(getGroup()->countNumUnitAIType(UNITAI_ATTACK_CITY) == 0); // K-Mod. (I'm pretty sure this can't happen.)
@@ -2258,13 +2275,23 @@ void CvUnitAI::AI_attackMove()
 		}
 
 		//join any city attacks in progress
+		/* original bts code
 		if (plot()->isOwned() && plot()->getOwnerINLINE() != getOwnerINLINE())
 		{
 			if (AI_groupMergeRange(UNITAI_ATTACK_CITY, 1, true, true))
 			{
 				return;
 			}
+		} */
+		// K-Mod
+		if (isEnemy(plot()->getTeam()))
+		{
+			if (AI_omniGroup(UNITAI_ATTACK_CITY, -1, -1, true, 0, 2, true, false))
+			{
+				return;
+			}
 		}
+		// K-Mod end
 		
 		AreaAITypes eAreaAIType = area()->getAreaAIType(getTeam());
         if (plot()->isCity())
@@ -2341,7 +2368,6 @@ void CvUnitAI::AI_attackMove()
 				}
 
 				//bool bLandWar = ((eAreaAIType == AREAAI_OFFENSIVE) || (eAreaAIType == AREAAI_DEFENSIVE) || (eAreaAIType == AREAAI_MASSING));
-				bool bLandWar = kOwner.AI_isLandWar(area()); // K-Mod
 				if (!bLandWar)
 				{
 					// Fill transports before starting new one, but not just full of our unit ai
@@ -2423,7 +2449,7 @@ void CvUnitAI::AI_attackMove()
 				return;
 			}
 
-			if (getGroup()->getNumUnits() < 4)
+			if (getGroup()->getNumUnits() < 4 && isEnemy(plot()->getTeam()))
 			{
 				if (AI_choke(1))
 				{
@@ -2458,10 +2484,21 @@ void CvUnitAI::AI_attackMove()
 			}
 
 			//if (AI_group(UNITAI_ATTACK_CITY, 1, 1, -1, bIgnoreFaster, true, true, 5))
-			if (AI_omniGroup(UNITAI_ATTACK_CITY, 1, 1, true, 0, 5, true, getGroup()->getNumUnits() < 2, bIgnoreFaster, false, false))
+			// K-Mod
+			bool bAttackCity = bLandWar && (area()->getAreaAIType(getTeam()) == AREAAI_OFFENSIVE || (AI_getBirthmark() + GC.getGameINLINE().getGameTurn()/8)%5 <= 1);
+			if (bAttackCity)
 			{
-				return;
+				// strong merge strategy
+				if (AI_omniGroup(UNITAI_ATTACK_CITY, -1, -1, true, 0, 5, true, getGroup()->getNumUnits() < 2, bIgnoreFaster, false, false))
+					return;
 			}
+			else
+			{
+				// weak merge strategy
+				if (AI_omniGroup(UNITAI_ATTACK_CITY, -1, 2, true, 0, 5, true, false, bIgnoreFaster, false, true))
+					return;
+			}
+			// K-Mod end
 
 			//if (AI_group(UNITAI_ATTACK, 1, 1, -1, true, true, false, 4))
 			if (AI_omniGroup(UNITAI_ATTACK, 2, -1, false, 0, 4, true, true, true, true, false))
@@ -2483,8 +2520,17 @@ void CvUnitAI::AI_attackMove()
 			{
 				return;
 			}
+
+			// K-Mod. If we're feeling aggressive, then try to get closer to the enemy.
+			if (bAttackCity && getGroup()->getNumUnits() > 1)
+			{
+				if (AI_goToTargetCity(0, 12))
+					return;
+			}
+			// K-Mod end
 		}
 
+		/* original bts code
 		if (area()->getAreaAIType(getTeam()) == AREAAI_OFFENSIVE)
 		{
 			if (getGroup()->getNumUnits() > 1)
@@ -2495,7 +2541,7 @@ void CvUnitAI::AI_attackMove()
 					return;
 				}
 			}
-		}
+		} */ // disabled by K-Mod. (moved / changed)
 		/* BBAI code
 		else if( area()->getAreaAIType(getTeam()) != AREAAI_DEFENSIVE )
 		{
@@ -5442,7 +5488,7 @@ bool CvUnitAI::AI_greatPersonMove()
 	CvPlot* pBestPlot = NULL;
 	SpecialistTypes eBestSpecialist = NO_SPECIALIST;
 	BuildingTypes eBestBuilding = NO_BUILDING;
-	int iBestValue = 0;
+	int iBestValue = 1;
 	int iBestPathTurns = MAX_INT; // just used as a tie-breaker.
 
 	int iLoop;
@@ -5461,7 +5507,7 @@ bool CvUnitAI::AI_greatPersonMove()
 					{
 						// Note, specialistValue is roughly 400x the commerce it provides. So /= 4 to make it 100x.
 						int iValue = pLoopCity->AI_permanentSpecialistValue(eSpecialist)/4;
-						if (iValue > iBestValue)
+						if (iValue > iBestValue || (iValue == iBestValue && iPathTurns < iBestPathTurns))
 						{
 							iBestValue = iValue;
 							pBestPlot = getPathEndTurnPlot();
@@ -5484,7 +5530,7 @@ bool CvUnitAI::AI_greatPersonMove()
 							// so we * 25 to match the scale of specialist value.
 							int iValue = pLoopCity->AI_buildingValue(eBuilding) * 25;
 
-							if (iValue > iBestValue)
+							if (iValue > iBestValue || (iValue == iBestValue && iPathTurns < iBestPathTurns))
 							{
 								iBestValue = iValue;
 								pBestPlot = getPathEndTurnPlot();
@@ -5509,25 +5555,19 @@ bool CvUnitAI::AI_greatPersonMove()
 							}
 
 							FAssert(iHurryProduction > 0);
-							int iFraction = 100 * std::min(iHurryProduction, iCost-iProgress) / std::min(iHurryProduction, iCost);
+							int iFraction = 100 * std::min(iHurryProduction, iCost-iProgress) / std::max(1, iCost);
 
-							if (iFraction > 50) // arbitary, and somewhat unneccessary.
+							if (iFraction > 40) // arbitary, and somewhat unneccessary.
 							{
 								FAssert(iFraction <= 100);
 								int iValue = pLoopCity->AI_buildingValue(eBuilding) * 25 * iFraction / 100;
 
-								if (iProgress + iHurryProduction >= iCost)
-								{
-									// increase the value, because we would be preventing someone else from getting it.
-									iValue *= 4;
-									iValue /= 3;
-								}
-								else
+								if (iProgress + iHurryProduction < iCost)
 								{
 									// decrease the value, because we might still miss out!
 									FAssert(iProductionRate > 0 || pLoopCity->isDisorder());
 									iValue *= 12;
-									iValue /= 10 + std::min(30, pLoopCity->getProductionTurnsLeft(iCost, iProgress, iProductionRate, iProductionRate));
+									iValue /= 12 + std::min(30, pLoopCity->getProductionTurnsLeft(iCost, iProgress, iProductionRate, iProductionRate));
 								}
 
 								if (iValue > iBestValue || (iValue == iBestValue && iPathTurns < iBestPathTurns))
@@ -5579,16 +5619,44 @@ bool CvUnitAI::AI_greatPersonMove()
 	}
 
 	// SlowValue is meant to be a rough estimation of how much value we'll get from doing the best join / build mission.
+	// To give this estimate, I'm going to do a rough personality-based calculation of how many turns to count.
+	// Note that "iBestValue" is roughly 100x commerce per turn for our best join or build mission.
+	// Also note that the commerce per turn is likely to increase as we improve our city infrastructure and so on.
 	int iSlowValue = iBestValue;
-	iSlowValue *= (GC.getNumEraInfos() - kPlayer.getCurrentEra());
-	// at this point, we have roughly 100 * commerce per turn * number of eras remaining. Scale it down.
-	iSlowValue = 35 * iSlowValue / 100;
-	iSlowValue *= GC.getNumEraInfos();
-	iSlowValue /= std::max(1, 2 * GC.getNumEraInfos() - kPlayer.getCurrentEra());
-	iSlowValue /= kPlayer.AI_isDoVictoryStrategyLevel3() ? 2 : 1;
-	iSlowValue /= kPlayer.AI_isDoVictoryStrategyLevel4() ? 2 : 1;
-	iSlowValue *= GC.getGameSpeedInfo(GC.getGameINLINE().getGameSpeedType()).getVictoryDelayPercent();
-	iSlowValue /= 100;
+	if (iSlowValue > 0)
+	{
+		// multiply by the full number of turns remaining
+		iSlowValue *= GC.getGameINLINE().getEstimateEndTurn() - GC.getGameINLINE().getGameTurn();
+
+		// construct a modifier based on what victory we might like to aim for with our personality & situation
+		const CvLeaderHeadInfo& kLeader = GC.getLeaderHeadInfo(kPlayer.getPersonalityType());
+		int iModifier =
+			2 * std::max(kLeader.getSpaceVictoryWeight(), kPlayer.AI_isDoVictoryStrategy(AI_VICTORY_SPACE1) ? 35 : 0) +
+			1 * std::max(kLeader.getCultureVictoryWeight(), kPlayer.AI_isDoVictoryStrategy(AI_VICTORY_CULTURE1) ? 35 : 0) +
+			//0 * kLeader.getDiplomacyVictoryWeight() +
+			-1 * std::max(kLeader.getDominationVictoryWeight(), kPlayer.AI_isDoVictoryStrategy(AI_VICTORY_DOMINATION1) ? 35 : 0) +
+			-2 * std::max(kLeader.getConquestVictoryWeight(), kPlayer.AI_isDoVictoryStrategy(AI_VICTORY_CONQUEST1) ? 35 : 0);
+		// If we're small, then slow & steady progress might be our best hope to keep up. So increase the modifier for small civs. (think avg. cities / our cities)
+		iModifier += range(40 * GC.getGameINLINE().getNumCivCities() / std::max(1, GC.getGameINLINE().countCivPlayersAlive()*kPlayer.getNumCities()) - 50, 0, 50);
+
+		// convert the modifier into some percentage of the remaining turns
+		iModifier = range(30 + iModifier/2, 20, 80);
+		// apply it
+		iSlowValue *= iModifier;
+		iSlowValue /= 10000; // (also removing excess factor of 100)
+
+		// half the value if anyone we know is up to stage 4. (including us)
+		for (PlayerTypes i = (PlayerTypes)0; i < MAX_CIV_PLAYERS; i=(PlayerTypes)(i+1))
+		{
+			const CvPlayerAI& kLoopPlayer = GET_PLAYER(i);
+			if (kLoopPlayer.isAlive() && kLoopPlayer.AI_isDoVictoryStrategyLevel4() && GET_TEAM(getTeam()).isHasMet(kLoopPlayer.getTeam()))
+			{
+				iSlowValue /= 2;
+				break; // just once.
+			}
+		}
+		//if (gUnitLogLevel > 2) logBBAI("    %S GP slow modifier: %d, value: %d", GET_PLAYER(getOwnerINLINE()).getCivilizationDescription(0), range(30 + iModifier/2, 20, 80), iSlowValue);
+	}
 	iSlowValue *= (75 + kPlayer.AI_getStrategyRand(6) % 51);
 	iSlowValue /= 100;
 
@@ -6044,7 +6112,7 @@ void CvUnitAI::AI_spyMove()
 		}
 
 		if (!kOwner.AI_isDoStrategy(AI_STRATEGY_BIG_ESPIONAGE) && GET_TEAM(getTeam()).getAtWarCount(true) > 0 &&
-			GC.getGame().getSorenRandNum(100, "AI Spy pillage improvement") < (kOwner.AI_getStrategyRand(5) % 30))
+			GC.getGame().getSorenRandNum(100, "AI Spy pillage improvement") < (kOwner.AI_getStrategyRand(5) % 36))
 		{
 			if (AI_bonusOffenseSpy(6))
 			{
@@ -6061,7 +6129,7 @@ void CvUnitAI::AI_spyMove()
 	}
 	
 	if (getGroup()->AI_getMissionAIType() == MISSIONAI_ATTACK_SPY && plot()->getNonObsoleteBonusType(getTeam(), true) != NO_BONUS
-		&& plot()->isOwned() && kOwner.isMaliciousEspionageTarget(plot()->getOwner()))
+		&& plot()->isOwned() && kOwner.AI_isMaliciousEspionageTarget(plot()->getOwner()))
 	{
 		// assume this is the target of our destroy improvement mission.
 		if (getFortifyTurns() >= GC.getDefineINT("MAX_FORTIFY_TURNS"))
@@ -9310,292 +9378,100 @@ void CvUnitAI::AI_attackAirMove()
 	return;
 }
 
-
+// This function has been rewritten for K-Mod. (The new version is much simplier.)
 void CvUnitAI::AI_defenseAirMove()
 {
 	PROFILE_FUNC();
 
-/********************************************************************************/
-/* 	BETTER_BTS_AI_MOD						10/21/08	Solver & jdog5000	*/
-/* 																			*/
-/* 	Air AI																	*/
-/********************************************************************************/
+	if (!plot()->isCity(true))
+	{
+		FAssertMsg(false, "defenseAir units are expected to stay in cities/forts");
+		if (AI_airDefensiveCity())
+			return;
+	}
+
 	CvCity* pCity = plot()->getPlotCity();
 
-	//int iEnemyOffense = GET_PLAYER(getOwnerINLINE()).AI_getEnemyPlotStrength(plot(),2,false,false);
-	// K-Mod
 	int iEnemyOffense = GET_PLAYER(getOwnerINLINE()).AI_localAttackStrength(plot(), NO_TEAM);
 	int iOurDefense = GET_PLAYER(getOwnerINLINE()).AI_localDefenceStrength(plot(), getTeam());
-	FAssert(plot()->isCity(true));
-	// K-Mod end
 
-	// includes forts
-	if (plot()->isCity(true))
+	if (iEnemyOffense > 2*iOurDefense || iOurDefense == 0)
 	{
-		//int iOurDefense = GET_TEAM(getTeam()).AI_getOurPlotStrength(plot(),0,true,false,true);
-	
-		if (3*iEnemyOffense > 4*iOurDefense || iOurDefense == 0)
+		// Too risky, pull out
+		if (AI_airDefensiveCity())
 		{
-			// Too risky, pull out
-			// AI_airDefensiveCity will leave some air defense, pull extras out
-			if (AI_airDefensiveCity())
-			{
-				return;
-			}
-		}
-		else if ( iEnemyOffense > iOurDefense/3 )
-		{
-			if (getDamage() > 0)
-			{
-				if( healTurns(plot()) > 1 + GC.getGameINLINE().getSorenRandNum(2, "AI Air Defense Move") )
-				{
-					// Can't help current situation, only risk losing unit
-					if (AI_airDefensiveCity())
-					{
-						return;
-					}
-				}
-
-				// Stay to defend in the future
-				getGroup()->pushMission(MISSION_SKIP);
-				return;
-			}
-
-			if (canAirDefend() && pCity != NULL)
-			{
-				// Check for whether city needs this unit to air defend
-				if( !(pCity->AI_isAirDefended(true,-1)) )
-				{
-					getGroup()->pushMission(MISSION_AIRPATROL);
-					return;
-				}
-
-				// Consider adding extra defenders
-				if( collateralDamage() == 0 && (!pCity->AI_isAirDefended(false,-2)) )
-				{
-					if( GC.getGameINLINE().getSorenRandNum(3, "AI Air Defense Move") == 0 )
-					{
-						getGroup()->pushMission(MISSION_AIRPATROL);
-						return;
-					}
-				}
-			}
-
-			// Attack the invaders!
-			if (AI_defendBaseAirStrike())
-			{
-				return;
-			}
-			
-			/* if (AI_defensiveAirStrike())
-			{
-				return;
-			} */
-
-			if (AI_airStrike())
-			{
-				return;
-			}
-
-			if (AI_airDefensiveCity())
-			{
-				return;
-			}
+			return;
 		}
 	}
-/********************************************************************************/
-/* 	BETTER_BTS_AI_MOD						END								*/
-/********************************************************************************/
 
-	if (getDamage() > 0)
+	int iDefNeeded = pCity ? pCity->AI_neededAirDefenders() : 0;
+	int iDefHere = plot()->plotCount(PUF_isAirIntercept, -1, -1, NO_PLAYER, getTeam()) - (PUF_isAirIntercept(this, -1, -1) ? 1 : 0);
+	FAssert(iDefHere >= 0);
+
+	if (canAirDefend() && iEnemyOffense < iOurDefense && iDefHere < iDefNeeded/2)
+	{
+		getGroup()->pushMission(MISSION_AIRPATROL);
+		return;
+	}
+
+	if (iEnemyOffense > (getDamage() == 0 ? iOurDefense/3 : iOurDefense))
+	{
+		// Attack the invaders!
+		if (AI_defendBaseAirStrike())
+		{
+			return;
+		}
+	}
+
+	if (getDamage() > maxHitPoints()/3)
 	{
 		getGroup()->pushMission(MISSION_SKIP);
 		return;
 	}
-	
-/********************************************************************************/
-/* 	BETTER_BTS_AI_MOD						10/17/08	Solver & jdog5000	*/
-/* 																			*/
-/* 	Air AI																	*/
-/********************************************************************************/
-	/* original BTS code
-	if ((GC.getGameINLINE().getSorenRandNum(2, "AI Air Defense Move") == 0))
+
+	if (iEnemyOffense == 0 && GC.getGameINLINE().getSorenRandNum(4, "AI Air Defense Move") == 0)
 	{
-		if ((pCity != NULL) && pCity->AI_isDanger())
-		{
-			if (AI_airStrike())
-			{
-				return;
-			}
-		}
-		else
-		{
-			if (AI_airBombDefenses())
-			{
-				return;
-			}
-
-			if (AI_airStrike())
-			{
-				return;
-			}
-			
-			if (AI_getBirthmark() % 2 == 0)
-			{
-				if (AI_airBombPlots())
-				{
-					return;
-				}
-			}
-		}
-
 		if (AI_travelToUpgradeCity())
 		{
 			return;
 		}
 	}
 
-	bool bNoWar = (GET_TEAM(getTeam()).getAtWarCount(false) == 0);
-	
-	if (canRecon(plot()))
+	bool bDefensive = area()->getAreaAIType(getTeam()) == AREAAI_DEFENSIVE;
+	bool bOffensive = area()->getAreaAIType(getTeam()) == AREAAI_OFFENSIVE;
+	bool bTriedAirStrike = false;
+
+	if (!bTriedAirStrike && GC.getGameINLINE().getSorenRandNum(3, "AI_defenseAirMove airstrike") <= (bOffensive ? 1 : 0) - (bDefensive ? 1 : 0))
 	{
-		if (GC.getGame().getSorenRandNum(bNoWar ? 2 : 4, "AI defensive air recon") == 0)
-		{
-			if (AI_exploreAir())
-			{
-				return;
-			}
-		}
+		if (AI_airStrike())
+			return;
+		bTriedAirStrike = true;
 	}
 
-	if (AI_airDefensiveCity())
+	if (canAirDefend() && iDefHere < iDefNeeded*2/3)
 	{
+		getGroup()->pushMission(MISSION_AIRPATROL);
 		return;
 	}
-	*/
-	if((GC.getGameINLINE().getSorenRandNum(4, "AI Air Defense Move") == 0))
+
+	if (!bTriedAirStrike && GC.getGameINLINE().getSorenRandNum(3, "AI_defenseAirMove airstrike2") <= (bOffensive ? 1 : 0) - (bDefensive ? 1 : 0))
 	{
-		// only moves unit in a fort
-		if (AI_travelToUpgradeCity())
-		{
+		if (AI_airStrike())
 			return;
-		}
+		bTriedAirStrike = true;
 	}
 
-	if( canAirDefend() )
-	{
-		// Check for whether city needs this unit for base air defenses
-		int iBaseAirDefenders = 0;
-
-		if( iEnemyOffense > 0 )
-		{
-			iBaseAirDefenders++;
-		}
-
-		if( pCity != NULL )
-		{
-			iBaseAirDefenders += pCity->AI_neededAirDefenders()/2;
-		}
-
-		//if( plot()->countAirInterceptorsActive(getTeam()) < iBaseAirDefenders )
-		if (plot()->plotCount(PUF_isAirIntercept, -1, -1, NO_PLAYER, getTeam()) < iBaseAirDefenders) // K-Mod
-		{
-			getGroup()->pushMission(MISSION_AIRPATROL);
-			return;
-		}
-	}
-
-	CvArea* pArea = area();
-	bool bDefensive = false;
-	bool bOffensive = false;
-
-	if( pArea != NULL )
-	{
-		bDefensive = (pArea->getAreaAIType(getTeam()) == AREAAI_DEFENSIVE);
-		bOffensive = (pArea->getAreaAIType(getTeam()) == AREAAI_OFFENSIVE);
-	}
-
-	if( (iEnemyOffense > 0) || bDefensive )
-	{
-		if( canAirDefend() )
-		{
-			if( pCity != NULL )
-			{
-				// Consider adding extra defenders
-				if( !(pCity->AI_isAirDefended(false,-1)) )
-				{
-					if ((GC.getGameINLINE().getSorenRandNum((bOffensive ? 3 : 2), "AI Air Defense Move") == 0))
-					{
-						getGroup()->pushMission(MISSION_AIRPATROL);
-						return;
-					}
-				}
-			}
-			else
-			{
-				if ((GC.getGameINLINE().getSorenRandNum((bOffensive ? 3 : 2), "AI Air Defense Move") == 0))
-				{
-					getGroup()->pushMission(MISSION_AIRPATROL);
-					return;
-				}
-			}
-		}
-
-		if((GC.getGameINLINE().getSorenRandNum(3, "AI Air Defense Move") > 0))
-		{
-			/* if (AI_defensiveAirStrike())
-			{
-				return;
-			} */ // disabled by K-Mod
-
-			if (AI_airStrike())
-			{
-				return;
-			}
-		}
-	}
-	else
-	{
-		if ((GC.getGameINLINE().getSorenRandNum(3, "AI Air Defense Move") > 0))
-		{
-			// Clear out any enemy fighters, support offensive units
-			/* original bts code
-			if (AI_airBombDefenses())
-			{
-				return;
-			}
-
-			if (GC.getGameINLINE().getSorenRandNum(3, "AI Air Defense Move") == 0)
-			{
-				// Hit enemy land stacks near our cities
-				if (AI_defensiveAirStrike())
-				{
-					return;
-				}
-			} */ // disabled by K-mod. That stuff is handled in AI_airStrike now.
-
-			if (AI_airStrike())
-			{
-				return;
-			}
-			
-			//if (AI_getBirthmark() % 2 == 0 || bOffensive)
-			if (AI_getBirthmark() % 2 == 0) // K-Mod
-			{
-				if (AI_airBombPlots())
-				{
-					return;
-				}
-			}
-		}
-	}
-
-	if (AI_airDefensiveCity())
+	if (AI_airDefensiveCity()) // check if there's a better city to be in
 	{
 		return;
 	}
 
-	// BBAI TODO: how valuable is recon information to AI in war time?	
+	if (canAirDefend() && iDefHere < iDefNeeded)
+	{
+		getGroup()->pushMission(MISSION_AIRPATROL);
+		return;
+	}
+
 	if (canRecon(plot()))
 	{
 		if (GC.getGame().getSorenRandNum(bDefensive ? 6 : 3, "AI defensive air recon") == 0)
@@ -9606,9 +9482,6 @@ void CvUnitAI::AI_defenseAirMove()
 			}
 		}
 	}
-/********************************************************************************/
-/* 	BETTER_BTS_AI_MOD						END								*/
-/********************************************************************************/
 
 	if (canAirDefend())
 	{
@@ -14837,6 +14710,7 @@ bool CvUnitAI::AI_explore()
 	pBestExplorePlot = NULL;
 	
 	bool bNoContact = (GC.getGameINLINE().countCivTeamsAlive() > GET_TEAM(getTeam()).getHasMetCivCount(true));
+	const CvTeam& kTeam = GET_TEAM(getTeam()); // K-Mod
 
 	for (iI = 0; iI < GC.getMapINLINE().numPlotsINLINE(); iI++)
 	{
@@ -14872,13 +14746,22 @@ bool CvUnitAI::AI_explore()
 						{
 							iValue += 1000;
 						}
+						/* original bts code
 						else if (bNoContact)
 						{
 							if (pAdjacentPlot->getRevealedTeam(getTeam(), false) != pAdjacentPlot->getTeam())
 							{
 								iValue += 100;
 							}
+						} */
+						// K-Mod. Not only is the original code cheating, it also doesn't help us meet anyone!
+						// The goal here is to try to meet teams which we have already seen through map trading.
+						if (bNoContact && pAdjacentPlot->getRevealedOwner(kTeam.getID(), false) != NO_PLAYER) // note: revealed team can be set before the plot is actually revealed.
+						{
+							if (!kTeam.isHasMet(pAdjacentPlot->getRevealedTeam(kTeam.getID(), false)))
+								iValue += 100;
 						}
+						// K-Mod end
 					}
 				}
 
@@ -14953,6 +14836,8 @@ bool CvUnitAI::AI_exploreRange(int iRange)
 
 	int iImpassableCount = GET_PLAYER(getOwnerINLINE()).AI_unitImpassableCount(getUnitType());
 
+	const CvTeam& kTeam = GET_TEAM(getTeam()); // K-Mod
+
 	for (iDX = -(iSearchRange); iDX <= iSearchRange; iDX++)
 	{
 		for (iDY = -(iSearchRange); iDY <= iSearchRange; iDY++)
@@ -14976,6 +14861,11 @@ bool CvUnitAI::AI_exploreRange(int iRange)
 					{
 						iValue += 10000;
 					}
+
+					// K-Mod. Try to meet teams that we have seen through map trading
+					if (pLoopPlot->getRevealedOwner(kTeam.getID(), false) != NO_PLAYER && !kTeam.isHasMet(pLoopPlot->getRevealedTeam(kTeam.getID(), false)))
+						iValue += 1000;
+					// K-Mod end
 
 					for (iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
 					{
@@ -15205,6 +15095,8 @@ CvCity* CvUnitAI::AI_pickTargetCity(int iFlags, int iMaxPathTurns, bool bHuntBar
 										+ (pLoopCity->plot()->isHills() ? GC.getHILLS_EXTRA_DEFENSE() : 0);
 									iValue *= std::max(25, 125 - iMod);
 									iValue /= 25; // the denominator is arbitrary, and unimportant.
+									// note: the value reduction from high defences which are bombardable should not be more than
+									// the value reduction from simply having higher iPathTurns.
 								}
 
 								// prefer cities which are close to the main target.
@@ -15224,8 +15116,8 @@ CvCity* CvUnitAI::AI_pickTargetCity(int iFlags, int iMaxPathTurns, bool bHuntBar
 
 								if (area()->getAreaAIType(getTeam()) == AREAAI_DEFENSIVE)
 								{
-									iValue *= 50 + pLoopCity->calculateCulturePercent(getOwnerINLINE());
-									iValue /= 50;
+									iValue *= 100 + pLoopCity->calculateCulturePercent(getOwnerINLINE()); // was 50
+									iValue /= 125; // was 50 (unimportant)
 								}
 
 								// boost value if we can see that the city is poorly defended, or if our existing armies need help there
@@ -15243,6 +15135,13 @@ CvCity* CvUnitAI::AI_pickTargetCity(int iFlags, int iMaxPathTurns, bool bHuntBar
 										int iCap = 100 + 100 * (6 - iPathTurns) / 5;
 										iValue *= std::min(iCap, 100 * iOurOffence / std::max(1, iEnemyDefence));
 										iValue /= 100;
+										// an additional bonus if we're already adjacent
+										// (we can afford to be generous with this bonus, because the enemy has no time to bring in reinforcements)
+										if (iPathTurns <= 1)
+										{
+											iValue *= std::min(300, 150 * iOurOffence / std::max(1, iEnemyDefence));
+											iValue /= 100;
+										}
 									}
 								}
 								// Reduce the value if we can see, or remember, that the city is well defended.
@@ -15265,12 +15164,8 @@ CvCity* CvUnitAI::AI_pickTargetCity(int iFlags, int iMaxPathTurns, bool bHuntBar
 									}
 								}
 								// A const-random component, so that the AI doesn't always go for the same city.
-								{
-									unsigned iHash = AI_getBirthmark() + GC.getMapINLINE().plotNumINLINE(pLoopCity->getX_INLINE(), pLoopCity->getY_INLINE());
-									iHash *= 2654435761; // golden ratio of 2^32;
-									iValue *= 80 + iHash % 41;
-									iValue /= 100;
-								}
+								iValue *= 80 + AI_unitPlotHash(pLoopCity->plot()) % 41;
+								iValue /= 100;
 
 								iValue *= 1000;
 
@@ -15705,7 +15600,7 @@ bool CvUnitAI::AI_anyAttack(int iRange, int iOddsThreshold, int iFlags, int iMin
 			if (iEnemyDefenders < iMinStack)
 				continue;
 
-			if (!atPlot(pLoopPlot) && (bFollow ? canMoveOrAttackInto(pLoopPlot, bDeclareWar) : generatePath(pLoopPlot, iFlags, true, 0, iRange)))
+			if (!atPlot(pLoopPlot) && (bFollow ? getGroup()->canMoveOrAttackInto(pLoopPlot, bDeclareWar, true) : generatePath(pLoopPlot, iFlags, true, 0, iRange)))
 			{
 				int iOdds = iEnemyDefenders == 0 ? (pLoopPlot->isCity() ? 101 : 100) : AI_getWeightedOdds(pLoopPlot, false); // 101 for cities, because that's a better thing to capture.
 				if (iOdds >= iOddsThreshold)
@@ -16086,7 +15981,7 @@ bool CvUnitAI::AI_defendTeritory(int iThreshold, int iFlags, int iMaxPathTurns, 
 // K-Mod end
 
 // iAttackThreshold is the minimum ratio for our attack / their defence.
-// iDefenceThreshold is the minimum ratio for their attack / our defence.
+// iRiskThreshold is the minimum ratio for their attack / our defence adjusted for stack size
 // note: iSearchRange is /not/ the number of turns. It is the number of steps. iSearchRange < 1 means 'automatic'
 // Only 1-turn moves are considered here.
 bool CvUnitAI::AI_stackVsStack(int iSearchRange, int iAttackThreshold, int iRiskThreshold, int iFlags)
@@ -16115,11 +16010,15 @@ bool CvUnitAI::AI_stackVsStack(int iSearchRange, int iAttackThreshold, int iRisk
 			{
 				int iEnemies = pLoopPlot->getNumVisibleEnemyDefenders(this);
 				int iPathTurns;
-				if (iEnemies > 0 && generatePath(pLoopPlot, iFlags, true, &iPathTurns, 1) && iPathTurns <= 1)
+				if (iEnemies > 0 && generatePath(pLoopPlot, iFlags, true, &iPathTurns, 1))
 				{
 					int iEnemyAttack = kOwner.AI_localAttackStrength(pLoopPlot, NO_TEAM, getDomainType(), 0, false);
 
 					int iRiskRatio = 100 * iEnemyAttack / std::max(1, iOurDefence);
+					// adjust risk ratio based on the relative numbers of units.
+					iRiskRatio *= 60 + 40 * getGroup()->getNumUnits() / std::min(iEnemies, getGroup()->getNumUnits());
+					iRiskRatio /= 100;
+					//
 					if (iRiskRatio < iRiskThreshold)
 						continue;
 
@@ -17361,7 +17260,8 @@ bool CvUnitAI::AI_assaultSeaTransport(bool bAttackBarbs, bool bLocal)
 											iValue += (50 * -(GC.getRIVER_ATTACK_MODIFIER()));
 										}
 
-										iValue += 15 * (pLoopPlot->defenseModifier(getTeam(), false));
+										//iValue += 15 * (pLoopPlot->defenseModifier(getTeam(), false));
+										iValue += pLoopPlot == pCity->plot() ? 0 : 15 * (pLoopPlot->defenseModifier(getTeam(), false)); // K-Mod
 										iValue += 1000;
 										iValue += (GET_PLAYER(getOwnerINLINE()).AI_adjacentPotentialAttackers(pCity->plot()) * 200);
 
@@ -17450,6 +17350,7 @@ bool CvUnitAI::AI_assaultSeaTransport(bool bAttackBarbs, bool bLocal)
 
 									// if more than 3 turns to get there, then put some randomness into our preference of distance
 									// +/- 33%
+									/* original bts code
 									if (iPathTurns > 3)
 									{
 										int iPathAdjustment = GC.getGameINLINE().getSorenRandNum(67, "AI Assault Target");
@@ -17458,7 +17359,22 @@ bool CvUnitAI::AI_assaultSeaTransport(bool bAttackBarbs, bool bLocal)
 										iPathTurns /= 100;
 									}
 
-									iValue /= (iPathTurns + 1);
+									iValue /= (iPathTurns + 1); */
+									// K-Mod. A bit of randomness is good, but if it's random every turn then it will lead to inconsistent decisions.
+									// So.. if we're already en-route somewhere, try to keep going there.
+									if (pCity && getGroup()->AI_getMissionAIPlot() && stepDistance(getGroup()->AI_getMissionAIPlot(), pCity->plot()) <= 1)
+									{
+										iValue *= 150;
+										iValue /= 100;
+									}
+									else if (iPathTurns > 2)
+									{
+										//iValue *= 60 + GC.getGameINLINE().getSorenRandNum(81, "AI Assault Target");
+										iValue *= 60 + (AI_unitPlotHash(pLoopPlot, getGroup()->getNumUnits()) % 81);
+										iValue /= 100;
+									}
+									iValue /= (iPathTurns + 2);
+									// K-Mod end
 
 									if (iValue > iBestValue)
 									{
@@ -17646,6 +17562,7 @@ bool CvUnitAI::AI_assaultSeaReinforce(bool bAttackBarbs)
 
 							iValue *= 100;
 
+							/* original bts code
 							// if more than 3 turns to get there, then put some randomness into our preference of distance
 							// +/- 33%
 							if (iPathTurns > 3)
@@ -17655,8 +17572,14 @@ bool CvUnitAI::AI_assaultSeaReinforce(bool bAttackBarbs)
 								iPathTurns *= 66 + iPathAdjustment;
 								iPathTurns /= 100;
 							}
-
 							iValue /= (iPathTurns + 1);
+							*/
+							// K-Mod. More consistent randomness, to prevent decisions from oscillating.
+							iValue *= 70 + (AI_unitPlotHash(pLoopPlot, getGroup()->getNumUnits()) % 61);
+							iValue /= 100;
+
+							iValue /= (iPathTurns + 2);
+							// K-Mod end
 
 							if (iValue > iBestValue)
 							{
@@ -17887,8 +17810,7 @@ bool CvUnitAI::AI_transportGoTo(CvPlot* pEndTurnPlot, CvPlot* pTargetPlot, int i
 		if (getGroup()->isAmphibPlot(pTargetPlot))
 		{
 			// If target is actually an amphibious landing from pEndTurnPlot, then set pEndTurnPlot = pTargetPlot so that we can land this turn.
-			if (pTargetPlot != pEndTurnPlot &&
-				plotDistance(pTargetPlot->getX_INLINE(), pTargetPlot->getY_INLINE(), pEndTurnPlot->getX_INLINE(), pEndTurnPlot->getY_INLINE()) == 1)
+			if (pTargetPlot != pEndTurnPlot && stepDistance(pTargetPlot, pEndTurnPlot) == 1)
 			{
 				pEndTurnPlot = pTargetPlot;
 			}
@@ -18522,7 +18444,7 @@ bool CvUnitAI::AI_specialSeaTransportSpy()
 		{
 			int iValue = 1000 * kOurTeam.getEspionagePointsAgainstTeam(kLoopPlayer.getTeam()) / std::max(1, iTotalPoints);
 
-			if (kOwner.isMaliciousEspionageTarget((PlayerTypes)i))
+			if (kOwner.AI_isMaliciousEspionageTarget((PlayerTypes)i))
 				iValue = 3*iValue/2;
 
 			if (kOurTeam.isAtWar(kLoopPlayer.getTeam()) && !isInvisible(kLoopPlayer.getTeam(), false))
@@ -21437,8 +21359,26 @@ int CvUnitAI::AI_airOffenseBaseValue( CvPlot* pPlot )
 		// If no wars, use prior logic with added value to keeping planes safe from sneak attack
 		if (pCity != NULL)
 		{
+			/* original bts code
 			iValue = (pCity->getPopulation() + 20);
-			iValue += pCity->AI_cityThreat();
+			iValue += pCity->AI_cityThreat(); */
+
+			// K-Mod. Try not to waste airspace which we need for air defenders; but use the needed air defenders as a proxy for good offense placement.
+			// AI_cityThreat has arbitrary scale, so it should not be added to population like that.
+			// (the rest of this function still needs some work, but this bit was particularly problematic.)
+			int iDefNeeded = static_cast<CvCityAI*>(pCity)->AI_neededAirDefenders();
+			int iDefHere = pPlot->plotCount(PUF_isAirIntercept, -1, -1, NO_PLAYER, getTeam()) - (atPlot(pPlot) && PUF_isAirIntercept(this, -1, -1) ? 1 : 0);
+			int iSpace = pPlot->airUnitSpaceAvailable(getTeam()) + (atPlot(pPlot) ? 1 : 0);
+			iValue = pCity->getPopulation() + 20;
+			iValue *= std::min(iDefNeeded+1, iDefHere+iSpace);
+			if (iDefNeeded > iSpace+iDefHere)
+			{
+				FAssert(iDefNeeded > 0);
+				// drop value to zero if we can't even fit half of the air defenders we need here.
+				iValue *= 2*(iSpace+iDefHere) - iDefNeeded;
+				iValue /= iDefNeeded;
+			}
+			// K-Mod end
 		}
 		else
 		{
@@ -21493,112 +21433,117 @@ int CvUnitAI::AI_airOffenseBaseValue( CvPlot* pPlot )
 /********************************************************************************/
 
 // Returns true if a mission was pushed...
+// Most of this function has been rewritten for K-Mod, using bbai as the base version. (old code deleted.)
 bool CvUnitAI::AI_airDefensiveCity()
 {
-	//PROFILE_FUNC();
-
-	CvCity* pCity;
-	CvCity* pLoopCity;
-	CvPlot* pBestPlot;
-	int iValue;
-	int iBestValue;
-	int iLoop;
+	PROFILE_FUNC();
 
 	const CvPlayerAI& kOwner = GET_PLAYER(getOwnerINLINE()); // K-Mod
 
 	FAssert(getDomainType() == DOMAIN_AIR);
 	FAssert(canAirDefend());
 
-	/********************************************************************************/
-	/* 	BETTER_BTS_AI_MOD						10/26/08			jdog5000	*/
-	/* 																			*/
-	/* 	Air AI																	*/
-	/********************************************************************************/
 	if (canAirDefend() && getDamage() == 0)
 	{
-		pCity = plot()->getPlotCity();
+		CvCity* pCity = plot()->getPlotCity();
 
-		if (pCity != NULL)
+		if (pCity && pCity->getOwnerINLINE() == getOwnerINLINE())
 		{
-			if (pCity->getOwnerINLINE() == getOwnerINLINE())
+			int iExistingAirDefenders = plot()->plotCount(PUF_isAirIntercept, -1, -1, getOwnerINLINE());
+			if (PUF_isAirIntercept(this, -1, -1))
+				iExistingAirDefenders--;
+			int iNeedAirDefenders = pCity->AI_neededAirDefenders();
+
+			if (iExistingAirDefenders < iNeedAirDefenders/2 && iExistingAirDefenders < 3)
 			{
-				if ( !(pCity->AI_isAirDefended(false,+1)) )
+				// Be willing to defend with a couple of planes even if it means their doom.
+				getGroup()->pushMission(MISSION_AIRPATROL);
+				return true;
+			}
+
+			if (iExistingAirDefenders < iNeedAirDefenders)
+			{
+				// Stay if city is threatened or if we're well short of our target, but not if capture is imminent.
+				int iEnemyOffense = kOwner.AI_localAttackStrength(plot(), NO_TEAM, DOMAIN_LAND, 2);
+
+				if (iEnemyOffense > 0 || iExistingAirDefenders < iNeedAirDefenders/2)
 				{
-					// Stay if very short on planes, regardless of situation
-					getGroup()->pushMission(MISSION_AIRPATROL);
-					return true;
-				}
-				
-				if( !(pCity->AI_isAirDefended(true,-1)) )
-				{
-					// Stay if city is threatened but not seriously threatened
-					//int iEnemyOffense = GET_PLAYER(getOwnerINLINE()).AI_getEnemyPlotStrength(plot(),2,false,false);
-					int iEnemyOffense = kOwner.AI_localAttackStrength(plot(), NO_TEAM, DOMAIN_LAND, 2); // K-Mod
-				
-					if (iEnemyOffense > 0)
+					int iOurDefense = kOwner.AI_localDefenceStrength(plot(), getTeam());
+					if (iEnemyOffense < iOurDefense)
 					{
-						//int iOurDefense = GET_TEAM(getTeam()).AI_getOurPlotStrength(plot(),0,true,false,true);
-						int iOurDefense = kOwner.AI_localDefenceStrength(plot(), getTeam());
-						if( 3*iEnemyOffense < 4*iOurDefense )
-						{
-							getGroup()->pushMission(MISSION_AIRPATROL);
-							return true;
-						}
+						getGroup()->pushMission(MISSION_AIRPATROL);
+						return true;
 					}
 				}
 			}
 		}
 	}
 	
-	iBestValue = 0;
-	pBestPlot = NULL;
+	int iBestValue = 0;
+	CvPlot* pBestPlot = NULL;
 
-	for (pLoopCity = kOwner.firstCity(&iLoop); pLoopCity != NULL; pLoopCity = kOwner.nextCity(&iLoop))
+	int iLoop;
+	for (CvCity* pLoopCity = kOwner.firstCity(&iLoop); pLoopCity != NULL; pLoopCity = kOwner.nextCity(&iLoop))
 	{
-		if (canAirDefend(pLoopCity->plot()))
+		if (!canAirDefend(pLoopCity->plot()))
+			continue;
+
+		if (!atPlot(pLoopCity->plot()) && !canMoveInto(pLoopCity->plot()))
+			continue;
+
+		bool bCurrentPlot = atPlot(pLoopCity->plot());
+
+		int iExistingAirDefenders = pLoopCity->plot()->plotCount(PUF_isAirIntercept, -1, -1, pLoopCity->getOwnerINLINE());
+		if (bCurrentPlot && PUF_isAirIntercept(this, -1, -1))
+			iExistingAirDefenders--;
+		int iNeedAirDefenders = pLoopCity->AI_neededAirDefenders();
+		int iAirSpaceAvailable = pLoopCity->plot()->airUnitSpaceAvailable(kOwner.getTeam()) + (bCurrentPlot ? 1 : 0);
+
+		if (iNeedAirDefenders > iExistingAirDefenders || iAirSpaceAvailable > 1)
 		{
-			if (atPlot(pLoopCity->plot()) || canMoveInto(pLoopCity->plot()))
+			/* int iValue = pLoopCity->getPopulation() + pLoopCity->AI_cityThreat();
+			iValue *= 100;
+			iValue *= std::max(1, 3 + iNeedAirDefenders - iExistingAirDefenders); */
+			// K-Mod note: AI_cityThreat is too expensive for this stuff, and it's already taken into account by AI_neededAirDefenders anyway
+
+			int iOurDefense = kOwner.AI_localDefenceStrength(pLoopCity->plot(), getTeam(), DOMAIN_LAND, 0);
+			int iEnemyOffense = kOwner.AI_localAttackStrength(pLoopCity->plot(), NO_TEAM, DOMAIN_LAND, 2);
+
+			int iValue = 10 + iAirSpaceAvailable;
+			iValue *= 10 * std::max(0, iNeedAirDefenders - iExistingAirDefenders) + 1;
+
+			if (bCurrentPlot && iAirSpaceAvailable > 1)
+				iValue = iValue * 4/3;
+
+			if( kOwner.AI_isPrimaryArea(pLoopCity->area()) )
 			{
-				int iExistingAirDefenders = pLoopCity->plot()->plotCount(PUF_canAirDefend, -1, -1, pLoopCity->getOwnerINLINE(), NO_TEAM, PUF_isDomainType, DOMAIN_AIR);
-				if( atPlot(pLoopCity->plot()) )
+				iValue *= 4;
+				iValue /= 3;
+			}
+
+			if (pLoopCity->getPreviousOwner() != getOwnerINLINE())
+			{
+				iValue *= (GC.getGameINLINE().getGameTurn() - pLoopCity->getGameTurnAcquired() < 20 ? 3 : 4);
+				iValue /= 5;
+			}
+
+			// Reduce value of endangered city, it may be too late to help
+			if (iEnemyOffense > 0)
+			{
+				if (iOurDefense == 0)
+					iValue = 0;
+				else if (iEnemyOffense*4 > iOurDefense*3)
 				{
-					iExistingAirDefenders -= 1;
+					// note: this will drop to zero when iEnemyOffense = 1.5 * iOurDefence.
+					iValue *= 6*iOurDefense - 4*iEnemyOffense;
+					iValue /= 3*iOurDefense;
 				}
-				int iNeedAirDefenders = pLoopCity->AI_neededAirDefenders();
-			
-				if ( iNeedAirDefenders > iExistingAirDefenders )
-				{
-					iValue = pLoopCity->getPopulation() + pLoopCity->AI_cityThreat();
+			}
 
-					// K-Mod
-					int iOurDefense = kOwner.AI_localDefenceStrength(pLoopCity->plot(), getTeam(), DOMAIN_LAND, 0);
-					int iEnemyOffense = kOwner.AI_localAttackStrength(pLoopCity->plot(), NO_TEAM, DOMAIN_LAND, 2);
-					// K-Mod end
-
-					iValue *= 100;
-
-					// Increase value of cities needing air defense more
-					iValue *= std::max(1, 3 + iNeedAirDefenders - iExistingAirDefenders);
-
-					if( kOwner.AI_isPrimaryArea(pLoopCity->area()) )
-					{
-						iValue *= 4;
-						iValue /= 3;
-					}
-
-					// Reduce value of endangered city, it may be too late to help
-					if (3*iEnemyOffense > iOurDefense || iOurDefense == 0)
-					{
-						iValue *= iOurDefense;
-						iValue /= std::max(1,3*iEnemyOffense);
-					}
-
-					if (iValue > iBestValue)
-					{
-						iBestValue = iValue;
-						pBestPlot = pLoopCity->plot();
-					}
-				}
+			if (iValue > iBestValue)
+			{
+				iBestValue = iValue;
+				pBestPlot = pLoopCity->plot();
 			}
 		}
 	}
@@ -21608,9 +21553,6 @@ bool CvUnitAI::AI_airDefensiveCity()
 		getGroup()->pushMission(MISSION_MOVE_TO, pBestPlot->getX_INLINE(), pBestPlot->getY_INLINE());
 		return true;
 	}
-	/********************************************************************************/
-	/* 	BETTER_BTS_AI_MOD						END								*/
-	/********************************************************************************/
 
 	return false;
 }
@@ -23137,7 +23079,7 @@ bool CvUnitAI::AI_cityOffenseSpy(int iMaxPath, CvCity* pSkipCity)
 			iTeamWeight *= kTeam.AI_getWarPlan(kLoopPlayer.getTeam()) != NO_WARPLAN ? 2 : 1;
 			iTeamWeight *= kTeam.AI_isSneakAttackPreparing(kLoopPlayer.getTeam()) ? 2 : 1;
 
-			iTeamWeight *= kOwner.isMaliciousEspionageTarget((PlayerTypes)iPlayer) ? 3 : 2;
+			iTeamWeight *= kOwner.AI_isMaliciousEspionageTarget((PlayerTypes)iPlayer) ? 3 : 2;
 			iTeamWeight /= 2;
 
 			if (iTeamWeight < 200 && GC.getGame().getSorenRandNum(10, "AI team target saving throw") != 0)
@@ -23233,7 +23175,7 @@ bool CvUnitAI::AI_bonusOffenseSpy(int iRange)
 					}*/
 
 					// K-Mod. I think this is only worthwhile when at war...
-					//if (kOwner.isMaliciousEspionageTarget(pLoopPlot->getOwner()))
+					//if (kOwner.AI_isMaliciousEspionageTarget(pLoopPlot->getOwner()))
 					if (GET_TEAM(getTeam()).isAtWar(pLoopPlot->getTeam()))
 					{
 						int iPathTurns;
@@ -23428,7 +23370,7 @@ EspionageMissionTypes CvUnitAI::AI_bestPlotEspionage(PlayerTypes& eTargetPlayer,
 					// Block small missions when using "big espionage", unless the mission is really good value.
 					if (bBigEspionage
 						&& iValue < 50*kPlayer.getCurrentEra()*(kPlayer.getCurrentEra()+1) // 100, 300, 600, 1000, 1500, ...
-						&& iValue < 2*iCost)
+						&& iValue < (kPlayer.AI_isDoStrategy(AI_STRATEGY_ESPIONAGE_ECONOMY) ? 4 : 2)*iCost)
 					{
 						iValue = 0;
 					}
@@ -23448,6 +23390,9 @@ EspionageMissionTypes CvUnitAI::AI_bestPlotEspionage(PlayerTypes& eTargetPlayer,
 	}
 	if (gUnitLogLevel > 2 && eBestMission != NO_ESPIONAGEMISSION)
 	{
+		// The following assert isn't a problem or a bug. I just want to know when it happens, for testing purposes.
+		//FAssertMsg(!kPlayer.AI_isDoStrategy(AI_STRATEGY_ESPIONAGE_ECONOMY) || GC.getEspionageMissionInfo(eBestMission).getBuyTechCostFactor() > 0 || GC.getEspionageMissionInfo(eBestMission).getDestroyProjectCostFactor() > 0, "Potentially wasteful AI use of espionage.");
+		//
 		logBBAI("      %S chooses %S as their best%s espionage mission (value: %d, cost: %d).", GET_PLAYER(getOwnerINLINE()).getCivilizationDescription(0), GC.getEspionageMissionInfo(eBestMission).getText(), bBigEspionage?" (big)":"", iBestValue, kPlayer.getEspionageMissionCost(eBestMission, eTargetPlayer, pPlot, iData, this));
 	}
 
@@ -24288,6 +24233,14 @@ int CvUnitAI::AI_getWeightedOdds(CvPlot* pPlot, bool bPotentialEnemy)
 }
 // K-Mod end
 
+// K-Mod. A simple hash of the unit's birthmark and the plot position
+// used for getting a 'random' number which depends on the unit and the plot, but which does not vary from turn to turn.
+unsigned CvUnitAI::AI_unitPlotHash(const CvPlot* pPlot, int iExtra) const
+{
+	unsigned iHash = AI_getBirthmark() + GC.getMapINLINE().plotNumINLINE(pPlot->getX_INLINE(), pPlot->getY_INLINE()) + iExtra;
+	iHash *= 2654435761; // golden ratio of 2^32;
+	return iHash;
+}
 
 int CvUnitAI::AI_stackOfDoomExtra() const
 {

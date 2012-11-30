@@ -1952,7 +1952,7 @@ bool CvCity::canTrain(UnitCombatTypes eUnitCombat) const
 }
 
 
-bool CvCity::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestVisible, bool bIgnoreCost) const
+bool CvCity::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestVisible, bool bIgnoreCost, bool bIgnoreTech) const
 {
 	BuildingTypes ePrereqBuilding;
 	bool bRequiresBonus;
@@ -1983,7 +1983,7 @@ bool CvCity::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestVis
 		}
 	}
 
-	if (!(GET_PLAYER(getOwnerINLINE()).canConstruct(eBuilding, bContinue, bTestVisible, bIgnoreCost)))
+	if (!(GET_PLAYER(getOwnerINLINE()).canConstruct(eBuilding, bContinue, bTestVisible, bIgnoreCost, bIgnoreTech)))
 	{
 		return false;
 	}
@@ -4769,7 +4769,7 @@ int CvCity::foodConsumption(bool bNoAngry, int iExtra) const
 }
 
 
-int CvCity::foodDifference(bool bBottom) const
+int CvCity::foodDifference(bool bBottom, bool bIgnoreProduction) const
 {
 	int iDifference;
 
@@ -4778,7 +4778,8 @@ int CvCity::foodDifference(bool bBottom) const
 		return 0;
 	}
 
-	if (isFoodProduction())
+	//if (isFoodProduction())
+	if (!bIgnoreProduction && isFoodProduction()) // K-Mod
 	{
 		iDifference = std::min(0, (getYieldRate(YIELD_FOOD) - foodConsumption()));
 	}
@@ -5907,10 +5908,7 @@ void CvCity::updateMaintenance()
 	}
 }
 
-/*
-** K-Mod, 17/dec/10
-** new function to help with maintenance calculations
-*/
+// K-Mod. new function to help with maintenance calculations
 int CvCity::calculateMaintenanceDistance() const
 {
 	CvCity* pLoopCity;
@@ -5921,16 +5919,14 @@ int CvCity::calculateMaintenanceDistance() const
 
 	for (pLoopCity = GET_PLAYER(getOwnerINLINE()).firstCity(&iLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER(getOwnerINLINE()).nextCity(&iLoop))
 	{
+		iLongest = std::max(iLongest, plotDistance(getX_INLINE(), getY_INLINE(), pLoopCity->getX_INLINE(), pLoopCity->getY_INLINE()));
+
 		if (pLoopCity->isGovernmentCenter())
 			iShortestGovernment = std::min(iShortestGovernment, plotDistance(getX_INLINE(), getY_INLINE(), pLoopCity->getX_INLINE(), pLoopCity->getY_INLINE()));
-		else
-			iLongest = std::max(iLongest, plotDistance(getX_INLINE(), getY_INLINE(), pLoopCity->getX_INLINE(), pLoopCity->getY_INLINE()));
 	}
 	return std::min(iLongest, iShortestGovernment);
 }
-/*
-** K-mod end
-*/
+// K-mod end
 
 int CvCity::calculateDistanceMaintenance() const
 {

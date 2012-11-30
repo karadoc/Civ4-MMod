@@ -1,6 +1,102 @@
-This is K-Mod version 1.36.
+This is K-Mod version 1.38.
 If you have any questions, comments, suggestions, bug reports, etc. Post here: http://forums.civfanatics.com/forumdisplay.php?f=470
 
+v1.38 changelist
+
+Game
+
++ Duns now give +1 xp for melee units (in addition to the free Guerilla I promotion).
++ Musketeers now have +15 withdrawal chance.
++ Slightly decreased the tech rate from the renaissance era onwards. (This was done by tweaking the existing hidden rate modifiers by a couple of percentage points.)
++ For the purpose of building plot improvements, resources available inside a city are now provided to all the workable plots around that city. (The purpose of this change is to let civs use Standard Ethanol corp to build railroads.)
+
+UI
+
++ Corrected the 'strategy' text for libraries. (Previously the text incorrectly stated that a library was required to build the Heroic Epic.)
++ Food added by the Volcano event will now be landmarked when 'Event Signs' is enabled.
+
+AI
+
++ Restructured the AI's 'city threat rating' calculation to be more flexible and to better reflect the risk to coastal cities.
++ Made lots of changes to the way the AI positions and uses its air units; particularly for defence.
++ When at war, the AI will now be less inclined to attack newly founded cities, and more inclined to attack cities which are likely to result in an imminent enemy victory.
++ Rewrote part of the AI's evaluation of settling great people to be more sensitive to the civ's situation and personality.
++ Fixed a problem which sometimes messed up the AI's evaluation of rushing wonders with great engineers.
+
++ Made many changes to improve the accuracy & consistency of the AI's building evaluation.
+  + Reduced the value of trade commerce and of commerce multipliers to more closely match the intended scale of 4x commerce.
+  + Removed double-counting of trade commerce from original bts code.
+  + Fixed some major inaccuracies in the evaluation of commerce happiness (theatres) and war-weariness reduction.
+  + Increased the value of clean power for the area. (Three Gorges Dam)
+  + Improved the accuracy of the 'stateReligionCommerce' evaluation.
+  + Restored missing AllCityDefenseModifier evaluation in the AI's building evaluation.
+  + Increased penalty for having multiple national wonders in the same city.
+  + Changed the way 'flavour' affects the AI's evaluation of buildings.
+  + ...
+
++ Made many changes to the AI's tech evaluation. The AI's choice of tech will now be more dependant on situation & personality.
+  + Completely redesigned the way the AI evaluates buildings to be enabled - it is now much more dependant on the AI's situation and personality.
+  + The AI will now value founding religions more highly if they have not met anyone with a state religion.
+  + The value of enabling tech trading is now based on number of civs trade would be enabled for, rather than just the number of civs met.
+  + Fixed a problem which caused Mining to be massively overrated.
+  + Fixed a minor mistake in the yield evaluation of improvements.
+  + The value bonus for wonders now depends on the AI leader's personality
+  + Increased the value of space-victory components – particularly for components which can be built more than once (eg. SS Casing).
+  + 'defence_air' units are now valued slightly more highly if the AI is alone on their island.
+
++ Made several tweaks to the AI's usage of espionage.
+  + The AI will now be willing to use malicious espionage against their 'friends' if both they and their friend are very close to victory.
+  + Increased the value of sabotaging projects.
+  + Reduced the value of spreading unhappiness.
+  + Redesigned the sabotage building evaluation.
+  + Increased the value of spread culture and allowed it to be used for offence as well as defence. (This is still very rare.)
+
+
+--
+v1.37 changelist
+
+Game / UI
+
++ Game handicap level is now set to average of humans' handicap rather than minimum.
++ Free starting techs for handicap levels are now granted based on the team handicap level rather than the game handicap level.
++ When the player handicap and game handicap are not the same, the settings screen now shows both values. (This only affects mixed handicap multiplayer games.)
++ Tech progress now carries over proportionally when a permanent alliance is formed. (eg. 100/200 will go to 150/300, whereas previously it would go to 100/300.)
++ 'Total espionage ever' is now set correctly when a permanent alliance is formed.
++ Fixed a BtS bug which caused capitulation status to not be set correctly when a permanent alliance is formed with a capitulated civ. (This is impossible in the standard rules anyway.)
++ When selecting units with ctrl/alt, if the clicked unit is already selected then moves should be checked. (The previous implementation of this rule was flawed. It should work correctly now.)
++ Tightened the conditions on some city advisor popups. (eg. the 'liberate city' recommendation now requires that the city be at least 10 turns old)
++ AI attitudes are now updated when first contact is made. (This fixes a bug which caused all leaders to be 'cautious' during the first meeting.)
++ Changed the diplomacy animation for the "worst enemy trading" greeting from 'furious' to 'disagree'. (This isn't ideal, but I think it's a bit less jarring for the AI to go from "no" to a smiling face than to go from a furious glare to a smiling face.)
+
+AI
+
++ The trade value of techs is now independent of team size. (ie. the AI will now value techs the same regardless of whether they are giving them to a 2-civ team or a to 1-civ team, whereas previously the tech would be valued more highly for the 2-civ team.)
++ Fixed a bug which sometimes caused free specialist to be poorly assigned.
++ Corrected a bug which sometimes caused the AI to give resources to their allies more often that they should.
++ Made some adjustments to the way the AI chooses target cities.
++ The AI will now put a bit more emphasis on defending cities it has captured during war.
++ Made some changes to the AI's evaluation and distribution of units built for attack forces. (This may need further tweaking after more testing.)
++ Fixed a bug which sometimes caused the AI to incorrectly think it could not attack.
++ The AI's 'attack' units should now be a bit more inclined to group with attack_city stacks rather than just doing their own thing.
++ Large AI stacks will now be willing to leave units behind so that the stack is less likely to be stalled by minor skirmishes on the way to their destination.
++ Large AI stacks will now be a bit more willing to attack smaller enemy stacks when the opportunity arises.
++ The AI will now be a bit more decisive in choosing their naval assault target. (Previously they would often change their mind when they started to get close to the destination. This wouldn't be obvious to the player, but it was a problem.)
++ Fixed a problem which sometimes caused the AI to load an unbalanced naval attack force when they didn't have enough ships. (They'd often bring too many siege units.)
++ Fixed a minor bug which sometimes caused the AI to waste a turn when unloading units at the end of a diagonal move.
++ AI explorers will now try to make contact with mapped but unmet players. (Previously the explorers were only interested in unmapped territory.)
++ Slightly increased the probability of AI spies targeting plot improvements when at war.
++ Tightened the conditions on espionage usage when using the 'espionage economy' strategy, so that the AI will be a bit less likely to waste all its espionage blowing up factories when it is meant to be stealing techs.
++ The AI will now focus slightly more on building spaceship parts during the final stages of a space race. (This will probably still need some adjustments.)
+
+Map script: Not Too Big or Small
+
++ Zones are now more likely to have a buffer at the north and south poles. This will reduce the chance of ice continents.
++ Increased the range of allowable zone sizes, particularly on larger maps.
++ Single zone maps are no longer forbidden. This will make 'Pangaea' style maps slightly more common on 'normal' size maps, and much more common on smaller maps.
++ The number of "tiny islands" now depends on the number of zones. This will reduce the chance of having vast empty oceans.
+
+
+--
 v1.36 changelist
 
 Game / UI
@@ -88,7 +184,7 @@ AI
   + The cost of war weariness from vassal-wars is now counted (in addition to war weariness from the primary war).
   + When planning war on a vassal, the AI will now estimate unit strength based on the master's units rather then the vassal's units.
   + The total commitment cost of war is now adjusted by a non-zero percentage at the end of the calculation. This is meant to represent the fact that teams will have some military spending regardless of any wars; and this minimum military cost might be all that's required for the war.
-+ Fixed a set bugs which prevented the AI from taking defensive pacts into account when planning war against a vassal.
++ Fixed a set of bugs which prevented the AI from taking defensive pacts into account when planning war against a vassal.
 + Restored check for 'peace not possible' when negotiating capitulation. (This can't happen with the usual rules anyway.)
 + Voluntary vassalage now checks for 'war not possible' for the would-be master. (Taking on a voluntary vassal causes the master to automatically declare war on anyone the vassal is currently at war with. Without this 'war not possible' check, the vassal trade could be used to bypass peace treaties.)
 + The AI will now refuse to take on a vassal if it would mean declaring war on someone they usually wouldn't consider war with.
@@ -447,7 +543,7 @@ Game
 
 + The cost of espionage missions and the probability of spies being caught both depend on the total espionage points ever earnt by each of the two teams involved. These total-points modifiers are now scaled by the relative populations of the teams. This change will give small civs a slightly better chance of spying successfully on large civs.
 + Military Unit cost (from pacifism) is no longer multiplied by the handicap modifier for unit cost. Neither is "extra cost" for units (which is currently unused).
-+ Changed the pacifism cost from +1 gold per military unit to +0.5 gold per military unit. (Note, the new cost is independent of difficulty level, whereas the previous cost was actually between 0.2 $/unit and 1 $/unit depending on difficulty. 0.5 gold / unit matches the previous cost on Nobel.)
++ Changed the pacifism cost from +1 gold per military unit to +0.5 gold per military unit. (Note, the new cost is independent of difficulty level, whereas the previous cost was actually between 0.2 $/unit and 1 $/unit depending on difficulty. 0.5 gold / unit matches the previous cost on Noble.)
 + The "handicap cost" is no longer shown on the unit cost mouse-over text. Instead, it is included in the unit cost. (This change makes it consistent with other handicap modifiers in the game.)
 + "Gold per unit" and "gold per military unit" are now in units of 1/100 gold, rather than just 1 gold.
 + Increased the range of guided missiles from 4 to 5.

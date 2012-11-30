@@ -3915,6 +3915,7 @@ bool CvPlayer::hasBusyUnit() const
 void CvPlayer::chooseTech(int iDiscover, CvWString szText, bool bFront)
 {
 	// K-mod
+	FAssert(isHuman());
 	if (iDiscover > 0)
 		changeChoosingFreeTechCount(1); // note: if iDiscover is > 1, this function will be called again with iDiscover-=1
 	// K-Mod end
@@ -6173,6 +6174,7 @@ bool CvPlayer::canTrain(UnitTypes eUnit, bool bContinue, bool bTestVisible, bool
 		return false;
 	}
 
+	/* original bts code
 	if (GET_TEAM(getTeam()).isUnitClassMaxedOut(eUnitClass))
 	{
 		return false;
@@ -6181,7 +6183,9 @@ bool CvPlayer::canTrain(UnitTypes eUnit, bool bContinue, bool bTestVisible, bool
 	if (isUnitClassMaxedOut(eUnitClass))
 	{
 		return false;
-	}
+	} */  // disabled by K-Mod.
+	// Note that unlike the global limit, these two limits apply to the number of units currently alive rather than the total ever trained.
+	// Therefore these limits should be ignored for the visibility test.
 
 	if (!bTestVisible)
 	{
@@ -6221,7 +6225,7 @@ bool CvPlayer::canTrain(UnitTypes eUnit, bool bContinue, bool bTestVisible, bool
 }
 
 
-bool CvPlayer::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestVisible, bool bIgnoreCost) const
+bool CvPlayer::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestVisible, bool bIgnoreCost, bool bIgnoreTech) const
 {
 	BuildingClassTypes eBuildingClass;
 	int iI;
@@ -6243,18 +6247,21 @@ bool CvPlayer::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestV
 		}
 	}
 
-	if (!(currentTeam.isHasTech((TechTypes)(GC.getBuildingInfo(eBuilding).getPrereqAndTech()))))
+	if (!bIgnoreTech) // K-Mod
 	{
-		return false;
-	}
-
-	for (iI = 0; iI < GC.getNUM_BUILDING_AND_TECH_PREREQS(); iI++)
-	{
-		if (GC.getBuildingInfo(eBuilding).getPrereqAndTechs(iI) != NO_TECH)
+		if (!(currentTeam.isHasTech((TechTypes)(GC.getBuildingInfo(eBuilding).getPrereqAndTech()))))
 		{
-			if (!(currentTeam.isHasTech((TechTypes)(GC.getBuildingInfo(eBuilding).getPrereqAndTechs(iI)))))
+			return false;
+		}
+
+		for (iI = 0; iI < GC.getNUM_BUILDING_AND_TECH_PREREQS(); iI++)
+		{
+			if (GC.getBuildingInfo(eBuilding).getPrereqAndTechs(iI) != NO_TECH)
 			{
-				return false;
+				if (!(currentTeam.isHasTech((TechTypes)(GC.getBuildingInfo(eBuilding).getPrereqAndTechs(iI)))))
+				{
+					return false;
+				}
 			}
 		}
 	}
@@ -9070,9 +9077,14 @@ void CvPlayer::changeAnarchyTurns(int iChange)
 			else
 			{
 				gDLL->getInterfaceIFace()->addHumanMessage(getID(), false, GC.getEVENT_MESSAGE_TIME(), gDLL->getText("TXT_KEY_MISC_REVOLUTION_OVER").GetCString(), "AS2D_REVOLTEND", MESSAGE_TYPE_MINOR_EVENT, NULL, (ColorTypes)GC.getInfoTypeForString("COLOR_WARNING_TEXT"));
-				// K-Mod. trigger production popups that have been suppressed.
+				// K-Mod. trigger production/research popups that have been suppressed.
 				if (isHuman())
 				{
+					if (isResearch() && getCurrentResearch() == NO_TECH)
+					{
+						chooseTech();
+					}
+
 					int iLoop;
 					for (CvCity* pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
 					{
@@ -14226,11 +14238,13 @@ void CvPlayer::doResearch()
 		return;
 	}
 
-	if (isResearch())
+	//if (isResearch())
+	if (isResearch() && !isAnarchy()) // K-Mod
 	{
 		bForceResearchChoice = false;
 
-		if (getCurrentResearch() == NO_TECH)
+		//if (getCurrentResearch() == NO_TECH)
+		if (getCurrentResearch() == NO_TECH && isHuman()) // K-Mod
 		{
 			if (getID() == GC.getGameINLINE().getActivePlayer())
 			{

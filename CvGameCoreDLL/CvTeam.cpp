@@ -416,6 +416,7 @@ void CvTeam::addTeam(TeamTypes eTeam)
 	bool bValid;
 	int iLoop;
 	int iI, iJ;
+	int iOriginalTeamSize = getNumMembers();// K-Mod
 
 	FAssert(eTeam != NO_TEAM);
 	FAssert(eTeam != getID());
@@ -567,7 +568,8 @@ void CvTeam::addTeam(TeamTypes eTeam)
 			{
 				if (GET_TEAM(eTeam).isVassal((TeamTypes)iI))
 				{
-					setVassal(((TeamTypes)iI), true, isCapitulated());
+					//setVassal(((TeamTypes)iI), true, isCapitulated());
+					setVassal(((TeamTypes)iI), true, GET_TEAM(eTeam).isCapitulated()); // K-Mod
 				}
 				else if (isVassal((TeamTypes)iI))
 				{
@@ -596,7 +598,8 @@ void CvTeam::addTeam(TeamTypes eTeam)
 	}
 
 	shareCounters(eTeam);
-	GET_TEAM(eTeam).shareCounters(getID());
+	//GET_TEAM(eTeam).shareCounters(getID());
+	// K-Mod note: eTeam is not going to be used after we've finished this merge, so the sharing does not need to be two-way.
 
 	for (iI = 0; iI < MAX_PLAYERS; iI++)
 	{
@@ -605,6 +608,23 @@ void CvTeam::addTeam(TeamTypes eTeam)
 			GET_PLAYER((PlayerTypes)iI).setTeam(getID());
 		}
 	}
+
+	// K-Mod. Adjust the progress of unfinished research so that it is proportionally the same as it was before the merge.
+	{
+		// cf. CvTeam::getResearchCost
+		int iCostMultiplier = 100;
+		iCostMultiplier *= 100 + GC.getDefineINT("TECH_COST_EXTRA_TEAM_MEMBER_MODIFIER") * (getNumMembers() - 1); // new
+		iCostMultiplier /= 100 + GC.getDefineINT("TECH_COST_EXTRA_TEAM_MEMBER_MODIFIER") * (iOriginalTeamSize - 1); // old
+
+		FAssert(iCostMultiplier >= 100);
+
+		for (TechTypes i = (TechTypes)0; i < GC.getNumTechInfos(); i=(TechTypes)(i+1))
+		{
+			if (!isHasTech(i) && getResearchProgress(i) > 0)
+				setResearchProgress(i, getResearchProgress(i)*iCostMultiplier/100, getLeaderID());
+		}
+	}
+	// K-Mod end
 
 	// K-Mod. The following cancel deals code has been moved from higher up.
 	// I've done this so that when open-borders is canceled, it doesn't bump our new allies out of our borders.
@@ -680,32 +700,23 @@ void CvTeam::addTeam(TeamTypes eTeam)
 	{
 		if ((iI != getID()) && (iI != eTeam))
 		{
-			// K-Mod note: many of the things here have no effect; because the values have already been equalised by CvTeam::shareCounters.
-			GET_TEAM((TeamTypes)iI).setWarWeariness(getID(), ((GET_TEAM((TeamTypes)iI).getWarWeariness(getID()) + GET_TEAM((TeamTypes)iI).getWarWeariness(eTeam)) / 2));
-			GET_TEAM((TeamTypes)iI).setStolenVisibilityTimer(getID(), ((GET_TEAM((TeamTypes)iI).getStolenVisibilityTimer(getID()) + GET_TEAM((TeamTypes)iI).getStolenVisibilityTimer(eTeam)) / 2));
-			GET_TEAM((TeamTypes)iI).AI_setAtWarCounter(getID(), ((GET_TEAM((TeamTypes)iI).AI_getAtWarCounter(getID()) + GET_TEAM((TeamTypes)iI).AI_getAtWarCounter(eTeam)) / 2));
-			GET_TEAM((TeamTypes)iI).AI_setAtPeaceCounter(getID(), ((GET_TEAM((TeamTypes)iI).AI_getAtPeaceCounter(getID()) + GET_TEAM((TeamTypes)iI).AI_getAtPeaceCounter(eTeam)) / 2));
-			GET_TEAM((TeamTypes)iI).AI_setHasMetCounter(getID(), ((GET_TEAM((TeamTypes)iI).AI_getHasMetCounter(getID()) + GET_TEAM((TeamTypes)iI).AI_getHasMetCounter(eTeam)) / 2));
-			GET_TEAM((TeamTypes)iI).AI_setDefensivePactCounter(getID(), ((GET_TEAM((TeamTypes)iI).AI_getDefensivePactCounter(getID()) + GET_TEAM((TeamTypes)iI).AI_getDefensivePactCounter(eTeam)) / 2));
-			GET_TEAM((TeamTypes)iI).AI_setShareWarCounter(getID(), ((GET_TEAM((TeamTypes)iI).AI_getShareWarCounter(getID()) + GET_TEAM((TeamTypes)iI).AI_getShareWarCounter(eTeam)) / 2));
-			GET_TEAM((TeamTypes)iI).AI_setWarSuccess(getID(), ((GET_TEAM((TeamTypes)iI).AI_getWarSuccess(getID()) + GET_TEAM((TeamTypes)iI).AI_getWarSuccess(eTeam)) / 2));
-			GET_TEAM((TeamTypes)iI).AI_setEnemyPeacetimeTradeValue(getID(), ((GET_TEAM((TeamTypes)iI).AI_getEnemyPeacetimeTradeValue(getID()) + GET_TEAM((TeamTypes)iI).AI_getEnemyPeacetimeTradeValue(eTeam)) / 2));
-			GET_TEAM((TeamTypes)iI).AI_setEnemyPeacetimeGrantValue(getID(), ((GET_TEAM((TeamTypes)iI).AI_getEnemyPeacetimeGrantValue(getID()) + GET_TEAM((TeamTypes)iI).AI_getEnemyPeacetimeGrantValue(eTeam)) / 2));
+			CvTeamAI& kLoopTeam = GET_TEAM((TeamTypes)iI); // K-Mod
+			kLoopTeam.setWarWeariness(getID(), ((kLoopTeam.getWarWeariness(getID()) + kLoopTeam.getWarWeariness(eTeam)) / 2));
+			kLoopTeam.setStolenVisibilityTimer(getID(), ((kLoopTeam.getStolenVisibilityTimer(getID()) + kLoopTeam.getStolenVisibilityTimer(eTeam)) / 2));
+			kLoopTeam.AI_setAtWarCounter(getID(), ((kLoopTeam.AI_getAtWarCounter(getID()) + kLoopTeam.AI_getAtWarCounter(eTeam)) / 2));
+			kLoopTeam.AI_setAtPeaceCounter(getID(), ((kLoopTeam.AI_getAtPeaceCounter(getID()) + kLoopTeam.AI_getAtPeaceCounter(eTeam)) / 2));
+			kLoopTeam.AI_setHasMetCounter(getID(), ((kLoopTeam.AI_getHasMetCounter(getID()) + kLoopTeam.AI_getHasMetCounter(eTeam)) / 2));
+			kLoopTeam.AI_setDefensivePactCounter(getID(), ((kLoopTeam.AI_getDefensivePactCounter(getID()) + kLoopTeam.AI_getDefensivePactCounter(eTeam)) / 2));
+			kLoopTeam.AI_setShareWarCounter(getID(), ((kLoopTeam.AI_getShareWarCounter(getID()) + kLoopTeam.AI_getShareWarCounter(eTeam)) / 2));
+			kLoopTeam.AI_setWarSuccess(getID(), ((kLoopTeam.AI_getWarSuccess(getID()) + kLoopTeam.AI_getWarSuccess(eTeam)) / 2));
+			kLoopTeam.AI_setEnemyPeacetimeTradeValue(getID(), ((kLoopTeam.AI_getEnemyPeacetimeTradeValue(getID()) + kLoopTeam.AI_getEnemyPeacetimeTradeValue(eTeam)) / 2));
+			kLoopTeam.AI_setEnemyPeacetimeGrantValue(getID(), ((kLoopTeam.AI_getEnemyPeacetimeGrantValue(getID()) + kLoopTeam.AI_getEnemyPeacetimeGrantValue(eTeam)) / 2));
+			kLoopTeam.setEspionagePointsAgainstTeam(getID(), std::max(kLoopTeam.getEspionagePointsAgainstTeam(getID()), kLoopTeam.getEspionagePointsAgainstTeam(eTeam))); // unofficial patch
 
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                       09/17/09                                jdog5000      */
-/*                                                                                              */
-/* Bugfix				                                                                         */
-/************************************************************************************************/
-			GET_TEAM((TeamTypes)iI).setEspionagePointsAgainstTeam( getID(), std::max(GET_TEAM((TeamTypes)iI).getEspionagePointsAgainstTeam(getID()), GET_TEAM((TeamTypes)iI).getEspionagePointsAgainstTeam(eTeam)));
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                        END                                                  */
-/************************************************************************************************/
-
-			if (GET_TEAM((TeamTypes)iI).isAlive())
+			if (kLoopTeam.isAlive())
 			{
-				GET_TEAM((TeamTypes)iI).AI_setWarPlan(getID(), NO_WARPLAN, false);
-				GET_TEAM((TeamTypes)iI).AI_setWarPlan(eTeam, NO_WARPLAN, false);
+				kLoopTeam.AI_setWarPlan(getID(), NO_WARPLAN, false);
+				kLoopTeam.AI_setWarPlan(eTeam, NO_WARPLAN, false);
 			}
 		}
 	}
@@ -747,6 +758,7 @@ void CvTeam::shareItems(TeamTypes eTeam)
 	{
 		setEspionagePointsAgainstTeam((TeamTypes)iTeam, std::max(GET_TEAM(eTeam).getEspionagePointsAgainstTeam((TeamTypes)iTeam), getEspionagePointsAgainstTeam((TeamTypes)iTeam)));
 	}
+	setEspionagePointsEver(std::max(GET_TEAM(eTeam).getEspionagePointsEver(), getEspionagePointsEver())); // K-Mod
 
 	for (iI = 0; iI < MAX_PLAYERS; iI++)
 	{
@@ -794,134 +806,158 @@ void CvTeam::shareItems(TeamTypes eTeam)
 	}
 }
 
-
+// K-Mod. I've editted this function quite a lot. (for reasons that have been lost in the sands of time)
 void CvTeam::shareCounters(TeamTypes eTeam)
 {
-	int iI;
-
-	for (iI = 0; iI < MAX_TEAMS; iI++)
+	CvTeamAI& kShareTeam = GET_TEAM(eTeam); // K-Mod
+	for (TeamTypes eLoopTeam = (TeamTypes)0; eLoopTeam < MAX_TEAMS; eLoopTeam=(TeamTypes)(eLoopTeam+1))
 	{
-		if ((iI != getID()) && (iI != eTeam))
+		if (eLoopTeam != getID() && eLoopTeam != eTeam)
 		{
-			if (GET_TEAM(eTeam).getWarWeariness((TeamTypes)iI) > getWarWeariness((TeamTypes)iI))
-			{
-				setWarWeariness(((TeamTypes)iI), GET_TEAM(eTeam).getWarWeariness((TeamTypes)iI));
-			}
+			if (kShareTeam.getWarWeariness(eLoopTeam) > getWarWeariness(eLoopTeam))
+				setWarWeariness(eLoopTeam, kShareTeam.getWarWeariness(eLoopTeam));
+			//else
+			//	kShareTeam.setWarWeariness(eLoopTeam, getWarWeariness(eLoopTeam));
 
-			if (GET_TEAM(eTeam).getStolenVisibilityTimer((TeamTypes)iI) > getStolenVisibilityTimer((TeamTypes)iI))
-			{
-				setStolenVisibilityTimer(((TeamTypes)iI), GET_TEAM(eTeam).getStolenVisibilityTimer((TeamTypes)iI));
-			}
 
-			if (GET_TEAM(eTeam).AI_getAtWarCounter((TeamTypes)iI) > AI_getAtWarCounter((TeamTypes)iI))
-			{
-				AI_setAtWarCounter(((TeamTypes)iI), GET_TEAM(eTeam).AI_getAtWarCounter((TeamTypes)iI));
-			}
+			if (kShareTeam.getStolenVisibilityTimer(eLoopTeam) > getStolenVisibilityTimer(eLoopTeam))
+				setStolenVisibilityTimer(eLoopTeam, kShareTeam.getStolenVisibilityTimer(eLoopTeam));
+			//else
+			//	kShareTeam.setStolenVisibilityTimer(eLoopTeam, getStolenVisibilityTimer(eLoopTeam));
 
-			if (GET_TEAM(eTeam).AI_getAtPeaceCounter((TeamTypes)iI) > AI_getAtPeaceCounter((TeamTypes)iI))
-			{
-				AI_setAtPeaceCounter(((TeamTypes)iI), GET_TEAM(eTeam).AI_getAtPeaceCounter((TeamTypes)iI));
-			}
 
-			if (GET_TEAM(eTeam).AI_getHasMetCounter((TeamTypes)iI) > AI_getHasMetCounter((TeamTypes)iI))
-			{
-				AI_setHasMetCounter(((TeamTypes)iI), GET_TEAM(eTeam).AI_getHasMetCounter((TeamTypes)iI));
-			}
+			if (kShareTeam.AI_getAtWarCounter(eLoopTeam) > AI_getAtWarCounter(eLoopTeam))
+				AI_setAtWarCounter(eLoopTeam, kShareTeam.AI_getAtWarCounter(eLoopTeam));
+			//else
+			//	kShareTeam.AI_setAtWarCounter(eLoopTeam, AI_getAtWarCounter(eLoopTeam));
 
-			if (GET_TEAM(eTeam).AI_getOpenBordersCounter((TeamTypes)iI) > AI_getOpenBordersCounter((TeamTypes)iI))
-			{
-				AI_setOpenBordersCounter(((TeamTypes)iI), GET_TEAM(eTeam).AI_getOpenBordersCounter((TeamTypes)iI));
-			}
 
-			if (GET_TEAM(eTeam).AI_getDefensivePactCounter((TeamTypes)iI) > AI_getDefensivePactCounter((TeamTypes)iI))
-			{
-				AI_setDefensivePactCounter(((TeamTypes)iI), GET_TEAM(eTeam).AI_getDefensivePactCounter((TeamTypes)iI));
-			}
+			if (kShareTeam.AI_getAtPeaceCounter(eLoopTeam) > AI_getAtPeaceCounter(eLoopTeam))
+				AI_setAtPeaceCounter(eLoopTeam, kShareTeam.AI_getAtPeaceCounter(eLoopTeam));
+			//else
+			//	kShareTeam.AI_setAtPeaceCounter(eLoopTeam, AI_getAtPeaceCounter(eLoopTeam));
 
-			if (GET_TEAM(eTeam).AI_getShareWarCounter((TeamTypes)iI) > AI_getShareWarCounter((TeamTypes)iI))
-			{
-				AI_setShareWarCounter(((TeamTypes)iI), GET_TEAM(eTeam).AI_getShareWarCounter((TeamTypes)iI));
-			}
 
-			if (GET_TEAM(eTeam).AI_getWarSuccess((TeamTypes)iI) > AI_getWarSuccess((TeamTypes)iI))
-			{
-				AI_setWarSuccess(((TeamTypes)iI), GET_TEAM(eTeam).AI_getWarSuccess((TeamTypes)iI));
-			}
+			if (kShareTeam.AI_getHasMetCounter(eLoopTeam) > AI_getHasMetCounter(eLoopTeam))
+				AI_setHasMetCounter(eLoopTeam, kShareTeam.AI_getHasMetCounter(eLoopTeam));
+			//else
+			//	kShareTeam.AI_setHasMetCounter(eLoopTeam, AI_getHasMetCounter(eLoopTeam));
 
-			if (GET_TEAM(eTeam).AI_getEnemyPeacetimeTradeValue((TeamTypes)iI) > AI_getEnemyPeacetimeTradeValue((TeamTypes)iI))
-			{
-				AI_setEnemyPeacetimeTradeValue(((TeamTypes)iI), GET_TEAM(eTeam).AI_getEnemyPeacetimeTradeValue((TeamTypes)iI));
-			}
 
-			if (GET_TEAM(eTeam).AI_getEnemyPeacetimeGrantValue((TeamTypes)iI) > AI_getEnemyPeacetimeGrantValue((TeamTypes)iI))
-			{
-				AI_setEnemyPeacetimeGrantValue(((TeamTypes)iI), GET_TEAM(eTeam).AI_getEnemyPeacetimeGrantValue((TeamTypes)iI));
-			}
+			if (kShareTeam.AI_getOpenBordersCounter(eLoopTeam) > AI_getOpenBordersCounter(eLoopTeam))
+				AI_setOpenBordersCounter(eLoopTeam, kShareTeam.AI_getOpenBordersCounter(eLoopTeam));
+			//else
+			//	kShareTeam.AI_setOpenBordersCounter(eLoopTeam, AI_getOpenBordersCounter(eLoopTeam));
 
-			GET_TEAM(eTeam).AI_setWarPlan(((TeamTypes)iI), NO_WARPLAN, false);
+
+			if (kShareTeam.AI_getDefensivePactCounter(eLoopTeam) > AI_getDefensivePactCounter(eLoopTeam))
+				AI_setDefensivePactCounter(eLoopTeam, kShareTeam.AI_getDefensivePactCounter(eLoopTeam));
+			//else
+			//	kShareTeam.AI_setDefensivePactCounter(eLoopTeam, AI_getDefensivePactCounter(eLoopTeam));
+
+
+			if (kShareTeam.AI_getShareWarCounter(eLoopTeam) > AI_getShareWarCounter(eLoopTeam))
+				AI_setShareWarCounter(eLoopTeam, kShareTeam.AI_getShareWarCounter(eLoopTeam));
+			//else
+			//	kShareTeam.AI_setShareWarCounter(eLoopTeam, AI_getShareWarCounter(eLoopTeam));
+
+
+			if (kShareTeam.AI_getWarSuccess(eLoopTeam) > AI_getWarSuccess(eLoopTeam))
+				AI_setWarSuccess(eLoopTeam, kShareTeam.AI_getWarSuccess(eLoopTeam));
+			//else
+			//	kShareTeam.AI_setWarSuccess(eLoopTeam, AI_getWarSuccess(eLoopTeam));
+
+
+			if (kShareTeam.AI_getEnemyPeacetimeTradeValue(eLoopTeam) > AI_getEnemyPeacetimeTradeValue(eLoopTeam))
+				AI_setEnemyPeacetimeTradeValue(eLoopTeam, kShareTeam.AI_getEnemyPeacetimeTradeValue(eLoopTeam));
+			//else
+			//	kShareTeam.AI_setEnemyPeacetimeTradeValue(eLoopTeam, AI_getEnemyPeacetimeTradeValue(eLoopTeam));
+
+
+			if (kShareTeam.AI_getEnemyPeacetimeGrantValue(eLoopTeam) > AI_getEnemyPeacetimeGrantValue(eLoopTeam))
+				AI_setEnemyPeacetimeGrantValue(eLoopTeam, kShareTeam.AI_getEnemyPeacetimeGrantValue(eLoopTeam));
+			//else
+			//	kShareTeam.AI_setEnemyPeacetimeGrantValue(eLoopTeam, AI_getEnemyPeacetimeGrantValue(eLoopTeam));
+
+			kShareTeam.AI_setWarPlan(eLoopTeam, NO_WARPLAN, false);
+			// K-Mod note. presumably, the warplan is cleared under the assumption that kShareTeam is going to be removed.
+		}
 	}
-	}
 
-	for (iI = 0; iI < GC.getNumProjectInfos(); iI++)
+	for (ProjectTypes eProject = (ProjectTypes)0; eProject < GC.getNumProjectInfos(); eProject=(ProjectTypes)(eProject+1))
 	{
-		int iExtraProjects = GET_TEAM(eTeam).getProjectCount((ProjectTypes)iI) - getProjectCount((ProjectTypes)iI);
+		/* int iExtraProjects = kShareTeam.getProjectCount(eProject) - getProjectCount(eProject);
 		if (iExtraProjects > 0)
 		{
-			changeProjectCount((ProjectTypes)iI, iExtraProjects);
-			GC.getGameINLINE().incrementProjectCreatedCount((ProjectTypes)iI, -iExtraProjects);
+			changeProjectCount(eProject, iExtraProjects);
+			GC.getGameINLINE().incrementProjectCreatedCount(eProject, -iExtraProjects);
 		}
+		changeProjectMaking(eProject, kShareTeam.getProjectMaking(eProject));
+		*/
 
-		changeProjectMaking(((ProjectTypes)iI), GET_TEAM(eTeam).getProjectMaking((ProjectTypes)iI));
+		// set project counts to the max of the two teams.
+		int iDelta = kShareTeam.getProjectCount(eProject) - getProjectCount(eProject);
+		if (iDelta > 0)
+		{
+			changeProjectCount(eProject, iDelta);
+			// don't count the additional projects that have been added in thiw way
+			GC.getGameINLINE().incrementProjectCreatedCount(eProject, -iDelta);
+		}
+		//else
+		//{
+		//	kShareTeam.changeProjectCount(eProject, -iDelta);
+		//	GC.getGameINLINE().incrementProjectCreatedCount(eProject, iDelta);
+		//}
+
+
+		// projects still under construction should be counted for both teams
+		changeProjectMaking(eProject, kShareTeam.getProjectMaking(eProject));
+		//kShareTeam.changeProjectMaking(eProject, getProjectMaking(eProject) - kShareTeam.setProjectMaking(eProject));
 	}
 
-	for (iI = 0; iI < GC.getNumUnitClassInfos(); iI++)
+	for (UnitClassTypes eUnitClass = (UnitClassTypes)0; eUnitClass < GC.getNumUnitClassInfos(); eUnitClass=(UnitClassTypes)(eUnitClass+1))
 	{
-		changeUnitClassCount(((UnitClassTypes)iI), GET_TEAM(eTeam).getUnitClassCount((UnitClassTypes)iI));
+		changeUnitClassCount(eUnitClass, kShareTeam.getUnitClassCount(eUnitClass));
+		//kShareTeam.changeUnitClassCount(eUnitClass, getUnitClassCount(eUnitClass) - kShareTeam.getUnitClassCount(eUnitClass));
 	}
 
-	for (iI = 0; iI < GC.getNumBuildingClassInfos(); iI++)
+	for (BuildingClassTypes eBuildingClass = (BuildingClassTypes)0; eBuildingClass < GC.getNumBuildingClassInfos(); eBuildingClass=(BuildingClassTypes)(eBuildingClass+1))
 	{
-		changeBuildingClassCount(((BuildingClassTypes)iI), GET_TEAM(eTeam).getBuildingClassCount((BuildingClassTypes)iI));
+		changeBuildingClassCount(eBuildingClass, kShareTeam.getBuildingClassCount(eBuildingClass));
+		//kShareTeam.changeBuildingClassCount(eBuildingClass, getBuildingClassCount(eBuildingClass) - kShareTeam.getBuildingClassCount(eBuildingClass));
 	}
 
-	for (iI = 0; iI < GC.getNumTechInfos(); iI++)
+	for (TechTypes eTech = (TechTypes)0; eTech < GC.getNumTechInfos(); eTech=(TechTypes)(eTech+1))
 	{
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                       04/29/10                                jdog5000      */
-/*                                                                                              */
-/* Bugfix                                                                                       */
-/************************************************************************************************/
-/* original bts code
-		if (GET_TEAM(eTeam).getResearchProgress((TechTypes)iI) > getResearchProgress((TechTypes)iI))
+		//if (!isHasTech(eTech))
+		if (!isHasTech(eTech) && !kShareTeam.isHasTech(eTech))
 		{
-			setResearchProgress(((TechTypes)iI), GET_TEAM(eTeam).getResearchProgress((TechTypes)iI), getLeaderID());
-		}
+			// K-Mod note: it's difficult to do any combined proportionality adjustments here, because if we set
+			// the progress higher than the current cost then we'll get the tech right now before the cost is increased.
+			// We can however adjust for uneven tech costs before the teams are merged.
+			// (eg. suppose techs are more expensive for team 2; if team 2 almost has a tech - and if progress is
+			//  transfered without adjustment, team 1 will immediately get the tech even though team 2 didn't finish it.)
 
-		if (GET_TEAM(eTeam).isNoTradeTech((TechTypes)iI))
-		{
-			setNoTradeTech(((TechTypes)iI), true);
-		}
-*/
-		// Overflow from techs this team already has can cause bugged behavior
-		if( !isHasTech((TechTypes)iI) )
-		{
-			if (GET_TEAM(eTeam).getResearchProgress((TechTypes)iI) > getResearchProgress((TechTypes)iI))
+			//if (kShareTeam.getResearchProgress(eTech) > getResearchProgress(eTech))
+			if (kShareTeam.getResearchProgress(eTech) * getResearchCost(eTech) > getResearchProgress(eTech) * kShareTeam.getResearchCost(eTech))
 			{
-				setResearchProgress(((TechTypes)iI), GET_TEAM(eTeam).getResearchProgress((TechTypes)iI), getLeaderID());
+				setResearchProgress(eTech, kShareTeam.getResearchProgress(eTech) * getResearchCost(eTech) / std::max(1, kShareTeam.getResearchCost(eTech)), getLeaderID());
 			}
+			//
+			//else
+			//	kShareTeam.setResearchProgress(eTech, getResearchProgress(eTech) * kShareTeam.getResearchCost(eTech) / std::max(1, getResearchCost(eTech)), kShareTeam.getLeaderID());
+			//
 		}
 
-		// Clear no tech trade if it is false for other team
-		// Fixes bug where if, with no tech brokering, team A trades a tech to team B, then later joins B in
-		// a permanent alliance.  Previous code would block the AB alliance from "brokering" the tech, even
-		// though A had researched it on their own.
-		if ( GET_TEAM(eTeam).isHasTech((TechTypes)iI) && !(GET_TEAM(eTeam).isNoTradeTech((TechTypes)iI)) )
+		// unofficial patch
+		if ( kShareTeam.isHasTech(eTech) && !(kShareTeam.isNoTradeTech(eTech)) )
 		{
-			setNoTradeTech(((TechTypes)iI), false);
+			setNoTradeTech((eTech), false);
 		}
-/************************************************************************************************/
-/* UNOFFICIAL_PATCH                        END                                                  */
-/************************************************************************************************/
+		//
+		//if (isHasTech(eTech) && !isNoTradeTech(eTech)))
+		//	kShareTeam.setNoTradeTech((eTech), false);
+		//
 	}
 }
 
@@ -2863,6 +2899,21 @@ int CvTeam::countEnemyPowerByArea(CvArea* pArea) const
 	return iCount;
 }
 
+// K-Mod
+// Note: this includes barbarian cities.
+int CvTeam::countEnemyCitiesByArea(CvArea* pArea) const
+{
+	int iCount = 0;
+	for (PlayerTypes i = (PlayerTypes)0; i < MAX_PLAYERS; i=(PlayerTypes)(i+1))
+	{
+		const CvPlayer& kLoopPlayer = GET_PLAYER(i);
+		if (kLoopPlayer.isAlive() && AI_getWarPlan(kLoopPlayer.getTeam()) != NO_WARPLAN)
+			iCount += pArea->getCitiesPerPlayer(i);
+	}
+	return 0;
+}
+// K-Mod end
+
 /************************************************************************************************/
 /* BETTER_BTS_AI_MOD                      04/01/10                                jdog5000      */
 /*                                                                                              */
@@ -2969,7 +3020,7 @@ int CvTeam::getTypicalUnitValue(UnitAITypes eUnitAI, DomainTypes eDomain) const
 	return iMax;
 }
 
-int CvTeam::getResearchCost(TechTypes eTech, bool bGlobalModifiers) const // K-Mod added bGlobalModifiers
+int CvTeam::getResearchCost(TechTypes eTech, bool bGlobalModifiers, bool bTeamSizeModifiers) const // K-Mod added bGlobalModifiers & bTeamSizeModifiers
 {
 	int iCost;
 
@@ -2992,8 +3043,12 @@ int CvTeam::getResearchCost(TechTypes eTech, bool bGlobalModifiers) const // K-M
 		iCost /= 100;
 	}
 
-	iCost *= std::max(0, ((GC.getDefineINT("TECH_COST_EXTRA_TEAM_MEMBER_MODIFIER") * (getNumMembers() - 1)) + 100));
-	iCost /= 100;
+	if (bTeamSizeModifiers) // K-Mod
+	{
+		iCost *= std::max(0, ((GC.getDefineINT("TECH_COST_EXTRA_TEAM_MEMBER_MODIFIER") * (getNumMembers() - 1)) + 100));
+		iCost /= 100;
+	}
+
 
 	return std::max(1, iCost);
 }
@@ -3967,6 +4022,24 @@ void CvTeam::makeHasMet(TeamTypes eIndex, bool bNewDiplo)
 				}
 			}
 		}
+
+		// K-Mod. Initialize attitude cache for players on our team towards player's on their team.
+		for (PlayerTypes i = (PlayerTypes)0; i < MAX_CIV_PLAYERS; i=(PlayerTypes)(i+1))
+		{
+			CvPlayerAI& kOurPlayer = GET_PLAYER(i);
+			if (!kOurPlayer.isAlive() || kOurPlayer.getTeam() != getID())
+				continue;
+
+			for (PlayerTypes j = (PlayerTypes)0; j < MAX_CIV_PLAYERS; j=(PlayerTypes)(j+1))
+			{
+				CvPlayerAI& kTheirPlayer = GET_PLAYER(j);
+				if (!kTheirPlayer.isAlive() || kTheirPlayer.getTeam() != eIndex)
+					continue;
+
+				kOurPlayer.AI_updateAttitudeCache(j);
+			}
+		}
+		// K-Mod end
 
 		if ((getID() == GC.getGameINLINE().getActiveTeam()) || (eIndex == GC.getGameINLINE().getActiveTeam()))
 		{
@@ -5721,7 +5794,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 								{
 									if (GET_PLAYER((PlayerTypes)iI).isResearchingTech(eIndex))
 									{
-										GET_PLAYER((PlayerTypes)iI).clearResearchQueue();
+										GET_PLAYER((PlayerTypes)iI).clearResearchQueue(); // K-Mod note: we just want to flag it for re-evaluation. Clearing the queue is currently the only way to do that.
 									}
 								}
 							}
@@ -5831,7 +5904,8 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 				if (GC.getGameINLINE().isFinalInitialized() && !(gDLL->GetWorldBuilderMode()))
 				{
 					FAssert(ePlayer != NO_PLAYER);
-					if (GET_PLAYER(ePlayer).isResearch() && (GET_PLAYER(ePlayer).getCurrentResearch() == NO_TECH))
+					//if (GET_PLAYER(ePlayer).isResearch() && (GET_PLAYER(ePlayer).getCurrentResearch() == NO_TECH))
+					if (GET_PLAYER(ePlayer).isResearch() && GET_PLAYER(ePlayer).getCurrentResearch() == NO_TECH && GET_PLAYER(ePlayer).isHuman()) // K-Mod
 					{
 						szBuffer = gDLL->getText("TXT_KEY_MISC_WHAT_TO_RESEARCH_NEXT");
 						GET_PLAYER(ePlayer).chooseTech(0, szBuffer);
