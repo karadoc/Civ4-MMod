@@ -27,7 +27,7 @@
 
 #include "BetterBTSAI.h"
 
-#define GREATER_FOUND_RANGE			(5)
+//#define GREATER_FOUND_RANGE			(5)
 #define CIVIC_CHANGE_DELAY			(20) // was 25
 #define RELIGION_CHANGE_DELAY		(15)
 
@@ -1809,7 +1809,7 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity)
 						iRazeValue -= iCloseness;
 					}
 				}
-			}	
+			}
 			else
 			{
 				bool bFinancialTrouble = AI_isFinancialTrouble();
@@ -2047,7 +2047,7 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity)
 					bRaze = true;
 				}
 			}
-		}	
+		}
 	}
 
 	if( bRaze )
@@ -3108,10 +3108,11 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 				iPlotValue += aiYield[YIELD_PRODUCTION] * 30;
 				iPlotValue += aiYield[YIELD_COMMERCE] * 20;
 
+				/* original bts code
 				if (kSet.bStartingLoc)
 				{
 					iPlotValue *= 2;
-				}
+				} */
 			}
 			else if (aiYield[YIELD_FOOD] == GC.getFOOD_CONSUMPTION_PER_POPULATION() - 1)
 			{
@@ -3133,7 +3134,8 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 				iPlotValue += bIsCoastal ? 8*(aiYield[YIELD_COMMERCE]+aiYield[YIELD_PRODUCTION]) : 0;
 				// (K-Mod note, I've moved the iSpecialFoodPlus adjustment elsewhere.)
 
-				if (kSet.bStartingLoc && !pPlot->isStartingPlot())
+				//if (kSet.bStartingLoc && !pPlot->isStartingPlot())
+				if (kSet.bStartingLoc && getStartingPlot() != pPlot) // K-Mod
 				{
 					// I'm pretty much forbidding starting 1 tile inland non-coastal.
 					// with more than a few coast tiles.
@@ -3224,7 +3226,7 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 					}
 
 					//iValue += (iBonusValue + 10);
-					iValue += iBonusValue;
+					iResourceValue += iBonusValue; // K-Mod
 
 					if (iI != CITY_HOME_PLOT)
 					{
@@ -3272,7 +3274,7 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 	// K-mod. It's tricky to get this right. Special commerce is great in the early game, but not so great later on.
 	//        Food is always great - unless we already have too much; and food already affects a bunch of other parts of the site evaluation...
 	if (kSet.bStartingLoc)
-		iResourceValue /= 5; // try not to make the value of strategic resources too overwhelming. (note: I've removed a bigger value reduction from above.)
+		iResourceValue /= 4; // try not to make the value of strategic resources too overwhelming. (note: I removed a bigger value reduction from the original code higher up.)
 	iResourceValue += iSpecialFood * 20; // Note: iSpecialFood is whatever food happens to be asscioated with bonuses. Don't value it highly, because it's also counted in a bunch of other ways.
 	iResourceValue += iSpecialProduction * 40;
 	iResourceValue += iSpecialCommerce * 35;
@@ -3345,11 +3347,12 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 		{
 			//let other penalties bring this down.
 			iValue += 500; // was 600
-			if (!pPlot->isStartingPlot())
+			//if (!pPlot->isStartingPlot())
+			if (getStartingPlot() != pPlot) // K-Mod
 			{
 				if (pArea->getNumStartingPlots() == 0)
 				{
-					iValue += 800; // was 1000
+					iValue += 600; // was 1000
 				}
 			}
 		}
@@ -3370,7 +3373,8 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 
 	if (kSet.bStartingLoc)
 	{
-		int iRange = GREATER_FOUND_RANGE;
+		//int iRange = GREATER_FOUND_RANGE;
+		int iRange = 6; // K-Mod (originally was 5)
 		int iGreaterBadTile = 0;
 
 		for (int iDX = -(iRange); iDX <= iRange; iDX++)
@@ -3385,6 +3389,7 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 					{
 						if (plotDistance(iX, iY, pLoopPlot->getX_INLINE(), pLoopPlot->getY_INLINE()) <= iRange)
 						{
+							/* original bts code
 							int iTempValue = 0;
 							iTempValue += (pLoopPlot->getYield(YIELD_FOOD) * 15);
 							iTempValue += (pLoopPlot->getYield(YIELD_PRODUCTION) * 11);
@@ -3392,7 +3397,6 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 							iValue += iTempValue;
 							if (iTempValue < 21)
 							{
-
 								iGreaterBadTile += 2;
 								if (pLoopPlot->getFeatureType() != NO_FEATURE)
 								{
@@ -3401,23 +3405,76 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 										iGreaterBadTile--;
 									}
 								}
+							} */
+							// K-Mod
+							int iTempValue = 0;
+							iTempValue += pLoopPlot->getYield(YIELD_FOOD) * 9;
+							iTempValue += pLoopPlot->getYield(YIELD_PRODUCTION) * 5;
+							iTempValue += pLoopPlot->getYield(YIELD_COMMERCE) * 3;
+							iTempValue += pLoopPlot->isWater() ? -2 : 0;
+							iValue += iTempValue;
+							if (iTempValue < 13)
+							{
+								// 3 points for unworkable plots (desert, ice, far-ocean)
+								// 2 points for bad plots (ocean, tundra)
+								// 1 point for fixable bad plots (jungle)
+								iGreaterBadTile++;
+								if (pLoopPlot->calculateBestNatureYield(YIELD_FOOD,getTeam()) < 2)
+								{
+									iGreaterBadTile++;
+									if (iTempValue <= 0)
+										iGreaterBadTile++;
+								}
 							}
+							// K-Mod end
 						}
 					}
 				}
 			}
 		}
 
-		if (!pPlot->isStartingPlot())
+		//if (!pPlot->isStartingPlot())
+		if (getStartingPlot() != pPlot) // K-Mod
 		{
+			/* original bts code
 			iGreaterBadTile /= 2;
 			if (iGreaterBadTile > 12)
 			{
 				iValue *= 11;
 				iValue /= iGreaterBadTile;
+			} */
+			// K-Mod. note: the range has been extended, and the 'bad' counting has been rescaled.
+			iGreaterBadTile /= 3;
+			int iGreaterRangePlots = 2*(iRange*iRange + iRange) + 1;
+			if (iGreaterBadTile > iGreaterRangePlots/6)
+			{
+				iValue *= iGreaterRangePlots/6;
+				iValue /= iGreaterBadTile;
 			}
+
+			// Maybe we can make a value adjustment based on the resources and players currently in this area
+			// (wip)
+			int iBonuses = 0;
+			int iTypes = 0;
+			int iPlayers = pArea->getNumStartingPlots();
+			for (BonusTypes i = (BonusTypes)0; i < GC.getNumBonusInfos(); i=(BonusTypes)(i+1))
+			{
+				if (pArea->getNumBonuses(i) > 0)
+				{
+					iBonuses += 100 * pArea->getNumBonuses(i) / std::max(2, iPlayers + 1);
+					iTypes += std::min(100, 100 * pArea->getNumBonuses(i) / std::max(2, iPlayers + 1));
+				}
+			}
+			// bonus for resources per player on the continent
+			iValue = iValue * (100 + 2 * iBonuses/100 + 8 * iTypes/100) / 100;
+
+			// strong penality for a solo start. bonus for pairing with an existing solo start. penality for highly populated islands
+			iValue = iValue * (10 + std::max(-2, iPlayers ? 2 - iPlayers : -2)) / 10;
+
+			// K-Mod end
 		}
 
+		/* original bts code
 		int iWaterCount = 0;
 
 		for (int iI = 0; iI < NUM_CITY_PLOTS; iI++)
@@ -3445,11 +3502,12 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 			//discourage very water-heavy starts.
 			iValue *= 1 + iLandCount;
 			iValue /= (1 + (NUM_CITY_PLOTS / 2));
-		}
+		} */ // disabled by K-Mod (water starts are discouraged in other ways)
 	}
 
 	if (kSet.bStartingLoc)
 	{
+		/* original bts code
 		if (pPlot->getMinOriginalStartDist() == -1)
 		{
 			iValue += (GC.getMapINLINE().maxStepDistance() * 100);
@@ -3458,15 +3516,31 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 		{
 			iValue *= (1 + 4 * pPlot->getMinOriginalStartDist());
 			iValue /= (1 + 2 * GC.getMapINLINE().maxStepDistance());
-		}
+		} */
+		// K-Mod. In the original code, getMinOriginalStartDist was always zero once the
+		// starting positions had been assigned; and so this factor didn't work correctly.
+		// I've fixed it (see change in updateMinOriginalStartDist.)
+		// But I've now disabled it completely because this stuff is handled elsewhere anyway.
+		/* int iMinRange = startingPlotRange();
+		{
+			int iScale = std::min(4*iMinRange, GC.getMapINLINE().maxStepDistance());
+			int iExistingDist = pPlot->getMinOriginalStartDist() > 0
+				? std::min(pPlot->getMinOriginalStartDist(), iScale)
+				: iScale;
+			FAssert(iScale > 2 && iExistingDist > 2); // sanity check
+			iValue *= (1 + iScale + 4 * iExistingDist);
+			iValue /= (1 + 3 * iScale);
+		} */
+		// K-Mod end
 
 		//nice hacky way to avoid this messing with normalizer, use elsewhere?
-		if (!pPlot->isStartingPlot())
+		//if (!pPlot->isStartingPlot())
+		if (getStartingPlot() != pPlot) // K-Mod. 'isStartingPlot' is not automatically set.
 		{
 			int iMinDistanceFactor = MAX_INT;
 			int iMinRange = startingPlotRange();
 
-			iValue *= 100;
+			//iValue *= 100; // (disabled by K-Mod to prevent int overflow)
 			for (int iJ = 0; iJ < MAX_CIV_PLAYERS; iJ++)
 			{
 				if (GET_PLAYER((PlayerTypes)iJ).isAlive())
@@ -3501,7 +3575,7 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 				iValue /= 1000;
 			}
 
-			iValue /= 10;
+			//iValue /= 10; // (disabled by K-Mod)
 
 			if (pPlot->getBonusType() != NO_BONUS)
 			{
@@ -3772,6 +3846,7 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 
 	iValue /= (std::max(0, (iBadTile - (NUM_CITY_PLOTS / 4))) + 3);
 
+	/* original bts code
 	if (kSet.bStartingLoc)
 	{
 		int iDifferentAreaTile = 0;
@@ -3787,8 +3862,13 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 		}
 
 		iValue /= (std::max(0, (iDifferentAreaTile - ((NUM_CITY_PLOTS * 2) / 3))) + 2);
-	}
+	} */ // disabled by K-Mod. This kind of stuff is already taken into account.
 
+	// K-Mod. Note: iValue is an int, but this function only return a short - so we need to be careful.
+	FAssert(iValue >= 0);
+	FAssert(iValue < MAX_SHORT);
+	iValue = std::min(iValue, MAX_SHORT);
+	// K-Mod end
 	return std::max(1, iValue);
 }
 
@@ -4562,6 +4642,15 @@ bool CvPlayerAI::AI_isFinancialTrouble() const
 		{
 			iSafePercent -= 10;
 		}
+
+		// K-Mod
+		int iCitiesTarget = std::max(1, GC.getWorldInfo(GC.getMapINLINE().getWorldSize()).getTargetNumCities());
+		if (getNumCities() < iCitiesTarget)
+		{
+			// note: I'd like to use (AI_getNumCitySites() > 0) as well, but that could potentially cause the site selection to oscillate.
+			iSafePercent -= 14 * (iCitiesTarget - getNumCities()) / iCitiesTarget;
+		}
+		// K-Mod end
 		
 		if (iFundedPercent < iSafePercent)
 		{
@@ -6532,7 +6621,7 @@ int CvPlayerAI::AI_techBuildingValue_old( TechTypes eTech, int iPathLength, bool
 						{
 							iExistingCultureBuildingCount++;
 						}
-					}												
+					}
 				}
 			}
 		}
@@ -8104,7 +8193,7 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 					return PLAYER_VOTE_YES;
 				}
 			}
-		}						
+		}
 */
 		// Remove blanket auto approval for friendly secretary
 		bool bFriendlyToSecretary = false;
@@ -8447,7 +8536,7 @@ PlayerVoteTypes CvPlayerAI::AI_diploVote(const VoteSelectionSubData& kVoteData, 
 									if (iOtherTeamSuccess * iOtherTeamPower / std::max(1, (iPeaceTeamSuccess + 2*iSuccessScale) * iPeaceTeamPower) >= 2)
 									{
 										bLosingBig = true;
-									}						
+									}
 
 									if (iI == getTeam())
 									{
@@ -9828,8 +9917,9 @@ int CvPlayerAI::AI_tradeAcceptabilityThreshold(PlayerTypes eTrader) const
 
 int CvPlayerAI::AI_maxGoldTrade(PlayerTypes ePlayer) const
 {
+	PROFILE_FUNC();
+
 	int iMaxGold;
-	int iResearchBuffer;
 
 	FAssert(ePlayer != getID());
 
@@ -9839,6 +9929,7 @@ int CvPlayerAI::AI_maxGoldTrade(PlayerTypes ePlayer) const
 	}
 	else
 	{
+		/* original bts code
 		iMaxGold = getTotalPopulation();
 
 		iMaxGold *= (GET_TEAM(getTeam()).AI_getHasMetCounter(GET_PLAYER(ePlayer).getTeam()) + 10);
@@ -9856,7 +9947,48 @@ int CvPlayerAI::AI_maxGoldTrade(PlayerTypes ePlayer) const
 
 		iMaxGold = std::min(iMaxGold, getGold());
 
+		iMaxGold -= (iMaxGold % GC.getDefineINT("DIPLOMACY_VALUE_REMAINDER")); */
+		// K-Mod. Similar, but with more personality, and with better handling of situations where the AI has lots of spare gold.
+		int iTradePercent = GC.getLeaderHeadInfo(getPersonalityType()).getMaxGoldTradePercent();
+		iMaxGold = getTotalPopulation();
+
+		iMaxGold *= (GET_TEAM(getTeam()).AI_getHasMetCounter(GET_PLAYER(ePlayer).getTeam()) + 10);
+
+		iMaxGold *= iTradePercent;
+		iMaxGold /= 100;
+
+		iMaxGold -= AI_getGoldTradedTo(ePlayer);
+		iMaxGold = std::max(0, iMaxGold);
+
+		int iGoldRate = calculateGoldRate();
+		if (iGoldRate > 0)
+		{
+			PROFILE("AI_maxGoldTrade: gold rate adjustment");
+			int iTarget = AI_goldTarget();
+			if (getGold() < iTarget)
+			{
+				iGoldRate -= (iTarget - getGold())/3;
+				iGoldRate = std::max(0, iGoldRate);
+			}
+			else
+			{
+				iMaxGold += (getGold() - iTarget) * iTradePercent / 100;
+			}
+			iMaxGold += iGoldRate * 2 * iTradePercent / 100;
+		}
+		else
+		{
+			int iAdjustment = iGoldRate * 12;
+			iAdjustment *= GC.getGameSpeedInfo(GC.getGameINLINE().getGameSpeedType()).getResearchPercent();
+			iAdjustment /= 100;
+
+			iMaxGold += iAdjustment;
+		}
+
+		iMaxGold = range(iMaxGold, 0, getGold());
+
 		iMaxGold -= (iMaxGold % GC.getDefineINT("DIPLOMACY_VALUE_REMAINDER"));
+		// K-Mod end
 	}
 
 	return std::max(0, iMaxGold);
@@ -10449,32 +10581,49 @@ DenialTypes CvPlayerAI::AI_bonusTrade(BonusTypes eBonus, PlayerTypes ePlayer) co
 	return NO_DENIAL;
 }
 
-
+// K-Mod note: the way this function is currently used is that it actually represents
+// the how much the current owner values _not giving the city to this player_.
+//
+// For example, if this player currently controls most of the city's culture,
+// the value should be _lower_ rather than higher, so that the current owner
+// is more likely to give up the city.
+//
+// Ideally the value of receiving the city and the cost of giving the city away would be
+// separate things; but that's currently not how trades are made.
 int CvPlayerAI::AI_cityTradeVal(CvCity* pCity) const
 {
-	CvPlot* pLoopPlot;
-	int iValue;
-	int iI;
-
 	FAssert(pCity->getOwnerINLINE() != getID());
 
-	iValue = 300;
+	int iValue = 300;
 
-	iValue += (pCity->getPopulation() * 50);
+	//iValue += (pCity->getPopulation() * 50);
+	iValue += pCity->getPopulation()*20 + pCity->getHighestPopulation()*30; // K-Mod
 
 	iValue += (pCity->getCultureLevel() * 200);
+	iValue += 200 * pCity->getCultureLevel() * pCity->getCulture(getID()) / std::max(1, pCity->getCulture(pCity->getOwnerINLINE())); // K-Mod
 
-	iValue += (((((pCity->getPopulation() * 50) + GC.getGameINLINE().getElapsedGameTurns() + 100) * 4) * pCity->plot()->calculateCulturePercent(pCity->getOwnerINLINE())) / 100);
+	//iValue += (((((pCity->getPopulation() * 50) + GC.getGameINLINE().getElapsedGameTurns() + 100) * 4) * pCity->plot()->calculateCulturePercent(pCity->getOwnerINLINE())) / 100);
+	// K-Mod
+	int iCityTurns = GC.getGameINLINE().getGameTurn() - (pCity->getGameTurnFounded() + pCity->getGameTurnAcquired())/2;
+	iCityTurns = iCityTurns * GC.getGameSpeedInfo(GC.getGameINLINE().getGameSpeedType()).getVictoryDelayPercent() / 100;
+	iValue += ((pCity->getPopulation()*20 + pCity->getHighestPopulation()*30 + iCityTurns*3/2 + 80) * 4 * (pCity->plot()->calculateCulturePercent(pCity->getOwnerINLINE())+10)) / 110;
+	// K-Mod end
 
-	for (iI = 0; iI < NUM_CITY_PLOTS; iI++)
+	for (int iI = 0; iI < NUM_CITY_PLOTS; iI++)
 	{
-		pLoopPlot = plotCity(pCity->getX_INLINE(), pCity->getY_INLINE(), iI);
+		CvPlot* pLoopPlot = plotCity(pCity->getX_INLINE(), pCity->getY_INLINE(), iI);
 
 		if (pLoopPlot != NULL)
 		{
 			if (pLoopPlot->getBonusType(getTeam()) != NO_BONUS)
 			{
-				iValue += (AI_bonusVal(pLoopPlot->getBonusType(getTeam()), 1, true) * 10);
+				//iValue += (AI_bonusVal(pLoopPlot->getBonusType(getTeam()), 1, true) * 10);
+				// K-Mod
+				int iBonusValue = AI_bonusVal(pLoopPlot->getBonusType(getTeam()), 1, true);
+				iBonusValue += GET_PLAYER(pCity->getOwnerINLINE()).AI_bonusVal(pLoopPlot->getBonusType(pCity->getTeam()), -1, true);
+				iBonusValue *= plotDistance(pLoopPlot, pCity->plot()) <= 1 ? 5 : 4;
+				iValue += iBonusValue;
+				// K-Mod end
 			}
 		}
 	}
@@ -10484,6 +10633,31 @@ int CvPlayerAI::AI_cityTradeVal(CvCity* pCity) const
 		iValue *= 3;
 		iValue /= 2;
 	}
+
+	// K-Mod. (Some stuff copied from AI_warSpoilsValue)
+	{
+		int iCityValue = 0;
+		// holy city value
+		for (ReligionTypes i = (ReligionTypes)0; i < GC.getNumReligionInfos(); i=(ReligionTypes)(i+1))
+		{
+			if (pCity->isHolyCity(i))
+				iCityValue += std::max(0, GC.getGameINLINE().countReligionLevels(i) / (pCity->hasShrine(i) ? 1 : 2) - 4);
+			// note: the -4 at the end is mostly there to offset the 'wonder' value that will be added later.
+			// I don't want to double-count the value of the shrine, and the religion without the shrine isn't worth much anyway.
+		}
+
+		// corp HQ value
+		for (CorporationTypes i = (CorporationTypes)0; i < GC.getNumCorporationInfos(); i=(CorporationTypes)(i+1))
+		{
+			if (pCity->isHeadquarters(i))
+				iCityValue += std::max(0, 2 * GC.getGameINLINE().countCorporationLevels(i) - 4);
+		}
+
+		// wonders
+		iCityValue += 4 * pCity->getNumActiveWorldWonders();
+		iValue += iCityValue * 10;
+	}
+	// K-Mod end
 
 	iValue -= (iValue % GC.getDefineINT("DIPLOMACY_VALUE_REMAINDER"));
 
@@ -11448,7 +11622,7 @@ int CvPlayerAI::AI_unitValue(UnitTypes eUnit, UnitAITypes eUnitAI, CvArea* pArea
 		if (GC.getUnitInfo(eUnit).isFirstStrikeImmune())
 		{
 			iValue += (iTempValue * 8) / 100;
-		}		
+		}
 		iValue += ((iCombatValue * GC.getUnitInfo(eUnit).getCityAttackModifier()) / 75); // bbai (was 100).
 		// iValue += ((iCombatValue * GC.getUnitInfo(eUnit).getCollateralDamage()) / 400); // (moved)
 		iValue += ((iCombatValue * (GC.getUnitInfo(eUnit).getMoves()-1) * iFastMoverMultiplier) / 6); // K-Mod put in -1, and changed /4 to /6
@@ -11980,7 +12154,7 @@ int CvPlayerAI::AI_unitValue(UnitTypes eUnit, UnitAITypes eUnitAI, CvArea* pArea
 							break;
 						}
 					}
-				}				
+				}
 			}
 		}
 	}
@@ -12127,6 +12301,16 @@ int CvPlayerAI::AI_neededWorkers(CvArea* pArea) const
 	{
 		return 0;
 	}
+
+	// K-Mod. Some additional workers if for 'growth' flavour AIs who are still growing...
+	if (AI_getFlavorValue(FLAVOR_GROWTH) > 0 && AI_isPrimaryArea(pArea))
+	{
+		int iDummy;
+		int iExtraCities = std::min(GC.getWorldInfo(GC.getMapINLINE().getWorldSize()).getTargetNumCities()*4/3 - getNumCities(), AI_getNumAreaCitySites(pArea->getID(), iDummy));
+		iExtraCities = range(iExtraCities, 0, getNumCities()*2/3);
+		iCount += iExtraCities * 3;
+	}
+	// K-Mod end
 
 	if (getBestRoute() != NO_ROUTE)
 	{
@@ -12491,7 +12675,7 @@ int CvPlayerAI::AI_missionaryValue(CvArea* pArea, ReligionTypes eReligion, Playe
 				iSpreadInternalValue += 3000;
 			}
 		}
-	}			
+	}
 
 /************************************************************************************************/
 /* BETTER_BTS_AI_MOD                      10/03/09                                jdog5000      */
@@ -14404,7 +14588,7 @@ int CvPlayerAI::AI_civicValue(CivicTypes eCivic) const
 			if (eAttitude >= ATTITUDE_PLEASED)
 			{
 				const CvLeaderHeadInfo& kPersonality = GC.getLeaderHeadInfo(kLoopPlayer.getPersonalityType());
-				if (kPersonality.getFavoriteCivic() == eCivic)
+				if (kPersonality.getFavoriteCivic() == eCivic && kLoopPlayer.isCivic(eCivic))
 				{
 					// (better to use getVotes; but that's more complex.)
 					//iValue += kLoopPlayer.getTotalPopulation() * (2 + kPersonality.getFavoriteCivicAttitudeChangeLimit()) / 20;
@@ -20548,7 +20732,7 @@ void CvPlayerAI::AI_updateStrategyHash()
 						if (100*iTypicalDefence >= 110 * GET_TEAM((TeamTypes)iI).getTypicalUnitValue(UNITAI_CITY_DEFENSE))
 						{
 							iCrushValue += 2;
-						}						
+						}
 					}
 
 					if (kTeam.AI_getWarPlan((TeamTypes)iI) == WARPLAN_PREPARING_TOTAL)
@@ -22926,7 +23110,7 @@ bool CvPlayerAI::AI_isPlotCitySite(CvPlot* pPlot) const
 		if ((*it) == iPlotIndex)
 		{
 			return true;
-		}		
+		}
 	}
 	return false;
 }
@@ -22944,7 +23128,7 @@ int CvPlayerAI::AI_getNumAreaCitySites(int iAreaID, int& iBestValue) const
 		{
 			iCount++;
 			iBestValue = std::max(iBestValue, pCitySitePlot->getFoundValue(getID()));
-		}		
+		}
 	}
 	return iCount;
 }
@@ -22964,7 +23148,7 @@ int CvPlayerAI::AI_getNumAdjacentAreaCitySites(int iWaterAreaID, int iExcludeAre
 			{
 				iCount++;
 				iBestValue = std::max(iBestValue, pCitySitePlot->getFoundValue(getID()));
-			}	
+			}
 		}
 	}
 	return iCount;
@@ -23067,7 +23251,7 @@ int CvPlayerAI::AI_bestAreaUnitAIValue(UnitAITypes eUnitAI, CvArea* pArea, UnitT
 				if (getCapitalCity()->plot()->isAdjacentToArea(pArea))
 				{
 					pCity = getCapitalCity();
-				}			
+				}
 			}
 			else
 			{
@@ -23277,7 +23461,7 @@ void CvPlayerAI::AI_doEnemyUnitData()
 						if (pLoopPlot->getCulture(getID()) > 0)
 						{
 							iUnitValue += pLoopUnit->canAttack() ? 4 : 1;
-						}	
+						}
 					}
 					
 					// If we hadn't seen any of this class before

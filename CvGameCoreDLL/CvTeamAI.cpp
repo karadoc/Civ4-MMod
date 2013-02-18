@@ -1295,12 +1295,17 @@ int CvTeamAI::AI_warSpoilsValue(TeamTypes eTarget, WarPlanTypes eWarPlan) const
 	{
 		if (kTargetTeam.AI_isAnyMemberDoVictoryStrategyLevel4())
 		{
-			iDenyFactor += AI_isAnyMemberDoVictoryStrategyLevel4() ? 40 : 20;
+			iDenyFactor += AI_isAnyMemberDoVictoryStrategyLevel4() ? 50 : 30;
 		}
 
 		if (bAggresive || AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_CONQUEST3))
 		{
 			iDenyFactor += 20;
+		}
+
+		if (GC.getGameINLINE().getTeamRank(eTarget) < GC.getGameINLINE().getTeamRank(getID()))
+		{
+			iDenyFactor += 10;
 		}
 	}
 	if (AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_CONQUEST4 | AI_VICTORY_DOMINATION4))
@@ -1648,11 +1653,19 @@ int CvTeamAI::AI_warCommitmentCost(TeamTypes eTarget, WarPlanTypes eWarPlan) con
 					iEnemyNavy = iEnemyNavy * 100 / x;
 				} */
 
+				// Note: Commitment cost is currently meant to take into account risk as well as resource requirements.
+				//       But with overseas wars, the relative strength of navy units effects these things differently.
+				//       If our navy is much stronger than theirs, then our risk is low but we still need to commit a
+				//       just as much resources to win the land-war for an invasion.
+				//       If their navy is stronger than ours, our risk is high and our resources will be higher too.
+				//
+				//       The current calculations are too simplistic to explicitly specify all that stuff.
 				if (bTotalWar)
 				{
-					iCommitmentPerMil = iCommitmentPerMil * (4*iOurNavy + 5*iEnemyNavy) / (8*iOurNavy + 1*iEnemyNavy);
-					//iCommitmentPerMil = iCommitmentPerMil * 5/4;
-					iCommitmentPerMil = iCommitmentPerMil * 200 / std::min(200, iLowScale + iHighScale);
+					//iCommitmentPerMil = iCommitmentPerMil * (4*iOurNavy + 5*iEnemyNavy) / (8*iOurNavy + 1*iEnemyNavy);
+					//iCommitmentPerMil = iCommitmentPerMil * 200 / std::min(200, iLowScale + iHighScale);
+					//
+					iCommitmentPerMil = iCommitmentPerMil * 200 / std::min(240, (iLowScale + iHighScale) * (9*iOurNavy + 1*iEnemyNavy) / (6*iOurNavy + 4*iEnemyNavy));
 				}
 				else
 					iCommitmentPerMil = iCommitmentPerMil * (1*iOurNavy + 4*iEnemyNavy) / (4*iOurNavy + 1*iEnemyNavy);
@@ -1700,9 +1713,16 @@ int CvTeamAI::AI_warCommitmentCost(TeamTypes eTarget, WarPlanTypes eWarPlan) con
 			iPoolMultiplier /= std::max(1, getAliveCount());
 			iCommitmentPool = iCommitmentPool * iPoolMultiplier / 100;
 
-			//
-			if (AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_CULTURE4 | AI_VICTORY_SPACE4) || AI_getLowestVictoryCountdown() >= 0)
-				iCommitmentPool *= 2;
+			// Don't pick a fight if we're expecting to beat them to a peaceful victory.
+			if (!AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_DOMINATION4 | AI_VICTORY_CONQUEST4))
+			{
+				if (AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_CULTURE4) ||
+					(AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_SPACE4) && !GET_TEAM(eTarget).AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_CULTURE4 | AI_VICTORY_SPACE4)) ||
+					(AI_getLowestVictoryCountdown() > 0 && (GET_TEAM(eTarget).AI_getLowestVictoryCountdown() < 0 || AI_getLowestVictoryCountdown() < GET_TEAM(eTarget).AI_getLowestVictoryCountdown())))
+				{
+					iCommitmentPool *= 2;
+				}
+			}
 
 			iTotalCost += iCommitmentPerMil * iCommitmentPool / 1000;
 		}
@@ -1748,6 +1768,9 @@ int CvTeamAI::AI_warDiplomacyCost(TeamTypes eTarget) const
 		return 0;
 	}
 
+	if (AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_CONQUEST4))
+		return 0;
+
 	const CvTeamAI& kTargetTeam = GET_TEAM(eTarget);
 
 	// first, the cost of upsetting the team we are declaring war on.
@@ -1789,23 +1812,26 @@ int CvTeamAI::AI_warDiplomacyCost(TeamTypes eTarget) const
 			}
 		}
 
-		int iDiploWeight = 50;
-		iDiploWeight += 20 * iPeaceWeight / getAliveCount();
+		int iDiploWeight = 40;
+		iDiploWeight += 10 * iPeaceWeight / getAliveCount();
 		// This puts iDiploWeight somewhere around 50 - 250.
 		if (GC.getGameINLINE().isOption(GAMEOPTION_AGGRESSIVE_AI))
 			iDiploWeight /= 2;
-		if (AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_CONQUEST3))
-			iDiploWeight /= 2;
+		if (AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_DIPLOMACY3))
+			iDiploWeight += 50;
 		if (AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_DIPLOMACY4))
 			iDiploWeight += 50;
+		if (AI_isAnyMemberDoVictoryStrategy(AI_VICTORY_CONQUEST3)) // note: conquest4 ignores diplo completely.
+			iDiploWeight /= 2;
 
 		iDiploCost *= iDiploWeight;
 		iDiploCost /= 100;
 	}
 
-	// finally, some strange rescaling so that this diplomacy stuff doesn't get huge on huge maps.
-	iDiploCost *= getTotalPopulation(false) + kTargetTeam.getTotalPopulation(false);
-	iDiploCost /= std::max(1, iDiploPopulation);
+	// Finally, reduce the value for large maps;
+	// so that this diplomacy stuff doesn't become huge relative to other parts of the war evaluation.
+	iDiploCost *= 3;
+	iDiploCost /= std::max(5, GC.getWorldInfo((WorldSizeTypes)GC.getMapINLINE().getWorldSize()).getDefaultPlayers());
 
 	return iDiploCost;
 }
@@ -1915,7 +1941,7 @@ int CvTeamAI::AI_startWarVal(TeamTypes eTeam) const
 			{
 				iValue *= 2;
 			}
-		}	
+		}
 	}
 
 	// This adapted legacy code just makes us more willing to enter a war in a trade deal 
@@ -4656,7 +4682,7 @@ int CvTeamAI::AI_teamCloseness(TeamTypes eIndex, int iMaxDistance) const
 							iValue += GET_PLAYER((PlayerTypes)iI).AI_playerCloseness((PlayerTypes)iJ, iMaxDistance);
 						}
 					}
-				}	
+				}
 			}
 		}
 	}
@@ -5510,7 +5536,7 @@ void CvTeamAI::AI_doWar()
 				int iUnitSpendingPercent = (GET_PLAYER((PlayerTypes)iI).calculateUnitCost() * 100) / std::max(1, GET_PLAYER((PlayerTypes)iI).calculatePreInflatedCosts());
 				iHighUnitSpendingPercent += (std::max(0, iUnitSpendingPercent - 7) / 2);
 				iLowUnitSpendingPercent += iUnitSpendingPercent;
-			}			
+			}
 		}
 	}
 	
@@ -6264,7 +6290,7 @@ bool CvTeamAI::AI_isWaterAreaRelevant(CvArea* pArea)
 					{
 						iOtherTeamCities++;
 					}
-				}				
+				}
 			}
 		}
 		if (iTeamCities >= 2 && iOtherTeamCities >= 2)

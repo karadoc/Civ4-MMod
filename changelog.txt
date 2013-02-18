@@ -1,6 +1,76 @@
-This is K-Mod version 1.38.
+This is K-Mod version 1.40.
 If you have any questions, comments, suggestions, bug reports, etc. Post here: http://forums.civfanatics.com/forumdisplay.php?f=470
 
+v1.40 changelist
+
+UI
+
++ Multi-completion of units will now be reflected by the city's order queue. ie. more than one unit is finished in a single turn, that number of units of the same type will be removed from the construction queue (if they are actually on the queue).
++ Left-click "go to" missions will now trigger to declare war popup when attempting to move into closed foreign borders (instead of simply ignoring the command).
++ Automated cities will no longer consider building 'team wonders'; just as they don't consider national wonders or world wonders. (Note: there are currently no team wonders in K-Mod anyway.)
++ Removed two empty categories from the Sevopedia.
+
+Game
+
++ Fixed a minor mistake in the latest pathfinding bugfix for groups with a mixture of movement speeds.
++ Fixed a problem with the K-Mod pathfinder which could cause a crash in mods which include zero speed units or zero move-cost roads.
++ Reversed the effect of bPrereqReligion for units and buildings. Previously it meant that a religion must _not_ be present in order to construct the building/unit. Now it means that a religion must be present. (Note: this change has no effect on K-Mod, because bPrereqReligion is not currently used by anything.)
++ Fixed a BtS bug in the evaluation of starting positions which caused most of the evaluation to be ignored, and caused some starts to have more bonuses and forests added to them than intended.
++ Added a bit of randomness to the map generators choice of area for 'unique' resources. This slightly reduces the correlation between continent size and number of resource types.
++ Added some factors to the starting position evaluation to adjust for the number of resources in the area and the number of players already placed in the area. The goal of this is to decrease the chance of getting an isolated start with a lack of resources.
++ Fixed a bug which caused some starting resources to be valued more highly than intended.
++ Increased the radius of the land outside of the fat-cross to be evaluated for starting positions.
++ (several other minor tweaks / bug fixes related to starting positions)
+
+AI
+
++ Fixed a significant bug in the latest K-Mod AI which was causing the AI to focus on constructing buildings far more than intended.
++ The trade value of cities (for ending wars) now includes some additional value for holy cities and corporation head-quarters.
++ Tightened the conditions on "opportunistic wonder" builds.
++ Adjusted the calculation for the maximum amount of gold the AI is willing to trade. AI civs with high incomes should now be a bit less likely to hoard their gold.
++ Some leaders will now build a few more workers in the early game, based on the leader's personality.
++ The AI will now value forest chopping a bit more highly in cities with low productivity.
++ Tightened the 'financial trouble' threshold in the early game, so that AI civs which expand quickly will realise sooner that they need to start getting cottages set up.
++ (several other minor AI tweaks and bug fixes)
+
+
+--
+v1.39 changelist
+
+Game
+
++ All four Drill promotions now give +15% collateral damage reduction. (Previously it was +0, +20, +20, +20.)
++ Added some nuance to the AI's evaluation of gifted units.
+  + Gifts of great people will now always result in +1 for "you gave us help".
+  + Gifts of military units are now evaluated based on the usefulness of the gifted unit and the AI player's current military needs.
+  + (The diplomatic effect of non-great person gifts still only affects the "fair and forthright" diplomatic modifier.)
++ Fixed a K-Mod bug which caused distance maintenance to always be zero for civs with exactly 2 cities.
++ Research is now completely halted while in anarchy. (Previously civs would still get +1 science per turn.)
+
+UI
+
++ Corrected the Latin in one of Julius Caeser's quotes. (hopefully)
++ Fixed a bug in the Hall of Fame screen which in rare cases could cause the game to crash.
++ The UI pathfinder is now reset when a unit is promoted. (This change was meant to be in a previous version, but it was implemented incorrectly.)
++ Fixed a BtS pathfinding bug which sometimes caused inaccurate path turns.
+
++ The the mouseover text for cathedrals will now include the number of cathedrals currently under construction when calculating the required number of temples. (ie. it will report how many temples are required to start the the construction of another cathedral.)
++ Catherals' temple requirements in the civilopedia will no longer take into account how many cathedrals the active player has built. (ie. if each cathedral requires 3 temples, then the civilopedia will just say 3 temples rather than saying how many temples are required for the next one.)
++ Missionaries will now appear as greyed out in the city-screen when they are maxed out rather than being removed completely.
++ The mouse-over text for missionaries will no longer say "requires monastery" if the player is using Organized Religion. (ie. It will only say 'requires monastery' if the player is not exempt from that requirement.)
++ In the mouseover text, unit limits are now displayed on a new line rather than inline with the unit name, and the limit text is displayed in red if the limit has already been reached.
+
+AI
+
++ Tweaked the group size adjustment used in AI_stackVsStack, so that the AI is a bit less inclined to use a big stack to attack a well defended small stack.
++ When aiming for a diplomatic victory, the AI now give some additional value to the favourite civics of their potential allies.
++ Tweaked AI_warCommitmentCost for overseas wars and for late-game wars. (This may need further testing and adjustments.)
++ Rescaled and adjusted AI_warDiplomacyCost to fix some problematic fringe cases.
++ Changed the odds formula for short-circuit 2&3 in AI_chooseProduction to better reflect individual AI flavours.
++ Reduced the effect of pre-existing progress in AI_chooseBuilding.
+
+
+--
 v1.38 changelist
 
 Game
