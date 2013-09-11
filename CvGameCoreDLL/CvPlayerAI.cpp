@@ -2955,7 +2955,8 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 		{
 			iTakenTiles++;
 		}
-		else if (pLoopPlot->isCityRadius() || abCitySiteRadius[iI])
+		//else if (pLoopPlot->isCityRadius() || abCitySiteRadius[iI])
+		else if (iI != CITY_HOME_PLOT && (pLoopPlot->isCityRadius() || abCitySiteRadius[iI])) // K-Mod
 		{
 			iTakenTiles++;
 
@@ -4141,6 +4142,12 @@ bool CvPlayerAI::AI_isCommercePlot(CvPlot* pPlot) const
 // K-Mod. The cache also needs to be reset when routes are destroyed, because distance 2 border danger only counts when there is a route.
 // (Actually, the cache doesn't need to be cleared when war is declared; because false negatives have no impact with this cache.)
 // (In general, I think this cache is a poorly planned idea. It's prone to subtle bugs if there are rule changes in seemingly independant parts of the games.)
+
+bool CvPlayerAI::isSafeRangeCacheValid() const
+{
+	return isTurnActive() && !GC.getGameINLINE().isMPOption(MPOPTION_SIMULTANEOUS_TURNS) && GC.getGameINLINE().getNumGameTurnActive() == 1;
+}
+
 bool CvPlayerAI::AI_getAnyPlotDanger(CvPlot* pPlot, int iRange, bool bTestMoves, bool bCheckBorder) const
 {
 	PROFILE_FUNC();
@@ -4150,13 +4157,17 @@ bool CvPlayerAI::AI_getAnyPlotDanger(CvPlot* pPlot, int iRange, bool bTestMoves,
 		iRange = DANGER_RANGE;
 	}
 
-	if( bTestMoves && isTurnActive() )
+	/* bbai if( bTestMoves && isTurnActive() )
 	{
 		if( (iRange <= DANGER_RANGE) && pPlot->getActivePlayerNoDangerCache() )
 		{
 			return false;
 		}
-	}
+	} */
+	// K-Mod
+	if (bTestMoves && isSafeRangeCacheValid() && iRange <= pPlot->getActivePlayerSafeRangeCache())
+		return false;
+	// K-Mod end
 
 	TeamTypes eTeam = getTeam();
 	//bool bCheckBorder = (!isHuman() && !pPlot->isCity());
@@ -4296,6 +4307,7 @@ bool CvPlayerAI::AI_getAnyPlotDanger(CvPlot* pPlot, int iRange, bool bTestMoves,
 	// value being true is only assumed to mean that the plot is safe in the
 	// test moves case.
 	//if( bTestMoves )
+	/* bbai code
 	{
 		if( isTurnActive() )
 		{
@@ -4304,7 +4316,12 @@ bool CvPlayerAI::AI_getAnyPlotDanger(CvPlot* pPlot, int iRange, bool bTestMoves,
 				pPlot->setActivePlayerNoDangerCache(true);
 			}
 		}
-	}
+	} */
+	// K-Mod. The above bbai code is flawed in that it flags the plot as safe regardless
+	// of what iRange is and then reports that the plot is safe for any iRange <= DANGER_RANGE.
+	if (isSafeRangeCacheValid() && iRange > pPlot->getActivePlayerSafeRangeCache())
+		pPlot->setActivePlayerSafeRangeCache(iRange);
+	// K-Mod end
 
 	return false;
 }
@@ -4333,13 +4350,18 @@ int CvPlayerAI::AI_getPlotDanger(CvPlot* pPlot, int iRange, bool bTestMoves) con
 		iRange = DANGER_RANGE;
 	}
 
+	/* bbai
 	if( bTestMoves && isTurnActive() )
 	{
 		if( (iRange <= DANGER_RANGE) && pPlot->getActivePlayerNoDangerCache() )
 		{
 			return 0;
 		}
-	}
+	} */
+	// K-Mod
+	if (bTestMoves && isSafeRangeCacheValid() && iRange <= pPlot->getActivePlayerSafeRangeCache())
+		return 0;
+	// K-Mod end
 
 	for (iDX = -(iRange); iDX <= iRange; iDX++)
 	{
@@ -4411,6 +4433,10 @@ int CvPlayerAI::AI_getPlotDanger(CvPlot* pPlot, int iRange, bool bTestMoves) con
 			}
 		}
 	}
+	// K-Mod
+	if (iCount == 0 && isSafeRangeCacheValid() && iRange > pPlot->getActivePlayerSafeRangeCache())
+		pPlot->setActivePlayerSafeRangeCache(iRange);
+	// K-Mod end
 
 	if (iBorderDanger > 0)
 	{
@@ -6921,8 +6947,8 @@ int CvPlayerAI::AI_techUnitValue(TechTypes eTech, int iPathLength, bool& bEnable
 
 				case UNITAI_ATTACK_AIR:
 					//iMilitaryValue += ((bWarPlan) ? 1200 : 800);
-					// K-Mod, I've decreased the value here but added something extra a bit lower down.
-					iOffenceValue = std::max(iOffenceValue, (bWarPlan ? 10 : 6) * (100 + kLoopUnit.getCollateralDamage()/2) * iWeight / 100);
+					// K-Mod
+					iOffenceValue = std::max(iOffenceValue, (bWarPlan ? 10 : 5) * (100 + kLoopUnit.getCollateralDamage()*std::min(5, kLoopUnit.getCollateralDamageMaxUnits())/5) * iWeight / 100);
 					break;
 
 				case UNITAI_DEFENSE_AIR:
@@ -7028,12 +7054,6 @@ int CvPlayerAI::AI_techUnitValue(TechTypes eTech, int iPathLength, bool& bEnable
 				}
 			}
 
-			// K-Mod
-			if (kLoopUnit.getDomainType() == DOMAIN_AIR)
-			{
-				iMilitaryValue += (bWarPlan? 600 : 400) * GC.getGameINLINE().AI_combatValue(eLoopUnit)/100;
-			}
-
 			if (iNavalValue > 0)
 			{
 				if (getCapitalCity() != NULL)
@@ -7133,13 +7153,13 @@ int CvPlayerAI::AI_techUnitValue(TechTypes eTech, int iPathLength, bool& bEnable
 				int iMultiplier = 100;
 				if (AI_isDoVictoryStrategy(AI_VICTORY_CONQUEST1 | AI_VICTORY_DOMINATION2) || AI_isDoStrategy(AI_STRATEGY_ALERT1))
 				{
-					iMultiplier += 30;
+					iMultiplier += 25;
 					if (AI_isDoVictoryStrategy(AI_VICTORY_CONQUEST2 | AI_VICTORY_DOMINATION3))
 					{
-						iMultiplier += 30;
+						iMultiplier += 25;
 						if (AI_isDoVictoryStrategy(AI_VICTORY_CONQUEST3 | AI_VICTORY_DOMINATION4))
 						{
-							iMultiplier += 40;
+							iMultiplier += 25;
 						}
 					}
 				}
@@ -10615,16 +10635,22 @@ int CvPlayerAI::AI_cityTradeVal(CvCity* pCity) const
 
 		if (pLoopPlot != NULL)
 		{
+			/* original bts code
 			if (pLoopPlot->getBonusType(getTeam()) != NO_BONUS)
 			{
-				//iValue += (AI_bonusVal(pLoopPlot->getBonusType(getTeam()), 1, true) * 10);
-				// K-Mod
-				int iBonusValue = AI_bonusVal(pLoopPlot->getBonusType(getTeam()), 1, true);
+				iValue += (AI_bonusVal(pLoopPlot->getBonusType(getTeam()), 1, true) * 10);
+			} */
+			// K-Mod. Use average of our value for gaining the bonus, and their value for losing it.
+			int iBonusValue = 0;
+
+			if (pLoopPlot->getBonusType(getTeam()) != NO_BONUS)
+				iBonusValue += AI_bonusVal(pLoopPlot->getBonusType(getTeam()), 1, true);
+			if (pLoopPlot->getBonusType(pCity->getTeam()) != NO_BONUS)
 				iBonusValue += GET_PLAYER(pCity->getOwnerINLINE()).AI_bonusVal(pLoopPlot->getBonusType(pCity->getTeam()), -1, true);
-				iBonusValue *= plotDistance(pLoopPlot, pCity->plot()) <= 1 ? 5 : 4;
-				iValue += iBonusValue;
-				// K-Mod end
-			}
+
+			iBonusValue *= plotDistance(pLoopPlot, pCity->plot()) <= 1 ? 5 : 4;
+			iValue += iBonusValue;
+			// K-Mod end
 		}
 	}
 
@@ -14682,7 +14708,7 @@ ReligionTypes CvPlayerAI::AI_bestReligion() const
 		return NO_RELIGION;
 	} */ // disabled by K-Mod
 	// K-Mod. Don't instantly convert to the first religion avaiable, unless it is your own religion.
-	int iSpread = getHasReligionCount(eBestReligion) * 100 / std::max(GC.getWorldInfo(GC.getMapINLINE().getWorldSize()).getTargetNumCities(), getNumCities()+1);
+	int iSpread = getHasReligionCount(eBestReligion) * 100 / std::min(GC.getWorldInfo(GC.getMapINLINE().getWorldSize()).getTargetNumCities()*3/2+1, getNumCities()+1);
 	if (getStateReligion() == NO_RELIGION && iSpread < 29 - AI_getFlavorValue(FLAVOR_RELIGION)
 		&& (GC.getGameINLINE().getHolyCity(eBestReligion) == NULL || GC.getGameINLINE().getHolyCity(eBestReligion)->getTeam() != getTeam()))
 	{
@@ -18277,11 +18303,13 @@ void CvPlayerAI::write(FDataStreamBase* pStream)
 	pStream->Write(MAX_PLAYERS, &m_aiCloseBordersAttitudeCache[0]); // K-Mod
 }
 
-
+// (K-Mod note: this should be roughly in units of commerce.)
 int CvPlayerAI::AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTriggeredData) const
 {
 	CvEventTriggerInfo& kTrigger = GC.getEventTriggerInfo(kTriggeredData.m_eTrigger);
 	CvEventInfo& kEvent = GC.getEventInfo(eEvent);
+
+	CvTeamAI& kTeam = GET_TEAM(getTeam()); // K-Mod
 
 	int iNumCities = getNumCities();
 	CvCity* pCity = getCity(kTriggeredData.m_iCityId);
@@ -18302,6 +18330,7 @@ int CvPlayerAI::AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTrig
 		aiCommerceYields[iI] = 0;
 	}
 
+	/* original bts code
 	if (NO_PLAYER != kTriggeredData.m_eOtherPlayer)
 	{
 		if (kEvent.isDeclareWar())
@@ -18322,7 +18351,7 @@ int CvPlayerAI::AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTrig
 				break;
 			}
 		}
-	}
+	} */ // this is handled later.
 
 	//Proportional to #turns in the game...
 	//(AI evaluation will generally assume proper game speed scaling!)
@@ -18336,7 +18365,7 @@ int CvPlayerAI::AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTrig
 
 	if (kEvent.getTech() != NO_TECH)
 	{
-		iValue += (GET_TEAM(getTeam()).getResearchCost((TechTypes)kEvent.getTech()) * kEvent.getTechPercent()) / 100;
+		iValue += (kTeam.getResearchCost((TechTypes)kEvent.getTech()) * kEvent.getTechPercent()) / 100;
 	}
 
 	if (kEvent.getUnitClass() != NO_UNITCLASS)
@@ -18431,7 +18460,7 @@ int CvPlayerAI::AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTrig
 
 	if (eBestTech != NO_TECH)
 	{
-		iValue += (GET_TEAM(getTeam()).getResearchCost(eBestTech) * kEvent.getTechPercent()) / 100;
+		iValue += (kTeam.getResearchCost(eBestTech) * kEvent.getTechPercent()) / 100;
 	}
 
 	if (kEvent.isGoldenAge())
@@ -18717,7 +18746,7 @@ int CvPlayerAI::AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTrig
 			
 			if (NO_TEAM != eWorstEnemy && eWorstEnemy != getTeam())
 			{
-			int iThirdPartyAttitudeWeight = GET_TEAM(getTeam()).AI_getAttitudeWeight(eWorstEnemy);
+			int iThirdPartyAttitudeWeight = kTeam.AI_getAttitudeWeight(eWorstEnemy);
 			
 			//If we like both teams, we want them to get along.
 			//If we like otherPlayer but not enemy (or vice-verca), we don't want them to get along.
@@ -18745,10 +18774,17 @@ int CvPlayerAI::AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTrig
 		
 		if (NO_BONUS != kEvent.getBonusGift())
 		{
+			/* original bts code
 			int iBonusValue = -AI_bonusVal((BonusTypes)kEvent.getBonusGift(), -1);
 			iBonusValue += (iOtherPlayerAttitudeWeight - 40) * kOtherPlayer.AI_bonusVal((BonusTypes)kEvent.getBonusGift(), +1);
 			//Positive for friends, negative for enemies.
-			iDiploValue += (iBonusValue * GC.getDefineINT("PEACE_TREATY_LENGTH")) / 60;
+			iDiploValue += (iBonusValue * GC.getDefineINT("PEACE_TREATY_LENGTH")) / 60; */
+
+			// K-Mod. The original code undervalued our loss of bonus by a factor of 100.
+			iValue -= AI_bonusVal((BonusTypes)kEvent.getBonusGift(), -1) * GC.getDefineINT("PEACE_TREATY_LENGTH") / 4;
+			int iGiftValue = kOtherPlayer.AI_bonusVal((BonusTypes)kEvent.getBonusGift(), +1) * (iOtherPlayerAttitudeWeight - 40) / 100;
+			iDiploValue += iGiftValue * GC.getDefineINT("PEACE_TREATY_LENGTH") / 4;
+			// K-Mod end
 		}
 		
 		if (GC.getGameINLINE().isOption(GAMEOPTION_AGGRESSIVE_AI))
@@ -18770,6 +18806,16 @@ int CvPlayerAI::AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTrig
 
 		if (kEvent.isDeclareWar())
 		{
+			// K-Mod. Veto declare war events which are against our character.
+			// (This is moved from the start of this function, and rewritten.)
+			TeamTypes eOtherTeam = GET_PLAYER(kTriggeredData.m_eOtherPlayer).getTeam();
+			if (kEvent.isDeclareWar() && kTriggeredData.m_eOtherPlayer != NO_PLAYER)
+			{
+				if (kTeam.AI_refuseWar(eOtherTeam))
+					return INT_MIN/100; // Note: the divide by 100 is just to avoid an overflow later on.
+			}
+			// K-Mod end
+
 			/* original bts code
 			int iWarValue = GET_TEAM(getTeam()).getDefensivePower(GET_PLAYER(kTriggeredData.m_eOtherPlayer).getTeam())
 				- GET_TEAM(GET_PLAYER(kTriggeredData.m_eOtherPlayer).getTeam()).getPower(true);// / std::max(1, GET_TEAM(getTeam()).getDefensivePower());
@@ -18777,10 +18823,11 @@ int CvPlayerAI::AI_eventValue(EventTypes eEvent, const EventTriggeredData& kTrig
 
 			// K-Mod. Note: the original code doesn't touch iValue.
 			// So whatever I do here is completely new.
-			// TODO: if I ever get around to writing code for evalutating potential war targets, I should use that here!
-			int iOurPower = GET_TEAM(getTeam()).getDefensivePower(GET_PLAYER(kTriggeredData.m_eOtherPlayer).getTeam());
-			int iTheirPower = GET_TEAM(GET_PLAYER(kTriggeredData.m_eOtherPlayer).getTeam()).getPower(true);
-			int iWarValue = 300 * (iOurPower - iTheirPower) / std::max(1, iOurPower + iTheirPower) - 25;// / std::max(1, GET_TEAM(getTeam()).getDefensivePower())
+
+			// Note: the event will make the other team declare war on us.
+			// Also, I've decided nto to multiply this by number of turns or anything like that.
+			// The war evaluation is rough, and optimistic... and besides, we can always declare war ourselves if we want to.
+			int iWarValue = kTeam.AI_startWarVal(GET_PLAYER(kTriggeredData.m_eOtherPlayer).getTeam(), WARPLAN_ATTACKED);
 
 			iValue += iWarValue;
 			// K-Mod end
@@ -18850,12 +18897,14 @@ EventTypes CvPlayerAI::AI_chooseEvent(int iTriggeredId) const
 
 	CvEventTriggerInfo& kTrigger = GC.getEventTriggerInfo(pTriggeredData->m_eTrigger);
 
-	int iBestValue = -MAX_INT;
+	//int iBestValue = -MAX_INT;
+	int iBestValue = INT_MIN; // K-Mod
 	EventTypes eBestEvent = NO_EVENT;
 
 	for (int i = 0; i < kTrigger.getNumEvents(); i++)
 	{
-		int iValue = -MAX_INT;
+		//int iValue = -MAX_INT;
+		int iValue = INT_MIN; // K-Mod
 		if (kTrigger.getEvent(i) != NO_EVENT)
 		{
 			CvEventInfo& kEvent = GC.getEventInfo((EventTypes)kTrigger.getEvent(i));
@@ -23828,6 +23877,7 @@ int CvPlayerAI::AI_getPlotAirbaseValue(CvPlot* pPlot) const
 		CvCity* pWorkingCity = pPlot->getWorkingCity();
 		if (pWorkingCity != NULL)
 		{
+			/* original bts code
 			if (pWorkingCity->AI_getBestBuild(pWorkingCity->getCityPlotIndex(pPlot)) != NO_BUILD)
 			{
 				return 0;
@@ -23839,7 +23889,24 @@ int CvPlayerAI::AI_getPlotAirbaseValue(CvPlot* pPlot) const
 				{
 					return 0;
 				}
+			} */
+			// K-Mod
+			ImprovementTypes eBestImprovement = pPlot->getImprovementType();
+			BuildTypes eBestBuild = pWorkingCity->AI_getBestBuild(pWorkingCity->getCityPlotIndex(pPlot));
+			if (eBestBuild != NO_BUILD)
+			{
+				if (GC.getBuildInfo(eBestBuild).getImprovement() != NO_IMPROVEMENT)
+					eBestImprovement = (ImprovementTypes)GC.getBuildInfo(eBestBuild).getImprovement();
 			}
+			if (eBestImprovement != NO_IMPROVEMENT)
+			{
+				CvImprovementInfo &kImprovementInfo = GC.getImprovementInfo(eBestImprovement);
+				if (!kImprovementInfo.isActsAsCity())
+				{
+					return 0;
+				}
+			}
+			// K-Mod end
 		}
 	}
 	
@@ -23953,6 +24020,7 @@ int CvPlayerAI::AI_getPlotCanalValue(CvPlot* pPlot) const
 			CvCity* pWorkingCity = pPlot->getWorkingCity();
 			if (pWorkingCity != NULL)
 			{
+				/* original bts code
 				if (pWorkingCity->AI_getBestBuild(pWorkingCity->getCityPlotIndex(pPlot)) != NO_BUILD)
 				{
 					return 0;
@@ -23964,7 +24032,24 @@ int CvPlayerAI::AI_getPlotCanalValue(CvPlot* pPlot) const
 					{
 						return 0;
 					}
+				} */
+				// K-Mod
+				ImprovementTypes eBestImprovement = pPlot->getImprovementType();
+				BuildTypes eBestBuild = pWorkingCity->AI_getBestBuild(pWorkingCity->getCityPlotIndex(pPlot));
+				if (eBestBuild != NO_BUILD)
+				{
+					if (GC.getBuildInfo(eBestBuild).getImprovement() != NO_IMPROVEMENT)
+						eBestImprovement = (ImprovementTypes)GC.getBuildInfo(eBestBuild).getImprovement();
 				}
+				if (eBestImprovement != NO_IMPROVEMENT)
+				{
+					CvImprovementInfo &kImprovementInfo = GC.getImprovementInfo(eBestImprovement);
+					if (!kImprovementInfo.isActsAsCity())
+					{
+						return 0;
+					}
+				}
+				// K-Mod end
 			}
 		}
 	}
@@ -23987,7 +24072,8 @@ int CvPlayerAI::AI_getPlotCanalValue(CvPlot* pPlot) const
 		return 0;
 	}
 	
-	return 10 * std::min(0, pSecondWaterArea->getNumTiles() - 2);
+	//return 10 * std::min(0, pSecondWaterArea->getNumTiles() - 2);
+	return 10 * std::max(0, pSecondWaterArea->getNumTiles() - 2);
 }
 
 //This returns approximately to the sum

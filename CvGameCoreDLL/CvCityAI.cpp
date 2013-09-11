@@ -2955,7 +2955,9 @@ UnitTypes CvCityAI::AI_bestUnit(bool bAsync, AdvisorTypes eIgnoreAdvisor, UnitAI
 	{
 		aiUnitAIVal[UNITAI_SETTLE] = 0;
 		aiUnitAIVal[UNITAI_WORKER] = 0;
+		aiUnitAIVal[UNITAI_WORKER_SEA] = 0;
 		aiUnitAIVal[UNITAI_EXPLORE] = 0;
+		aiUnitAIVal[UNITAI_EXPLORE_SEA] = 0;
 		aiUnitAIVal[UNITAI_ATTACK_CITY] /= 3;
 		aiUnitAIVal[UNITAI_COLLATERAL] /= 2;
 	}
@@ -4489,14 +4491,14 @@ int CvCityAI::AI_buildingValue(BuildingTypes eBuilding, int iFocusFlags, int iTh
 							int iCanBuildPrereq = 0;
 							for (pLoopCity = kOwner.firstCity(&iLoop); pLoopCity != NULL; pLoopCity = kOwner.nextCity(&iLoop))
 							{
-								if (canConstruct(eBuilding) && getProductionBuilding() != eBuilding)
+								if (pLoopCity->canConstruct(eBuilding) && pLoopCity->getProductionBuilding() != eBuilding)
 									iCanBuildPrereq++;
 							}
 							if (iCanBuildPrereq >= iPrereqBuildings)
 							{
 								for (pLoopCity = kOwner.firstCity(&iLoop); pLoopCity != NULL; pLoopCity = kOwner.nextCity(&iLoop))
 								{
-									if (canConstruct(eLoopBuilding, false, true) && getProductionBuilding() != eLoopBuilding)
+									if (pLoopCity->canConstruct(eLoopBuilding, false, true) && pLoopCity->getProductionBuilding() != eLoopBuilding)
 										iHighestValue = std::max(pLoopCity->AI_buildingValue(eLoopBuilding, 0, 0, bConstCache, false), iHighestValue);
 								}
 

@@ -87,7 +87,7 @@ public:
 	// K-Mod end
 
 	//int AI_startWarVal(TeamTypes eTeam) const;
-	int AI_startWarVal(TeamTypes eTarget, WarPlanTypes ePlan) const; // K-Mod
+	int AI_startWarVal(TeamTypes eTarget, WarPlanTypes eWarPlan) const; // K-Mod
 	int AI_endWarVal(TeamTypes eTeam) const;
 
 	int CvTeamAI::AI_knownTechValModifier(TechTypes eTech) const; // K-Mod
@@ -116,6 +116,7 @@ public:
 	int AI_getAirPower() const; // K-Mod
 	int AI_getRivalAirPower( ) const;
 	bool AI_refusePeace(TeamTypes ePeaceTeam) const; // K-Mod. (refuse peace when we need war for conquest victory.)
+	bool AI_refuseWar(TeamTypes eWarTeam) const; // K-Mod. (is war an acceptable side effect for event choices, vassal deals, etc)
 	bool AI_acceptSurrender( TeamTypes eSurrenderTeam ) const;
 	bool AI_isOkayVassalTarget( TeamTypes eTeam ) const;
 

@@ -4602,6 +4602,25 @@ void CvPlayer::handleDiploEvent(DiploEventTypes eDiploEvent, PlayerTypes ePlayer
 			GET_PLAYER(getID()).AI_setCityTargetTimer(GC.getDefineINT("PEACE_TREATY_LENGTH")); // K-Mod. (I'd make it a virtual function, but that causes problems.)
 		}
 		break;
+	// K-Mod
+	case DIPLOEVENT_SET_WARPLAN:
+	{
+		CvTeamAI& kOurTeam = GET_TEAM(getTeam());
+		FAssert(kOurTeam.getAtWarCount(true) == 0);
+		if (iData1 == NO_TEAM)
+		{
+			FAssert(iData2 == NO_WARPLAN);
+			for (TeamTypes i = (TeamTypes)0; i < MAX_CIV_TEAMS; i=(TeamTypes)(i+1))
+			{
+				if (!kOurTeam.isAtWar(i))
+					kOurTeam.AI_setWarPlan(i, NO_WARPLAN, false);
+			}
+		}
+		else
+			kOurTeam.AI_setWarPlan((TeamTypes)iData1, (WarPlanTypes)iData2, false);
+		break;
+	}
+	// K-Mod end
 
 	default:
 		FAssert(false);
@@ -6115,7 +6134,8 @@ bool CvPlayer::canTrain(UnitTypes eUnit, bool bContinue, bool bTestVisible, bool
 
 	eUnitClass = ((UnitClassTypes)(GC.getUnitInfo(eUnit).getUnitClassType()));
 
-	FAssert(GC.getCivilizationInfo(getCivilizationType()).getCivilizationUnits(eUnitClass) == eUnit);
+	// K-Mod note. This assert can fail if team games when checking whether this city can upgrade a unit to one of our team member's UUs.
+	//FAssert(GC.getCivilizationInfo(getCivilizationType()).getCivilizationUnits(eUnitClass) == eUnit);
 	if (GC.getCivilizationInfo(getCivilizationType()).getCivilizationUnits(eUnitClass) != eUnit)
 	{
 		return false;
@@ -10967,7 +10987,7 @@ void CvPlayer::setTurnActiveForPbem(bool bActive)
 		// Plot danger cache
 		//if( GC.getGameINLINE().getNumGameTurnActive() != 1 )
 		{
-			GC.getMapINLINE().invalidateIsActivePlayerNoDangerCache();
+			GC.getMapINLINE().invalidateActivePlayerSafeRangeCache();
 		}
 /************************************************************************************************/
 /* BETTER_BTS_AI_MOD                       END                                                  */
@@ -11164,7 +11184,7 @@ void CvPlayer::setTurnActive(bool bNewValue, bool bDoTurn)
 
 	gDLL->getInterfaceIFace()->setDirty(Score_DIRTY_BIT, true);
 
-	GC.getMapINLINE().invalidateIsActivePlayerNoDangerCache();
+	GC.getMapINLINE().invalidateActivePlayerSafeRangeCache();
 }
 
 // K-Mod. The body of this function use to be part of setTurnActive.
