@@ -12048,6 +12048,10 @@ bool CvPlayer::setCommercePercent(CommerceTypes eIndex, int iNewValue, bool bFor
 		return false;
 
 	updateCommerce();
+	// K-Mod. For human players, update commerce weight immediately so that they can see effects on working plots, etc.
+	if (isHuman() && isTurnActive())
+		GET_PLAYER(getID()).AI_updateCommerceWeights();
+	// K-Mod end
 
 	AI_makeAssignWorkDirty();
 
@@ -23268,15 +23272,21 @@ void CvPlayer::getCultureLayerColors(std::vector<NiColorA>& aColors, std::vector
 
 		// how many people own this plot?
 		std::vector < std::pair<int,int> > plot_owners;
-		int iNumNonzeroOwners = 0;
+		//int iNumNonzeroOwners = 0;
+		// K-Mod
+		int iTotalCulture = pLoopPlot->countTotalCulture();
+		if (iTotalCulture == 0)
+			continue;
+		// K-Mod end
 		for (int iPlayer = 0; iPlayer < MAX_CIV_PLAYERS; iPlayer++)
 		{
 			if (GET_PLAYER((PlayerTypes)iPlayer).isAlive())
 			{
 				int iCurCultureAmount = pLoopPlot->getCulture((PlayerTypes)iPlayer);
-				if (iCurCultureAmount != 0)
+				//if (iCurCultureAmount != 0)
+				if (iCurCultureAmount * 100 / iTotalCulture >= 20) // K-Mod (to reduce visual spam from small amounts of culture)
 				{
-					iNumNonzeroOwners ++;
+					//iNumNonzeroOwners ++;
 					plot_owners.push_back(std::pair<int,int>(iCurCultureAmount, iPlayer));
 				}
 			}

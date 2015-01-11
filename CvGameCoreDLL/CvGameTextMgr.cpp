@@ -4071,11 +4071,11 @@ bool CvGameTextMgr::setCombatPlotHelp(CvWStringBuffer &szString, CvPlot* pPlot)
 		}
 
 		const CvPlayerAI& kPlayer = GET_PLAYER(GC.getGameINLINE().getActivePlayer());
-		int iOurStrengthDefense = kPlayer.AI_localDefenceStrength(pPlot, kPlayer.getTeam(), DOMAIN_LAND, 1, true, true);
+		int iOurStrengthDefense = kPlayer.AI_localDefenceStrength(pPlot, kPlayer.getTeam(), DOMAIN_LAND, 1, true, true, true);
 		int iOurStrengthOffense = kPlayer.AI_localAttackStrength(pPlot, kPlayer.getTeam(), DOMAIN_LAND, 1, false, true, false);
 		szTempBuffer.Format(L"\nPlot Strength(Ours)= d%d, o%d", iOurStrengthDefense, iOurStrengthOffense);
 		szString.append(szTempBuffer);
-		int iEnemyStrengthDefense = kPlayer.AI_localDefenceStrength(pPlot, NO_TEAM, DOMAIN_LAND, 1, true, true);
+		int iEnemyStrengthDefense = kPlayer.AI_localDefenceStrength(pPlot, NO_TEAM, DOMAIN_LAND, 1, true, true, true);
 		int iEnemyStrengthOffense = kPlayer.AI_localAttackStrength(pPlot, NO_TEAM, DOMAIN_LAND, 1, false, true, false);
 		szTempBuffer.Format(L"\nPlot Strength(Enemy)= d%d, o%d", iEnemyStrengthDefense, iEnemyStrengthOffense);
 		szString.append(szTempBuffer);
@@ -4707,7 +4707,7 @@ void CvGameTextMgr::setPlotHelp(CvWStringBuffer& szString, CvPlot* pPlot)
                 }
             }
 
-			int iOurDefense = GET_PLAYER(pPlot->getOwnerINLINE()).AI_localDefenceStrength(pPlot, pPlot->getTeam());
+			int iOurDefense = GET_PLAYER(pPlot->getOwnerINLINE()).AI_localDefenceStrength(pPlot, pPlot->getTeam(), DOMAIN_LAND, 0, true, false, true);
 			int iEnemyOffense = GET_PLAYER(pPlot->getOwnerINLINE()).AI_localAttackStrength(pPlot, NO_TEAM);
 			if (iEnemyOffense > 0)
 			{
@@ -4718,8 +4718,8 @@ void CvGameTextMgr::setPlotHelp(CvWStringBuffer& szString, CvPlot* pPlot)
 			CvCity* pCity = pPlot->getPlotCity();
             if (pCity != NULL)
             {
-                szTempBuffer.Format(L"\n\nCulture Pressure Value = %d (%d)", pCity->AI_calculateCulturePressure(), pCity->culturePressureFactor());
-                szString.append(szTempBuffer);
+                /* szTempBuffer.Format(L"\n\nCulture Pressure Value = %d (%d)", pCity->AI_calculateCulturePressure(), pCity->culturePressureFactor());
+                szString.append(szTempBuffer); */
                 
                 szTempBuffer.Format(L"\nWater World Percent = %d", pCity->AI_calculateWaterWorldPercent());
                 szString.append(szTempBuffer);
@@ -5195,6 +5195,11 @@ void CvGameTextMgr::setPlotHelp(CvWStringBuffer& szString, CvPlot* pPlot)
 					for (YieldTypes i = (YieldTypes)0; i < NUM_YIELD_TYPES; i = (YieldTypes)(i+1))
 						szString.append(CvWString::format(L"%s%d%c", i == 0 ? L"" : L", ", pCityAI->AI_specialYieldMultiplier(i), GC.getYieldInfo(i).getChar()));
 					szString.append(L")");
+
+					szString.append(CvWString::format(L"\nCity weights: ("));
+					for (CommerceTypes i = (CommerceTypes)0; i < NUM_COMMERCE_TYPES; i=(CommerceTypes)(i+1))
+						szString.append(CvWString::format(L"%s%d%c", i == 0 ? L"" : L", ", GET_PLAYER(pCity->getOwnerINLINE()).AI_commerceWeight(i, pCity), GC.getCommerceInfo(i).getChar()));
+					szString.append(L")");
 					// K-Mod end
 
 					szString.append(CvWString::format(L"\nExchange"));
@@ -5205,11 +5210,7 @@ void CvGameTextMgr::setPlotHelp(CvWStringBuffer& szString, CvPlot* pPlot)
 						szString.append(szTempBuffer);
 					}
 
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      07/08/09                                jdog5000      */
-/*                                                                                              */
-/* DEBUG                                                                                        */
-/************************************************************************************************/
+					// BBAI
 					szString.append(CvWString::format(L"\nAvg mults"));
 					for (int iI = 0; iI < NUM_COMMERCE_TYPES; ++iI)
 					{
@@ -5217,14 +5218,13 @@ void CvGameTextMgr::setPlotHelp(CvWStringBuffer& szString, CvPlot* pPlot)
 						szTempBuffer.Format(L", %d%c", iCommerce, GC.getCommerceInfo((CommerceTypes) iI).getChar());
 						szString.append(szTempBuffer);
 					}
+					// BBAI end
 					// K-Mod
 					szString.append(CvWString::format(L"\nAvg %c pressure: %d",
 						GC.getCommerceInfo(COMMERCE_CULTURE).getChar(),
 						GET_PLAYER(pCity->getOwnerINLINE()).AI_averageCulturePressure()));
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
-					
+					// K-Mod end
+
 					if (GET_PLAYER(pCity->getOwnerINLINE()).AI_isFinancialTrouble())
 					{
 						szTempBuffer.Format(L"$$$!!!");
@@ -14069,33 +14069,9 @@ void CvGameTextMgr::getAttitudeString(CvWStringBuffer& szBuffer, PlayerTypes ePl
 
 	szBuffer.append(gDLL->getText("TXT_KEY_ATTITUDE_TOWARDS", GC.getAttitudeInfo(kPlayer.AI_getAttitude(eTargetPlayer)).getTextKeyWide(), GET_PLAYER(eTargetPlayer).getNameKey()));
 
-	for (int iTeam = 0; iTeam < MAX_TEAMS; iTeam++)
-	{
-		CvTeam& kLoopTeam = GET_TEAM((TeamTypes)iTeam);
-		if (kLoopTeam.isAlive())
-		{
-			if (NO_PLAYER != eTargetPlayer)
-			{
-				CvTeam& kTargetTeam = GET_TEAM(GET_PLAYER(eTargetPlayer).getTeam());
-				if (kTargetTeam.isHasMet((TeamTypes)iTeam))
-				{
-					if (kTeam.isVassal((TeamTypes)iTeam))
-					{
-						szBuffer.append(NEWLINE);
-						szBuffer.append(gDLL->getText("TXT_KEY_ATTITUDE_VASSAL_OF", kLoopTeam.getName().GetCString()));
+	// (K-Mod note: vassal information has been moved from here to a new function)
 
-						setVassalRevoltHelp(szBuffer, (TeamTypes)iTeam, kTeam.getID());
-					}
-					else if (kLoopTeam.isVassal(kTeam.getID()))
-					{
-						szBuffer.append(NEWLINE);
-						szBuffer.append(gDLL->getText("TXT_KEY_ATTITUDE_MASTER_OF", kLoopTeam.getName().GetCString()));
-					}
-				}
-			}
-		}
-	}
-
+	// Attitude breakdown
 	for (iPass = 0; iPass < 2; iPass++)
 	{
 		iAttitudeChange = kPlayer.AI_getCloseBordersAttitude(eTargetPlayer);
@@ -14251,6 +14227,39 @@ void CvGameTextMgr::getAttitudeString(CvWStringBuffer& szBuffer, PlayerTypes ePl
 }
 
 // K-Mod
+void CvGameTextMgr::getVassalInfoString(CvWStringBuffer& szBuffer, PlayerTypes ePlayer)
+{
+	FAssert(ePlayer != NO_PLAYER);
+
+	const CvTeam& kTeam = GET_TEAM(GET_PLAYER(ePlayer).getTeam());
+	//CvTeam& kTargetTeam = GET_TEAM(GET_PLAYER(eTargetPlayer).getTeam());
+
+	for (TeamTypes i = (TeamTypes)0; i < MAX_TEAMS; i=(TeamTypes)(i+1))
+	{
+		const CvTeam& kLoopTeam = GET_TEAM(i);
+		if (kLoopTeam.isAlive())
+		{
+			//if (kTargetTeam.isHasMet(i))
+
+			if (kTeam.isVassal(i))
+			{
+				szBuffer.append(NEWLINE);
+				szBuffer.append(CvWString::format(SETCOLR, TEXT_COLOR("COLOR_LIGHT_GREY")));
+				szBuffer.append(gDLL->getText("TXT_KEY_ATTITUDE_VASSAL_OF", kLoopTeam.getName().GetCString()));
+				setVassalRevoltHelp(szBuffer, i, kTeam.getID());
+				szBuffer.append(ENDCOLR);
+			}
+			else if (kLoopTeam.isVassal(kTeam.getID()))
+			{
+				szBuffer.append(NEWLINE);
+				szBuffer.append(CvWString::format(SETCOLR, TEXT_COLOR("COLOR_LIGHT_GREY")));
+				szBuffer.append(gDLL->getText("TXT_KEY_ATTITUDE_MASTER_OF", kLoopTeam.getName().GetCString()));
+				szBuffer.append(ENDCOLR);
+			}
+		}
+	}
+}
+
 void CvGameTextMgr::getWarWearinessString(CvWStringBuffer& szBuffer, PlayerTypes ePlayer, PlayerTypes eTargetPlayer) const
 {
 	FAssert(ePlayer != NO_PLAYER);
@@ -15154,6 +15163,7 @@ void CvGameTextMgr::parseLeaderHeadHelp(CvWStringBuffer &szBuffer, PlayerTypes e
 
 		if (kThisTeam.isHasMet(eOtherTeam)) // K-Mod. Allow the "other relations string" to display even if eOtherPlayer == eThisPlayer. It's useful info.
 		{
+			getVassalInfoString(szBuffer, eThisPlayer); // K-Mod
 			//getEspionageString(szBuffer, eThisPlayer, eOtherPlayer); // disabled by K-Mod. (The player should not be told exactly how many espionage points everyone has.)
 
 			if (eOtherPlayer != eThisPlayer)
@@ -17220,6 +17230,7 @@ void CvGameTextMgr::setEspionageCostHelp(CvWStringBuffer &szBuffer, EspionageMis
 	//szBuffer.assign(kMission.getDescription());
 
 	int iMissionCost = kPlayer.getEspionageMissionBaseCost(eMission, eTargetPlayer, pPlot, iExtraData, pSpyUnit);
+	iMissionCost *= GET_TEAM(kPlayer.getTeam()).getNumMembers(); // K-Mod
 
 	if (kMission.isDestroyImprovement())
 	{

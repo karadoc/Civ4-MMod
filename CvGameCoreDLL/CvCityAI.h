@@ -126,6 +126,8 @@ public:
 	int AI_yieldMultiplier(YieldTypes eYield) const;
 	void AI_updateSpecialYieldMultiplier();
 	int AI_specialYieldMultiplier(YieldTypes eYield) const;
+	int AI_getCultureWeight() const { return m_iCultureWeight; } // K-Mod
+	void AI_setCultureWeight(int iWeight) { m_iCultureWeight = iWeight; } // K-Mod
 
 	int AI_countNumBonuses(BonusTypes eBonus, bool bIncludeOurs, bool bIncludeNeutral, int iOtherCultureThreshold, bool bLand = true, bool bWater = true);
 	int AI_countNumImprovableBonuses( bool bIncludeNeutral, TechTypes eExtraTech = NO_TECH, bool bLand = true, bool bWater = false ); // BBAI
@@ -178,6 +180,7 @@ protected:
 	int m_iWorkersHave;
 
 	std::vector<int> m_aiConstructionValue; // K-Mod. (cache)
+	int m_iCultureWeight; // K-Mod
 
 	void AI_doDraft(bool bForce = false);
 	void AI_doHurry(bool bForce = false);
@@ -187,7 +190,7 @@ protected:
 	int AI_getHappyFromHurry(HurryTypes eHurry, BuildingTypes eBuilding, bool bIgnoreNew) const;
 	int AI_getHappyFromHurry(int iHurryPopulation) const;
 	bool AI_doPanic();
-	int AI_calculateCulturePressure(bool bGreatWork = false) const;
+	//int AI_calculateCulturePressure(bool bGreatWork = false) const; // disabled by K-Mod
 
 	bool AI_chooseUnit(UnitAITypes eUnitAI = NO_UNITAI, int iOdds = -1); // bbai added iOdds
 	bool AI_chooseUnit(UnitTypes eUnit, UnitAITypes eUnitAI);
@@ -212,6 +215,9 @@ protected:
 	// K-Mod. Note: iGrowthValue < 0 means "automatic". It will use AI_growthValuePerFood. iGrowthValue == 0 means "ignore growth".
 	int AI_yieldValue(short* piYields, short* piCommerceYields, bool bRemove, bool bIgnoreFood, bool bIgnoreStarvation, bool bWorkerOptimization, int iGrowthValue) const;
 	int AI_plotValue(CvPlot* pPlot, bool bRemove, bool bIgnoreFood, bool bIgnoreStarvation, int iGrowthValue) const;
+	int AI_jobChangeValue(std::pair<bool, int> new_job, std::pair<bool, int> old_job, bool bIgnoreFood, bool bIgnoreStarvation, int iGrowthValue) const; // value gained by swapping jobs. (bIsSpecialist, iIndex) pairs.
+	bool AI_finalImprovementYieldDifference(CvPlot* pPlot, short* piYields) const; // difference between current yields and yields after plot improvement reaches final upgrade.
+	int AI_specialPlotImprovementValue(CvPlot* pPlot) const; // value for working a plot in addition to its yields
 	int AI_growthValuePerFood() const;
 	// K-mod end
 
@@ -227,7 +233,7 @@ protected:
 	int AI_getPlotMagicValue(CvPlot* pPlot, bool bHealthy, bool bWorkerOptimization = false) const;
 	int AI_countGoodTiles(bool bHealthy, bool bUnworkedOnly, int iThreshold = 50, bool bWorkerOptimization = false) const;
 	int AI_countGoodSpecialists(bool bHealthy) const;
-	int AI_calculateTargetCulturePerTurn() const;
+	//int AI_calculateTargetCulturePerTurn() const; // disabled by K-Mod
 
 	void AI_stealPlots();
 

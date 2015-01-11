@@ -71,6 +71,7 @@ public:
 
 	int AI_yieldWeight(YieldTypes eYield, const CvCity* pCity = 0) const; // K-Mod added city argument
 	int AI_commerceWeight(CommerceTypes eCommerce, const CvCity* pCity = NULL) const;
+	void AI_updateCommerceWeights(); // K-Mod
 
 	short AI_foundValue(int iX, int iY, int iMinRivalRange = -1, bool bStartingLoc = false) const;
 	// K-Mod. (note, I also changed AI_foundValue to return short instead of int)
@@ -240,7 +241,7 @@ public:
 	int AI_enemyTargetMissionAIs(MissionAITypes* aeMissionAI, int iMissionAICount, CvSelectionGroup* pSkipSelectionGroup = NULL) const;
 	int AI_wakePlotTargetMissionAIs(CvPlot* pPlot, MissionAITypes eMissionAI, CvSelectionGroup* pSkipSelectionGroup = NULL) const;
 // K-Mod
-	int AI_localDefenceStrength(const CvPlot* pDefencePlot, TeamTypes eDefenceTeam, DomainTypes eDomainType = DOMAIN_LAND, int iRange = 0, bool bAtTarget = true, bool bCheckMoves = false) const;
+	int AI_localDefenceStrength(const CvPlot* pDefencePlot, TeamTypes eDefenceTeam, DomainTypes eDomainType = DOMAIN_LAND, int iRange = 0, bool bAtTarget = true, bool bCheckMoves = false, bool bNoCache = false) const;
 	int AI_localAttackStrength(const CvPlot* pTargetPlot, TeamTypes eAttackTeam, DomainTypes eDomainType = DOMAIN_LAND, int iRange = 2, bool bUseTarget = true, bool bCheckMoves = false, bool bCheckCanAttack = false) const;
 	int AI_cityTargetStrengthByPath(CvCity* pCity, CvSelectionGroup* pSkipSelectionGroup, int iMaxPathTurns) const;
 // K-Mod end
@@ -368,6 +369,7 @@ public:
 	void AI_updateGoldToUpgradeAllUnits();
 	inline int AI_getAvailableIncome() const { return m_iAvailableIncome; }
 	void AI_updateAvailableIncome();
+	int AI_estimateBreakEvenGoldPercent() const;
 	// K-Mod end
 
 	int AI_goldTradeValuePercent() const;

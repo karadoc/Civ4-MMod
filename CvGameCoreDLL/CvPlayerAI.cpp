@@ -153,7 +153,8 @@ void CvPlayerAI::AI_init()
 	{
 		FAssert(getPersonalityType() != NO_LEADER);
 		AI_setPeaceWeight(GC.getLeaderHeadInfo(getPersonalityType()).getBasePeaceWeight() + GC.getGameINLINE().getSorenRandNum(GC.getLeaderHeadInfo(getPersonalityType()).getPeaceWeightRand(), "AI Peace Weight"));
-		AI_setEspionageWeight(GC.getLeaderHeadInfo(getPersonalityType()).getEspionageWeight());
+		//AI_setEspionageWeight(GC.getLeaderHeadInfo(getPersonalityType()).getEspionageWeight());
+		AI_setEspionageWeight(GC.getLeaderHeadInfo(getPersonalityType()).getEspionageWeight()*GC.getCommerceInfo(COMMERCE_ESPIONAGE).getAIWeightPercent()/100); // K-Mod. (I've changed the meaning of this value)
 		//AI_setCivicTimer(((getMaxAnarchyTurns() == 0) ? (GC.getDefineINT("MIN_REVOLUTION_TURNS") * 2) : CIVIC_CHANGE_DELAY) / 2);
 		AI_setReligionTimer(1);
 		AI_setCivicTimer((getMaxAnarchyTurns() == 0) ? 1 : 2);
@@ -361,8 +362,10 @@ void CvPlayerAI::AI_doTurnPre()
 	//   for efficiency, I've put AI_updateCloseBorderAttitudeCache in CvTeam::doTurn rather than here.
 
 	AI_updateBonusValue();
-	// K-Mod. GP weights can take a little bit of time, so lets only do it once every 3 turns.
-	if (!isHuman() && (GC.getGameINLINE().getGameTurn() + AI_getStrategyRand(0))%3 == 0)
+	// K-Mod. Update commerce weight before calculating great person weight
+	AI_updateCommerceWeights(); // (perhaps this should be done again after AI_doCommerce, or when sliders change?)
+	// GP weights can take a little bit of time, so lets only do it once every 3 turns.
+	if ((GC.getGameINLINE().getGameTurn() + AI_getStrategyRand(0))%3 == 0)
 		AI_updateGreatPersonWeights();
 	// K-Mod end
 	
@@ -2328,101 +2331,11 @@ int CvPlayerAI::AI_commerceWeight(CommerceTypes eCommerce, const CvCity* pCity) 
 		//
 		break;
 	case COMMERCE_CULTURE:
-		// COMMERCE_CULTURE AIWeightPercent is 25% in default xml
-		// (significantly changed by bbai & K-Mod)
 		if (pCity != NULL)
 		{
-			// K-Mod
-			int iPressureFactor = pCity->culturePressureFactor();
-			if (AI_isDoVictoryStrategy(AI_VICTORY_CULTURE2))
-				iPressureFactor = std::min(300, iPressureFactor); // don't let culture pressure dominate our decision making about where to put our culture.
-			int iPressureWeight = iWeight * (iPressureFactor-100) / 100;
-			// K-Mod end
-
-			if (pCity->getCultureTimes100(getID()) >= 100 * GC.getGameINLINE().getCultureThreshold((CultureLevelTypes)(GC.getNumCultureLevelInfos() - 1)))
-			{
-				iWeight /= 10; // was 50
-			}
-			// Slider check works for detection of whether human player is going for cultural victory
-			// (all weights changed for K-Mod)
-			else if (AI_isDoVictoryStrategy(AI_VICTORY_CULTURE2) || getCommercePercent(COMMERCE_CULTURE) >= 60)
-			{
-				int iCultureRateRank = pCity->findCommerceRateRank(COMMERCE_CULTURE);
-				int iCulturalVictoryNumCultureCities = GC.getGameINLINE().culturalVictoryNumCultureCities();
-				bool bC3 = AI_isDoVictoryStrategy(AI_VICTORY_CULTURE3) || getCommercePercent(COMMERCE_CULTURE) >= 80; // K-Mod
-				
-				// if one of the currently best cities, then focus hard
-				if (iCultureRateRank <= iCulturalVictoryNumCultureCities)
-				{
-					if (bC3)
-					{
-						// culture3
-						iWeight *= 2 + 2*iCultureRateRank + (iCultureRateRank == iCulturalVictoryNumCultureCities ? 1 : 0);
-					}
-					else
-					{
-						// culture2
-						iWeight *= 6 + iCultureRateRank;
-						iWeight /= 2;
-					}
-				}
-				// if one of the 3 close to the top, then still emphasize culture some
-				else if (iCultureRateRank <= iCulturalVictoryNumCultureCities + 3)
-				{
-					//iWeight *= bC3 ? 4 : 3;
-					iWeight *= 3;
-				}
-				else
-				{
-					iWeight *= 2;
-				}
-			}
-			else if (AI_isDoVictoryStrategy(AI_VICTORY_CULTURE1) || getCommercePercent(COMMERCE_CULTURE) >= 30)
-			{
-				iWeight *= 2;
-			}
-			// K-Mod. Devalue culture in cities which really have no use for it.
-			else if (iPressureFactor < 110)
-			{
-				// if we're not running a culture victory strategy
-				// and if we're well into the game, and this city has ample culture, and we don't have any culture pressure...
-				// then culture probably isn't worth much to us at all.
-
-				// don't reduce the value if we are still on-track for a potential cultural victory.
-				if (getCurrentEra() > GC.getNumEraInfos()/2 && pCity->getCultureLevel() >= 3)
-				{
-					int iLegendaryCulture = GC.getGame().getCultureThreshold((CultureLevelTypes)(GC.getNumCultureLevelInfos() - 1));
-					int iCultureProgress = pCity->getCultureTimes100(getID()) / std::max(1, iLegendaryCulture);
-					int iTimeProgress = 100*GC.getGameINLINE().getGameTurn() / GC.getGameINLINE().getEstimateEndTurn();
-					iTimeProgress *= iTimeProgress;
-					iTimeProgress /= 100;
-
-					if (iTimeProgress > iCultureProgress)
-					{
-						int iReductionFactor = 100 + std::min(10, 110 - iPressureFactor) * (iTimeProgress - iCultureProgress) / 2;
-						FAssert(iReductionFactor >= 100 && iReductionFactor <= 100 + 10 * 100/2);
-						iWeight *= 100;
-						iWeight /= iReductionFactor;
-					}
-				}
-			}
-			// K-Mod end
-
-			// K-Mod
-			//iWeight += (100 - pCity->plot()->calculateCulturePercent(getID()));
-			iWeight += iPressureWeight;
-			// K-Mod end
-			
-			/* original bts code
-			if (pCity->getCultureLevel() <= (CultureLevelTypes) 1)
-			{
-				iWeight = std::max(iWeight, 800);
-			} */
-			// Disabled by K-Mod. This massive weight boost messes up the evaluation of national wonders.
-			// We can have this kind of adjustment elsewhere.
-			// What we really want is a high value for having non-zero culture - the actual quantity of culture is less important.
+			iWeight = pCity->AI_getCultureWeight(); // K-Mod
+			FAssert(iWeight >= 0);
 		}
-		// pCity == NULL
 		else
 		{
 			// weight multipliers changed for K-Mod
@@ -2440,9 +2353,159 @@ int CvPlayerAI::AI_commerceWeight(CommerceTypes eCommerce, const CvCity* pCity) 
 			}
 			iWeight *= AI_averageCulturePressure();
 			iWeight /= 100;
+
+			// K-Mod
+			if (GET_TEAM(getTeam()).getAnyWarPlanCount(true) > 0)
+			{
+				if (AI_isDoVictoryStrategy(AI_VICTORY_CULTURE1))
+				{
+					iWeight *= 2;
+					iWeight /= 3;
+				}
+				else
+				{
+					iWeight /= 2;
+				}
+			}
+			// K-Mod end
 		}
-		// K-Mod
-		if (GET_TEAM(getTeam()).getAnyWarPlanCount(true) > 0)
+		break;
+	case COMMERCE_ESPIONAGE:
+		{
+			iWeight = AI_getEspionageWeight(); // K-Mod. (Note: AI_getEspionageWeight use to mean something else.)
+		}
+		break;
+		
+	default:
+		break;
+	}
+
+	return iWeight;
+}
+
+// K-Mod.
+// Commerce weight is used a lot for AI decisions, and some commerce weights calculations are quite long.
+// Some I'm going to cache some of the values and update them at the start of each turn.
+// Currently this function caches culture weight for each city, and espionage weight for the player.
+void CvPlayerAI::AI_updateCommerceWeights()
+{
+	PROFILE_FUNC();
+
+	//
+	// City culture weight.
+	//
+	int iLegendaryCulture = GC.getGame().getCultureThreshold((CultureLevelTypes)(GC.getNumCultureLevelInfos() - 1));
+	int iVictoryCities = GC.getGameINLINE().culturalVictoryNumCultureCities();
+
+	// Use culture slider to decide whether a human player is going for cultural victory
+	bool bUseCultureRank = AI_isDoVictoryStrategy(AI_VICTORY_CULTURE2) || getCommercePercent(COMMERCE_CULTURE) >= 40;
+	bool bC3 = AI_isDoVictoryStrategy(AI_VICTORY_CULTURE3) || getCommercePercent(COMMERCE_CULTURE) >= 70;
+	bool bWarPlans = GET_TEAM(getTeam()).getAnyWarPlanCount(true) > 0;
+
+	std::vector<std::pair<int,int> > city_countdown_list; // (turns, city id)
+	{
+		int iGoldCommercePercent = bUseCultureRank ? AI_estimateBreakEvenGoldPercent() : getCommercePercent(COMMERCE_GOLD);
+		// Note: we only need the gold commerce percent if bUseCultureRank;
+		// but I figure that I might as well put in a useful placeholder value just in case.
+
+		int iLoop;
+		for (CvCity* pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
+		{
+			int iCountdown = -1;
+			if (bUseCultureRank)
+			{
+				// K-Mod. Try to tell us what the culture would be like if we were to turn up the slider. (cf. AI_calculateCultureVictoryStage)
+				// (current culture rate, minus what we're current getting from raw commerce, plus what we would be getting from raw commerce at maximum percentage.)
+				int iEstimatedRate = pLoopCity->getCommerceRate(COMMERCE_CULTURE);
+				iEstimatedRate += (100 - iGoldCommercePercent - getCommercePercent(COMMERCE_CULTURE)) * pLoopCity->getYieldRate(YIELD_COMMERCE) * pLoopCity->getTotalCommerceRateModifier(COMMERCE_CULTURE) / 10000;
+				iCountdown = (iLegendaryCulture - pLoopCity->getCulture(getID())) / std::max(1, iEstimatedRate);
+			}
+			city_countdown_list.push_back(std::make_pair(iCountdown, pLoopCity->getID()));
+		}
+	}
+	std::sort(city_countdown_list.begin(), city_countdown_list.end());
+
+	FAssert(city_countdown_list.size() == getNumCities());
+	for (size_t i = 0; i < city_countdown_list.size(); i++)
+	{
+		CvCity* pCity = getCity(city_countdown_list[i].second);
+
+		// COMMERCE_CULTURE AIWeightPercent is set to 30% in the current xml.
+		int iWeight = GC.getCommerceInfo(COMMERCE_CULTURE).getAIWeightPercent();
+
+		int iPressureFactor = pCity->culturePressureFactor();
+		if (AI_isDoVictoryStrategy(AI_VICTORY_CULTURE2))
+			iPressureFactor = std::min(300, iPressureFactor); // don't let culture pressure dominate our decision making about where to put our culture.
+		int iPressureWeight = iWeight * (iPressureFactor-100) / 100;
+
+		if (pCity->getCulture(getID()) >= iLegendaryCulture)
+		{
+			iWeight /= 10;
+		}
+		else if (bUseCultureRank)
+		{
+			int iCultureRateRank = i+1; // an alias, used for clarity.
+
+			// if one of the currently best cities, then focus hard
+			if (iCultureRateRank <= iVictoryCities)
+			{
+				if (bC3)
+				{
+					// culture3
+					iWeight *= 2 + 2*iCultureRateRank + (iCultureRateRank == iVictoryCities ? 1 : 0);
+				}
+				else
+				{
+					// culture2
+					iWeight *= 6 + iCultureRateRank;
+					iWeight /= 2;
+				}
+				// scale the weight, just in case we're playing on a mod with a different number of culture cities.
+				iWeight *= 3;
+				iWeight /= iVictoryCities;
+			}
+			// if one of the 3 close to the top, then still emphasize culture some
+			else if (iCultureRateRank <= iVictoryCities + 3)
+			{
+				//iWeight *= bC3 ? 4 : 3;
+				iWeight *= 3;
+			}
+			else
+			{
+				iWeight *= 2;
+			}
+		}
+		else if (AI_isDoVictoryStrategy(AI_VICTORY_CULTURE1) || getCommercePercent(COMMERCE_CULTURE) >= 30)
+		{
+			iWeight *= 2;
+		}
+		// K-Mod. Devalue culture in cities which really have no use for it.
+		else if (iPressureFactor < 110)
+		{
+			// if we're not running a culture victory strategy
+			// and if we're well into the game, and this city has ample culture, and we don't have any culture pressure...
+			// then culture probably isn't worth much to us at all.
+
+			// don't reduce the value if we are still on-track for a potential cultural victory.
+			if (getCurrentEra() > GC.getNumEraInfos()/2 && pCity->getCultureLevel() >= 3)
+			{
+				int iLegendaryCulture = GC.getGame().getCultureThreshold((CultureLevelTypes)(GC.getNumCultureLevelInfos() - 1));
+				int iCultureProgress = pCity->getCultureTimes100(getID()) / std::max(1, iLegendaryCulture);
+				int iTimeProgress = 100*GC.getGameINLINE().getGameTurn() / GC.getGameINLINE().getEstimateEndTurn();
+				iTimeProgress *= iTimeProgress;
+				iTimeProgress /= 100;
+
+				if (iTimeProgress > iCultureProgress)
+				{
+					int iReductionFactor = 100 + std::min(10, 110 - iPressureFactor) * (iTimeProgress - iCultureProgress) / 2;
+					FAssert(iReductionFactor >= 100 && iReductionFactor <= 100 + 10 * 100/2);
+					iWeight *= 100;
+					iWeight /= iReductionFactor;
+				}
+			}
+		}
+
+		if (bWarPlans)
 		{
 			if (AI_isDoVictoryStrategy(AI_VICTORY_CULTURE1))
 			{
@@ -2454,59 +2517,71 @@ int CvPlayerAI::AI_commerceWeight(CommerceTypes eCommerce, const CvCity* pCity) 
 				iWeight /= 2;
 			}
 		}
-		// K-Mod end
-		break;
-	case COMMERCE_ESPIONAGE:
+
+		iWeight += iPressureWeight;
+
+		// Note: value bonus for the first few points of culture is determined elsewhere
+		// so that we don't screw up the evaluation of limited culture bonuses such as national wonders.
+		pCity->AI_setCultureWeight(iWeight);
+	} // end culture
+
+	//
+	// Espionage weight
+	//
+	{
+		int iWeight = GC.getCommerceInfo(COMMERCE_ESPIONAGE).getAIWeightPercent();
+
+		int iEspBehindWeight = 0;
+		int iEspAttackWeight = 0;
+		int iAllTeamTotalPoints = 0;
+		int iTeamCount = 0;
+		int iLocalTeamCount = 0;
+		int iTotalUnspent = 0;
+		for (int iTeam = 0; iTeam < MAX_CIV_TEAMS; ++iTeam)
 		{
-			// K-Mod version, based loosely on BBAI code.
-			int iEspBehindWeight = 0;
-			int iEspAttackWeight = 0;
-			int iAllTeamTotalPoints = 0;
-			int iTeamCount = 0;
-			int iLocalTeamCount = 0;
-			int iTotalUnspent = 0;
-			for (int iTeam = 0; iTeam < MAX_CIV_TEAMS; ++iTeam)
+			CvTeamAI& kLoopTeam = GET_TEAM((TeamTypes)iTeam);
+
+			if (kLoopTeam.isAlive() && iTeam != getTeam() && GET_TEAM(getTeam()).isHasMet((TeamTypes)iTeam) && !kLoopTeam.isVassal(getTeam()) && !GET_TEAM(getTeam()).isVassal((TeamTypes)iTeam))
 			{
-				CvTeamAI& kLoopTeam = GET_TEAM((TeamTypes)iTeam);
+				iAllTeamTotalPoints += kLoopTeam.getEspionagePointsEver();
+				iTeamCount++;
 
-				if (kLoopTeam.isAlive() && iTeam != getTeam() && GET_TEAM(getTeam()).isHasMet((TeamTypes)iTeam) && !kLoopTeam.isVassal(getTeam()) && !GET_TEAM(getTeam()).isVassal((TeamTypes)iTeam))
+				int iTheirPoints = kLoopTeam.getEspionagePointsAgainstTeam(getTeam());
+				int iOurPoints = GET_TEAM(getTeam()).getEspionagePointsAgainstTeam((TeamTypes)iTeam);
+				iTotalUnspent += iOurPoints;
+				int iAttitude = range(GET_TEAM(getTeam()).AI_getAttitudeVal((TeamTypes)iTeam), -12, 12);
+				iTheirPoints -= (iTheirPoints*iAttitude)/(2*12);
+
+				if (iTheirPoints > iOurPoints && (!isHuman() || getEspionageSpendingWeightAgainstTeam((TeamTypes)iTeam) > 0))
 				{
-					iAllTeamTotalPoints += kLoopTeam.getEspionagePointsEver();
-					iTeamCount++;
-
-					int iTheirPoints = kLoopTeam.getEspionagePointsAgainstTeam(getTeam());
-					int iOurPoints = GET_TEAM(getTeam()).getEspionagePointsAgainstTeam((TeamTypes)iTeam);
-					iTotalUnspent += iOurPoints;
-					int iAttitude = range(GET_TEAM(getTeam()).AI_getAttitudeVal((TeamTypes)iTeam), -12, 12);
-					iTheirPoints -= (iTheirPoints*iAttitude)/(2*12);
-
-					if (iTheirPoints > iOurPoints && (!isHuman() || getEspionageSpendingWeightAgainstTeam((TeamTypes)iTeam) > 0))
+					iEspBehindWeight += 1;
+					if (kLoopTeam.AI_getAttitude(getTeam()) <= ATTITUDE_CAUTIOUS
+						&& GET_TEAM(getTeam()).AI_hasCitiesInPrimaryArea((TeamTypes)iTeam))
 					{
 						iEspBehindWeight += 1;
-						if (kLoopTeam.AI_getAttitude(getTeam()) <= ATTITUDE_CAUTIOUS
-							&& GET_TEAM(getTeam()).AI_hasCitiesInPrimaryArea((TeamTypes)iTeam))
-						{
-							iEspBehindWeight += 1;
-						}
 					}
-					if (GET_TEAM(getTeam()).AI_hasCitiesInPrimaryArea((TeamTypes)iTeam))
+				}
+				if (GET_TEAM(getTeam()).AI_hasCitiesInPrimaryArea((TeamTypes)iTeam))
+				{
+					iLocalTeamCount++;
+					if (GET_TEAM(getTeam()).AI_getAttitude((TeamTypes)iTeam) <= ATTITUDE_ANNOYED
+						|| GET_TEAM(getTeam()).AI_getWarPlan((TeamTypes)iTeam) != NO_WARPLAN)
 					{
-						iLocalTeamCount++;
-						if (GET_TEAM(getTeam()).AI_getAttitude((TeamTypes)iTeam) <= ATTITUDE_ANNOYED
-							|| GET_TEAM(getTeam()).AI_getWarPlan((TeamTypes)iTeam) != NO_WARPLAN)
-						{
-							iEspAttackWeight += 1;
-						}
-						if (AI_isDoStrategy(AI_STRATEGY_BIG_ESPIONAGE) && GET_PLAYER(kLoopTeam.getLeaderID()).getTechScore() > getTechScore())
-						{
-							iEspAttackWeight += 1;
-						}
+						iEspAttackWeight += 1;
+					}
+					if (AI_isDoStrategy(AI_STRATEGY_BIG_ESPIONAGE) && GET_PLAYER(kLoopTeam.getLeaderID()).getTechScore() > getTechScore())
+					{
+						iEspAttackWeight += 1;
 					}
 				}
 			}
-			if (iTeamCount == 0)
-				return iWeight / 10; // can't put points on anyone - but accumulating "total points ever" is still better than nothing.
-
+		}
+		if (iTeamCount == 0)
+		{
+			iWeight /= 10; // can't put points on anyone - but accumulating "total points ever" is still better than nothing.
+		}
+		else
+		{
 			iAllTeamTotalPoints /= std::max(1, iTeamCount); // Get the average total points
 			iWeight *= std::min(GET_TEAM(getTeam()).getEspionagePointsEver() + 3*iAllTeamTotalPoints + 16*GC.getGame().getGameTurn(), 5*iAllTeamTotalPoints);
 			iWeight /= std::max(1, 4 * iAllTeamTotalPoints);
@@ -2524,7 +2599,7 @@ int CvPlayerAI::AI_commerceWeight(CommerceTypes eCommerce, const CvCity* pCity) 
 			}
 			iWeight *= 2*(iEspBehindWeight+iEspAttackWeight) + 3*iTeamCount/4 + 2;
 
-			iWeight *= isHuman() ? 100 : AI_getEspionageWeight();
+			iWeight *= isHuman() ? 100 : GC.getLeaderHeadInfo(getPersonalityType()).getEspionageWeight();
 			iWeight /= (iLocalTeamCount + iTeamCount)/2 + 2;
 			iWeight /= 100;
 
@@ -2537,16 +2612,11 @@ int CvPlayerAI::AI_commerceWeight(CommerceTypes eCommerce, const CvCity* pCity) 
 				iWeight *= 100 + 2*getCommercePercent(COMMERCE_ESPIONAGE);
 				iWeight /= 110;
 			}
-			// K-Mod end
 		}
-		break;
-		
-	default:
-		break;
-	}
-
-	return iWeight;
+		AI_setEspionageWeight(iWeight);
+	} // end espionage
 }
+// K-Mod
 
 // K-Mod: I've moved the bulk of this function into AI_foundValue_bulk...
 short CvPlayerAI::AI_foundValue(int iX, int iY, int iMinRivalRange, bool bStartingLoc) const
@@ -3152,7 +3222,7 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 				{
 					//iPlotValue += 10; // (original)
 					// K-Mod
-					iPlotValue += (kSet.bFinancial || kSet.bStartingLoc) ? 25 : 5;
+					iPlotValue += (kSet.bFinancial || kSet.bStartingLoc) ? 30 : 10;
 					iPlotValue += (pPlot->isRiver() ? 15 : 0);
 				}
 				if (pLoopPlot->canHavePotentialIrrigation())
@@ -3412,6 +3482,7 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 							iTempValue += pLoopPlot->getYield(YIELD_FOOD) * 9;
 							iTempValue += pLoopPlot->getYield(YIELD_PRODUCTION) * 5;
 							iTempValue += pLoopPlot->getYield(YIELD_COMMERCE) * 3;
+							iTempValue += pLoopPlot->isRiver() ? 1 : 0;
 							iTempValue += pLoopPlot->isWater() ? -2 : 0;
 							iValue += iTempValue;
 							if (iTempValue < 13)
@@ -3466,8 +3537,8 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 					iTypes += std::min(100, 100 * pArea->getNumBonuses(i) / std::max(2, iPlayers + 1));
 				}
 			}
-			// bonus for resources per player on the continent
-			iValue = iValue * (100 + 2 * iBonuses/100 + 8 * iTypes/100) / 100;
+			// bonus for resources per player on the continent. (capped to avoid overflow)
+			iValue = iValue * std::min(400, 100 + 2 * iBonuses/100 + 8 * iTypes/100) / 130;
 
 			// strong penality for a solo start. bonus for pairing with an existing solo start. penality for highly populated islands
 			iValue = iValue * (10 + std::max(-2, iPlayers ? 2 - iPlayers : -2)) / 10;
@@ -3575,8 +3646,6 @@ short CvPlayerAI::AI_foundValue_bulk(int iX, int iY, const CvFoundSettings& kSet
 				iValue *= iMinDistanceFactor;
 				iValue /= 1000;
 			}
-
-			//iValue /= 10; // (disabled by K-Mod)
 
 			if (pPlot->getBonusType() != NO_BONUS)
 			{
@@ -9844,7 +9913,7 @@ bool CvPlayerAI::AI_counterPropose(PlayerTypes ePlayer, const CLinkList<TradeDat
 				if (iGoldData > 0)
 				{
 					pGoldNode->m_data.m_iData = iGoldData;
-					iValueForThem += (iGoldData * AI_goldTradeValuePercent()) / 100;
+					iValueForThem += (iGoldData * iGoldValuePercent) / 100;
 					pOurCounter->insertAtEnd(pGoldNode->m_data);
 					pGoldNode = NULL;
 				}
@@ -10226,15 +10295,17 @@ int CvPlayerAI::AI_baseBonusVal(BonusTypes eBonus) const
 
 						for (int iJ = 0; iJ < GC.getNUM_UNIT_PREREQ_OR_BONUSES(); iJ++)
 						{
-							if (kLoopUnit.getPrereqOrBonuses(iJ) != NO_BONUS)
+							BonusTypes ePrereqBonus = (BonusTypes)kLoopUnit.getPrereqOrBonuses(iJ);
+
+							if (ePrereqBonus != NO_BONUS)
 							{
 								iOrBonuses++;
-								//iOrBonusesWeHave += (iJ != eBonus && getNumAvailableBonuses((BonusTypes)kLoopUnit.getPrereqOrBonuses(iJ))) ? 1 : 0;
+								//iOrBonusesWeHave += (ePrereqBonus != eBonus && getNumAvailableBonuses(ePrereqBonus)) ? 1 : 0;
 								// @*#!  It occurs to me that using state-dependant stuff such as NumAvailableBonuses here could result in OOS errors.
 								// This is because the code here can be trigged by local UI events, and then the value could be cached...
 								// It's very frustrating - because including the effect from iOrBonusesWeHave was going to be a big improvment.
 								// The only way I can think of working around this is to add a 'bConstCache' argument to this function...
-								bIsOrBonus = bIsOrBonus || iJ == eBonus;
+								bIsOrBonus = bIsOrBonus || ePrereqBonus == eBonus;
 							}
 						}
 						if (bIsOrBonus)
@@ -11186,7 +11257,7 @@ int CvPlayerAI::AI_unitImpassableCount(UnitTypes eUnit) const
 	return iCount;
 }
 
-
+// K-Mod note: currently, unit promotions are considered in CvCityAI::AI_bestUnitAI rather than here.
 int CvPlayerAI::AI_unitValue(UnitTypes eUnit, UnitAITypes eUnitAI, CvArea* pArea) const
 {
 	PROFILE_FUNC();
@@ -11659,8 +11730,6 @@ int CvPlayerAI::AI_unitValue(UnitTypes eUnit, UnitAITypes eUnitAI, CvArea* pArea
 
 	iValue += GC.getUnitInfo(eUnit).getAIWeight();
 	
-	int iFastMoverMultiplier;
-
 	switch (eUnitAI)
 	{
 	case UNITAI_UNKNOWN:
@@ -11683,23 +11752,28 @@ int CvPlayerAI::AI_unitValue(UnitTypes eUnit, UnitAITypes eUnitAI, CvArea* pArea
 		break;
 
 	case UNITAI_ATTACK:
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                      06/12/09                                jdog5000      */
-/*                                                                                              */
-/* Unit AI                                                                                      */
-/************************************************************************************************/
-		iFastMoverMultiplier = AI_isDoStrategy(AI_STRATEGY_FASTMOVERS) ? 3 : 1;
 		
 		iValue += iCombatValue;
-		iValue += ((iCombatValue * (GC.getUnitInfo(eUnit).getMoves()-1) * iFastMoverMultiplier) / 5); // K-Mod put in -1, and changed from /3 to /5
-/************************************************************************************************/
-/* BETTER_BTS_AI_MOD                       END                                                  */
-/************************************************************************************************/
+
 		iValue += ((iCombatValue * GC.getUnitInfo(eUnit).getWithdrawalProbability()) / 100);
 		if (GC.getUnitInfo(eUnit).getCombatLimit() < 100)
 		{
 			iValue -= (iCombatValue * (125 - GC.getUnitInfo(eUnit).getCombatLimit())) / 100;
 		}
+
+		// K-Mod
+		if (GC.getUnitInfo(eUnit).getMoves() > 1)
+		{
+			// (the bts / bbai bonus was too high)
+			int iFastMoverMultiplier = AI_isDoStrategy(AI_STRATEGY_FASTMOVERS) ? 3 : 1;
+			iValue += iCombatValue * iFastMoverMultiplier * GC.getUnitInfo(eUnit).getMoves() / 8;
+		}
+
+		if (GC.getUnitInfo(eUnit).isNoCapture())
+		{
+			iValue -= iCombatValue * 30 / 100;
+		}
+		// K-Mod end
 		
 		break;
 
@@ -11707,16 +11781,13 @@ int CvPlayerAI::AI_unitValue(UnitTypes eUnit, UnitAITypes eUnitAI, CvArea* pArea
 	{
 		PROFILE("AI_unitValue, UNITAI_ATTACK_CITY evaluation");
 		// Effect army composition to have more collateral/bombard units
-		iFastMoverMultiplier = AI_isDoStrategy(AI_STRATEGY_FASTMOVERS) ? 4 : 1;
 		
 		iTempValue = ((iCombatValue * iCombatValue) / 75) + (iCombatValue / 2);
 		iValue += iTempValue;
 		if (GC.getUnitInfo(eUnit).isNoDefensiveBonus())
 		{
-			iValue -= iTempValue / 2;
-			//iValue -= iTempValue / 4; // K-Mod. (I'd say knights, tanks, etc. are very good for city attack...)
-			// K-Mod note: I've reverted this back to the original code. Ideally, I'd use the reduced penalty, but
-			// also take into account which promotions are available to the unit. Eg. knights cannot get city raider.
+			//iValue -= iTempValue / 2;
+			iValue -= iTempValue / 3; // K-Mod
 		}
 		if (GC.getUnitInfo(eUnit).getDropRange() > 0)
 		{
@@ -11729,8 +11800,16 @@ int CvPlayerAI::AI_unitValue(UnitTypes eUnit, UnitAITypes eUnitAI, CvArea* pArea
 		}
 		iValue += ((iCombatValue * GC.getUnitInfo(eUnit).getCityAttackModifier()) / 75); // bbai (was 100).
 		// iValue += ((iCombatValue * GC.getUnitInfo(eUnit).getCollateralDamage()) / 400); // (moved)
-		iValue += ((iCombatValue * (GC.getUnitInfo(eUnit).getMoves()-1) * iFastMoverMultiplier) / 6); // K-Mod put in -1, and changed /4 to /6
 		iValue += ((iCombatValue * GC.getUnitInfo(eUnit).getWithdrawalProbability()) / 150); // K-Mod (was 100)
+		// iValue += ((iCombatValue * GC.getUnitInfo(eUnit).getMoves() * iFastMoverMultiplier) / 4);
+		// K-Mod
+		if (GC.getUnitInfo(eUnit).getMoves() > 1)
+		{
+			int iFastMoverMultiplier = AI_isDoStrategy(AI_STRATEGY_FASTMOVERS) ? 4 : 1;
+			iValue += iCombatValue * iFastMoverMultiplier * GC.getUnitInfo(eUnit).getMoves() / 10;
+		}
+		// K-Mod end
+
 
 		/* if (!AI_isDoStrategy(AI_STRATEGY_AIR_BLITZ))
 		{
@@ -11819,7 +11898,7 @@ int CvPlayerAI::AI_unitValue(UnitTypes eUnit, UnitAITypes eUnitAI, CvArea* pArea
 			iLimitedUnits -= range(AI_totalUnitAIs(UNITAI_COLLATERAL) - iNoLimitCollateral / 2, 0, iLimitedUnits);
 			FAssert(iLimitedUnits >= 0);
 			int iAttackUnits = std::max(1, AI_totalUnitAIs(UNITAI_ATTACK) + AI_totalUnitAIs(UNITAI_ATTACK_CITY)); // floor value is just to avoid divide-by-zero
-			FAssert(iAttackUnits >= iLimitedUnits); // this is not strictly guarenteed, but I expect it to always be true under normal playing conditions.
+			FAssert(iAttackUnits >= iLimitedUnits || iLimitedUnits <= 3); // this is not strictly guarenteed, but I expect it to always be true under normal playing conditions.
 
 			iValue *= std::max(1, iAttackUnits - iLimitedUnits);
 			iValue /= iAttackUnits;
@@ -11849,13 +11928,6 @@ int CvPlayerAI::AI_unitValue(UnitTypes eUnit, UnitAITypes eUnitAI, CvArea* pArea
 	case UNITAI_RESERVE:
 		iValue += iCombatValue;
 		// iValue -= ((iCombatValue * GC.getUnitInfo(eUnit).getCollateralDamage()) / 200); // disabled by K-Mod (collateral damage is never 'bad')
-		iValue -= (GC.getUnitInfo(eUnit).isNoDefensiveBonus() ? iCombatValue / 4 : 0); // K-Mod
-		// K-Mod. Add some value for flanking attacks.
-		for (UnitClassTypes i = (UnitClassTypes)0; i < GC.getNumUnitClassInfos(); i=(UnitClassTypes)(i+1))
-		{
-			iValue += iCombatValue * GC.getUnitInfo(eUnit).getFlankingStrikeUnitClass(i) * AI_getUnitClassWeight(i) / 20000; // (this is pretty small)
-		}
-		// K-Mod end
 		for (iI = 0; iI < GC.getNumUnitCombatInfos(); iI++)
 		{
 //			int iCombatModifier = GC.getUnitInfo(eUnit).getUnitCombatModifier(iI);
@@ -11863,7 +11935,20 @@ int CvPlayerAI::AI_unitValue(UnitTypes eUnit, UnitAITypes eUnitAI, CvArea* pArea
 //			iValue += ((iCombatValue * iCombatModifier) / 100);
 			iValue += ((iCombatValue * GC.getUnitInfo(eUnit).getUnitCombatModifier(iI) * AI_getUnitCombatWeight((UnitCombatTypes)iI)) / 12000);
 		}
-		iValue += ((iCombatValue * GC.getUnitInfo(eUnit).getMoves()) / 2);
+		//iValue += ((iCombatValue * GC.getUnitInfo(eUnit).getMoves()) / 2);
+		// K-Mod
+		if (GC.getUnitInfo(eUnit).getMoves() > 1)
+		{
+			iValue += iCombatValue * GC.getUnitInfo(eUnit).getMoves() / (GC.getUnitInfo(eUnit).isNoDefensiveBonus() ? 7 : 5);
+		}
+
+		iValue -= (GC.getUnitInfo(eUnit).isNoDefensiveBonus() ? iCombatValue / 4 : 0);
+
+		for (UnitClassTypes i = (UnitClassTypes)0; i < GC.getNumUnitClassInfos(); i=(UnitClassTypes)(i+1))
+		{
+			iValue += iCombatValue * GC.getUnitInfo(eUnit).getFlankingStrikeUnitClass(i) * AI_getUnitClassWeight(i) / 20000; // (this is pretty small)
+		}
+		// K-Mod end
 		break;
 
 	case UNITAI_COUNTER:
@@ -11896,7 +11981,14 @@ int CvPlayerAI::AI_unitValue(UnitTypes eUnit, UnitAITypes eUnitAI, CvArea* pArea
 			}
 		}
 
-		iValue += ((iCombatValue * GC.getUnitInfo(eUnit).getMoves()) / 2);
+		//iValue += ((iCombatValue * GC.getUnitInfo(eUnit).getMoves()) / 2);
+		// K-Mod
+		if (GC.getUnitInfo(eUnit).getMoves() > 1)
+		{
+			iValue += iCombatValue * GC.getUnitInfo(eUnit).getMoves() / 6;
+		}
+		// K-Mod end
+
 		iValue += ((iCombatValue * GC.getUnitInfo(eUnit).getWithdrawalProbability()) / 100);
 /************************************************************************************************/
 /* BETTER_BTS_AI_MOD                      03/20/10                                jdog5000      */
@@ -11921,7 +12013,16 @@ int CvPlayerAI::AI_unitValue(UnitTypes eUnit, UnitAITypes eUnitAI, CvArea* pArea
 	case UNITAI_CITY_DEFENSE:
 		iValue += ((iCombatValue * 2) / 3);
 		iValue += ((iCombatValue * GC.getUnitInfo(eUnit).getCityDefenseModifier()) / 75);
-		// K-Mod todo: iValue += GC.getUnitInfo(eUnit).getUnitCombatCollateralImmune ...  (maybe later)
+		// K-Mod. Value for collateral immunity
+		for (iI = 0; iI < GC.getNumUnitCombatInfos(); iI++)
+		{
+			if (GC.getUnitInfo(eUnit).getUnitCombatCollateralImmune(iI))
+			{
+				iValue += iCombatValue*30/100;
+				break;
+			}
+		}
+		// K-Mod end
 		break;
 
 	case UNITAI_CITY_COUNTER:
@@ -12937,7 +13038,7 @@ int CvPlayerAI::AI_executiveValue(CvArea* pArea, CorporationTypes eCorporation, 
 	int iExistingExecs = 0;
 	if (pArea)
 	{
-		iExistingExecs += bSpreadOnly ? 0 : countCorporationSpreadUnits(pArea, eCorporation, true) - 1;
+		iExistingExecs += bSpreadOnly ? 0 : std::max(0, countCorporationSpreadUnits(pArea, eCorporation, true) - 1);
 		// K-Mod note, -1 just so that we can build a spare, perhaps to airlift to another area. ("-1" execs is ok.)
 		// bSpreadOnly means that we are not calculating the value of building a new exec. Just the value of spreading.
 	}
@@ -12989,7 +13090,7 @@ int CvPlayerAI::AI_executiveValue(CvArea* pArea, CorporationTypes eCorporation, 
 					int iCorpValue = kLoopPlayer.AI_corporationValue(eCorporation);
 					int iValue = iSpreadExternalValue;
 					iValue += (iCorpValue * iAttitudeWeight)/100;
-					if (iValue > 0 && iCorpValue > 0 && iCitiesHave == 0)
+					if (iValue > 0 && iCorpValue > 0 && iCitiesHave == 0 && iExistingExecs == 0)
 					{
 						// if the player will spread the corp themselves, then that's good for us.
 						if (iAttitudeWeight >= 50)
@@ -13011,7 +13112,7 @@ int CvPlayerAI::AI_executiveValue(CvArea* pArea, CorporationTypes eCorporation, 
 							{
 								int iExtra = kLoopPlayer.countCorporations((CorporationTypes)iCorp, pArea);
 
-								if (iExtra > 0 && iCorpValue > kLoopPlayer.AI_corporationValue((CorporationTypes)iCorp))
+								if (iExtra > 0 && iCorpValue > kLoopPlayer.AI_corporationValue((CorporationTypes)iCorp)*4/3) // (ideally, hq should be considered too)
 									iExtra /= 2;
 
 								iCitiesHave += iExtra;
@@ -13233,7 +13334,7 @@ int CvPlayerAI::AI_plotTargetMissionAIs(CvPlot* pPlot, MissionAITypes* aeMission
 // K-Mod
 
 // Total defensive strength of units that can move iRange steps to reach pDefencePlot
-int CvPlayerAI::AI_localDefenceStrength(const CvPlot* pDefencePlot, TeamTypes eDefenceTeam, DomainTypes eDomainType, int iRange, bool bAtTarget, bool bCheckMoves) const
+int CvPlayerAI::AI_localDefenceStrength(const CvPlot* pDefencePlot, TeamTypes eDefenceTeam, DomainTypes eDomainType, int iRange, bool bAtTarget, bool bCheckMoves, bool bNoCache) const
 {
 	PROFILE_FUNC();
 
@@ -13284,10 +13385,10 @@ int CvPlayerAI::AI_localDefenceStrength(const CvPlot* pDefencePlot, TeamTypes eD
 					}
 				}
 			}
-			if (eDefenceTeam == NO_TEAM && eDomainType == DOMAIN_LAND && !bCheckMoves && (!bAtTarget || pLoopPlot == pDefencePlot) && !isHuman())
+			if (!bNoCache && !isHuman() && eDefenceTeam == NO_TEAM && eDomainType == DOMAIN_LAND && !bCheckMoves && (!bAtTarget || pLoopPlot == pDefencePlot))
 			{
 				// while since we're here, we might as well update our memory.
-				// (not for human players, otherwise the pathfinder might put us out of sync)
+				// (human players don't track strength memory)
 				GET_TEAM(getTeam()).AI_setStrengthMemory(pLoopPlot, iPlotTotal);
 				FAssert(isTurnActive());
 			}
@@ -16008,7 +16109,7 @@ void CvPlayerAI::AI_doCommerce()
 		}
 	}
 
-	// K-Mod, partially based on the changes made by BETTER_BTS_AI_MOD
+	// K-Mod - evaluate potential espionage missions to determine espionage weights, even if espionage isn't flexible. (loosely based on bbai)
 	if (!GC.getGameINLINE().isOption(GAMEOPTION_NO_ESPIONAGE) && kTeam.getHasMetCivCount(true) > 0 && (isCommerceFlexible(COMMERCE_ESPIONAGE) || getCommerceRate(COMMERCE_ESPIONAGE) > 0))
 	{
 		int iEspionageTargetRate = 0;
@@ -16252,14 +16353,10 @@ void CvPlayerAI::AI_doCommerce()
 		}
 		// K-Mod end
 
-		//if economy is weak, neglect espionage spending.
-		//instead invest hammers into espionage via spies/builds
-		if (bFinancialTrouble || AI_isDoVictoryStrategy(AI_VICTORY_CULTURE3) || bFirstTech || !isCommerceFlexible(COMMERCE_ESPIONAGE)) // K-Mod
-		{
-			//can still get trickle espionage income
-			iEspionageTargetRate = 0;
-		}
-		else
+		// K-Mod. Only try to control espionage rate if we can also control research,
+		// and if we don't need our commerce for more important things.
+		if (isCommerceFlexible(COMMERCE_ESPIONAGE) && isCommerceFlexible(COMMERCE_RESEARCH)
+			&& !bFinancialTrouble && !bFirstTech && !AI_isDoVictoryStrategy(AI_VICTORY_CULTURE4))
 		{
 			if (!bCheapTechSteal) // K-Mod
 			{
@@ -16270,7 +16367,6 @@ void CvPlayerAI::AI_doCommerce()
 			iEspionageTargetRate *= GC.getLeaderHeadInfo(getLeaderType()).getEspionageWeight();
 			iEspionageTargetRate /= 100;
 
-			// K-Mod
 			int iCap = AI_isDoStrategy(AI_STRATEGY_BIG_ESPIONAGE) ? 20 : 10;
 			iCap += bCheapTechSteal || AI_avoidScience() ? 50 : 0;
 
@@ -19165,6 +19261,8 @@ void CvPlayerAI::AI_doCheckFinancialTrouble()
 // heavily edited by K-Mod and bbai
 int CvPlayerAI::AI_calculateCultureVictoryStage() const
 {
+	PROFILE_FUNC();
+
 	if( GC.getDefineINT("BBAI_VICTORY_STRATEGY_CULTURE") <= 0 )
 	{
 		return 0;
@@ -19195,20 +19293,20 @@ int CvPlayerAI::AI_calculateCultureVictoryStage() const
 	iHighCultureMark *= GC.getGameSpeedInfo(GC.getGame().getGameSpeedType()).getVictoryDelayPercent();
 	iHighCultureMark /= 100;
 
+	int iGoldCommercePercent = AI_estimateBreakEvenGoldPercent();
+
 	std::vector<int> countdownList;
 	// K-Mod end
 
 	int iLoop;
-	CvCity* pLoopCity;
-	for (pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
+	for (CvCity* pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
 	{
 		if (pLoopCity->getCultureLevel() >= (GC.getGameINLINE().culturalVictoryCultureLevel() - 1))
 		{
-			//if (pLoopCity->getBaseCommerceRate(COMMERCE_CULTURE) > 100)
-			// K-Mod. Try to tell us what the culture would be like if we were to turn up the slider...
+			// K-Mod. Try to tell us what the culture would be like if we were to turn up the slider. (cf. AI_updateCommerceWeights)
+			// (current culture rate, minus what we're current getting from raw commerce, plus what we would be getting from raw commerce at maximum percentage.)
 			int iEstimatedRate = pLoopCity->getCommerceRate(COMMERCE_CULTURE);
-			iEstimatedRate -= getCommercePercent(COMMERCE_CULTURE) * pLoopCity->getYieldRate(YIELD_COMMERCE) * pLoopCity->getTotalCommerceRateModifier(COMMERCE_CULTURE) / 10000;
-			iEstimatedRate += (100 - getCommercePercent(COMMERCE_GOLD)) * pLoopCity->getYieldRate(YIELD_COMMERCE) * pLoopCity->getTotalCommerceRateModifier(COMMERCE_CULTURE) / 10000;
+			iEstimatedRate += (100 - iGoldCommercePercent - getCommercePercent(COMMERCE_CULTURE)) * pLoopCity->getYieldRate(YIELD_COMMERCE) * pLoopCity->getTotalCommerceRateModifier(COMMERCE_CULTURE) / 10000;
 			int iCountdown = (iLegendaryCulture - pLoopCity->getCulture(getID())) / std::max(1, iEstimatedRate);
 			countdownList.push_back(iCountdown);
 			if (iCountdown < iHighCultureMark)
@@ -21164,6 +21262,9 @@ void CvPlayerAI::AI_updateGreatPersonWeights()
 
 	m_GreatPersonWeights.clear();
 
+	if (isHuman())
+		return; // Humans can use their own reasoning for choosing specialists
+
 	for (int i = 0; i < GC.getNumSpecialistInfos(); i++)
 	{
 		UnitClassTypes eGreatPersonClass = (UnitClassTypes)GC.getSpecialistInfo((SpecialistTypes)i).getGreatPeopleUnitClass();
@@ -21502,6 +21603,27 @@ void CvPlayerAI::AI_updateAvailableIncome()
 	m_iAvailableIncome = iTotalRaw * AI_averageCommerceMultiplier(COMMERCE_GOLD) / 100;
 	m_iAvailableIncome += std::max(0, getGoldPerTurn());
 	m_iAvailableIncome += getCommerceRate(COMMERCE_GOLD) - iTotalRaw * AI_averageCommerceMultiplier(COMMERCE_GOLD) * getCommercePercent(COMMERCE_GOLD) / 10000;
+}
+
+// Estimate what percentage of commerce is needed on gold to cover our expenses
+int CvPlayerAI::AI_estimateBreakEvenGoldPercent() const
+{
+	PROFILE_FUNC();
+	//int iGoldCommerceRate = kPlayer.getCommercePercent(COMMERCE_GOLD); // (rough approximation)
+
+	// (detailed approximation)
+	int iTotalRaw = calculateTotalYield(YIELD_COMMERCE);
+	int iExpenses = calculateInflatedCosts() * 12 / 10; // (20% increase to approximate other costs)
+
+	// estimate how much gold we get from specialists & buildings by taking our current gold rate and subtracting what it would be from raw commerce alone.
+	iExpenses -= getCommerceRate(COMMERCE_GOLD) - iTotalRaw * AI_averageCommerceMultiplier(COMMERCE_GOLD) * getCommercePercent(COMMERCE_GOLD) / 10000;
+
+	// divide what's left to determine what our gold slider would need to be to break even.
+	int iGoldCommerceRate = 10000 * iExpenses / (iTotalRaw * AI_averageCommerceMultiplier(COMMERCE_GOLD));
+
+	iGoldCommerceRate = range(iGoldCommerceRate, 0, 100); // (perhaps it would be useful to just return the unbounded value?)
+
+	return iGoldCommerceRate;
 }
 // K-Mod end
 

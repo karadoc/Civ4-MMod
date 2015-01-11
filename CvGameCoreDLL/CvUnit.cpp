@@ -585,14 +585,15 @@ void CvUnit::kill(bool bDelay, PlayerTypes ePlayer)
 	// XXX this is NOT a hack, without it, the game crashes.
 	gDLL->getEntityIFace()->RemoveUnitFromBattle(this);
 
-	FAssertMsg(!isCombat(), "isCombat did not return false as expected");
+	//FAssertMsg(!isCombat(), "isCombat did not return false as expected");
+	FAssert(!isFighting()); // K-Mod. With simultaneous turns, a unit can be captured while trying to execute an attack order. (eg. a bomber)
 
 	setTransportUnit(NULL);
 
 	setReconPlot(NULL);
 	setBlockading(false);
 
-	FAssertMsg(getAttackPlot() == NULL, "The current unit instance's attack plot is expected to be NULL");
+	//FAssertMsg(getAttackPlot() == NULL, "The current unit instance's attack plot is expected to be NULL");
 	FAssertMsg(getCombatUnit() == NULL, "The current unit instance's combat unit is expected to be NULL");
 
 	GET_TEAM(getTeam()).changeUnitClassCount((UnitClassTypes)m_pUnitInfo->getUnitClassType(), -1);
@@ -1325,6 +1326,7 @@ void CvUnit::updateCombat(bool bQuick)
 
 	if (getCombatTimer() > 0)
 	{
+		FAssert(getCombatUnit() && getCombatUnit()->getAttackPlot() == NULL); // K-Mod
 		changeCombatTimer(-1);
 
 		if (getCombatTimer() > 0)
@@ -1357,6 +1359,12 @@ void CvUnit::updateCombat(bool bQuick)
 	}
 	else
 	{
+		FAssert(!isFighting());
+		if (plot()->isFighting() || pPlot->isFighting())
+		{
+			// K-Mod. we need to wait for our turn to attack - so don't bother looking for a defender yet.
+			return;
+		}
 		pDefender = pPlot->getBestDefender(NO_PLAYER, getOwnerINLINE(), this, true);
 	}
 
@@ -1366,7 +1374,15 @@ void CvUnit::updateCombat(bool bQuick)
 		setCombatUnit(NULL);
 
 		//getGroup()->groupMove(pPlot, true, ((canAdvance(pPlot, 0)) ? this : NULL));
-		getGroup()->groupMove(pPlot, true, canAdvance(pPlot, 0) ? this : NULL, true); // K-Mod
+		// K-Mod
+		if (bFinish)
+		{
+			FAssertMsg(false, "Cannot 'finish' combat with NULL defender");
+			return;
+		}
+		else
+			getGroup()->groupMove(pPlot, true, canAdvance(pPlot, 0) ? this : NULL, true);
+		// K-Mod end
 
 		getGroup()->clearMissionQueue();
 
@@ -1410,6 +1426,7 @@ void CvUnit::updateCombat(bool bQuick)
 			setCombatUnit(pDefender, true);
 			pDefender->setCombatUnit(this, false);
 
+			pDefender->setAttackPlot(NULL, false); // K-Mod (to prevent weirdness from simultanious attacks)
 			pDefender->getGroup()->clearMissionQueue();
 
 			bool bFocused = (bVisible && isCombatFocus() && gDLL->getInterfaceIFace()->isCombatFocus());
@@ -1476,6 +1493,7 @@ void CvUnit::updateCombat(bool bQuick)
 		{
 			resolveCombat(pDefender, pPlot, bVisible);
 
+			FAssert(!bVisible || getCombatTimer() > 0);
 			if (!bVisible)
 				bFinish = true;
 
@@ -2259,11 +2277,11 @@ void CvUnit::doCommand(CommandTypes eCommand, int iData1, int iData2)
 	getGroup()->doDelayedDeath();
 }
 
-
-FAStarNode* CvUnit::getPathLastNode() const
+// Disabled by K-Mod. (This function is deprecated.)
+/* FAStarNode* CvUnit::getPathLastNode() const
 {
 	return getGroup()->getPathLastNode();
-}
+} */
 
 
 CvPlot* CvUnit::getPathEndTurnPlot() const
@@ -2277,6 +2295,12 @@ bool CvUnit::generatePath(const CvPlot* pToPlot, int iFlags, bool bReuse, int* p
 	return getGroup()->generatePath(plot(), pToPlot, iFlags, bReuse, piPathTurns, iMaxPath);
 }
 
+// K-Mod. Return the standard pathfinder, for extracting path information.
+KmodPathFinder& CvUnit::getPathFinder() const
+{
+	return CvSelectionGroup::path_finder;
+}
+// K-Mod end
 
 bool CvUnit::canEnterTerritory(TeamTypes eTeam, bool bIgnoreRightOfPassage) const
 {
@@ -6513,6 +6537,7 @@ bool CvUnit::greatWork()
 		}
 		*/
 		pCity->changeCultureTimes100(getOwnerINLINE(), iCultureToAdd, true, true);
+		GET_PLAYER(getOwnerINLINE()).AI_updateCommerceWeights(); // significant culture change may cause signficant weight changes.
 /**
 *** K-Mod end
 **/

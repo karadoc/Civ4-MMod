@@ -10824,7 +10824,7 @@ void CvCity::alterSpecialistCount(SpecialistTypes eIndex, int iChange)
 		{
 			changeForceSpecialistCount(eIndex, iChange);
 		}
-		else
+		//else // (K-Mod. Without the following block, extra care is needed inside AI_assignWorkingPlots.)
 		{
 			if (iChange > 0)
 			{
@@ -15421,7 +15421,7 @@ PlayerTypes CvCity::getLiberationPlayer(bool bConquest) const
 
 		if (bConquest)
 		{
-			if (iPlayer == getOriginalOwner())
+			if (ePlayer == getOriginalOwner())
 			{
 				iCultureTimes100 *= 3;
 				iCultureTimes100 /= 2;
