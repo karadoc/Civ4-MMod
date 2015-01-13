@@ -2426,6 +2426,14 @@ void CvPlayerAI::AI_updateCommerceWeights()
 	std::sort(city_countdown_list.begin(), city_countdown_list.end());
 
 	FAssert(city_countdown_list.size() == getNumCities());
+	int iLegendaryCities = 0;
+	bool bMasteryVictory = false;
+	for (VictoryTypes i = (VictoryTypes)0; !bMasteryVictory && i < GC.getNumVictoryInfos(); i=(VictoryTypes)(i+1))
+	{
+		if (GC.getGameINLINE().isVictoryValid(i) && GC.getVictoryInfo(i).isTotalVictory())
+			bMasteryVictory = true;
+	}
+
 	for (size_t i = 0; i < city_countdown_list.size(); i++)
 	{
 		CvCity* pCity = getCity(city_countdown_list[i].second);
@@ -2441,10 +2449,12 @@ void CvPlayerAI::AI_updateCommerceWeights()
 		if (pCity->getCulture(getID()) >= iLegendaryCulture)
 		{
 			iWeight /= 10;
+			iLegendaryCities++;
 		}
 		else if (bUseCultureRank)
 		{
-			int iCultureRateRank = i+1; // an alias, used for clarity.
+			int iCultureRateRank = i+1 - (bMasteryVictory ? iLegendaryCities : 0);
+			FAssert(i > 0);
 
 			// if one of the currently best cities, then focus hard
 			if (iCultureRateRank <= iVictoryCities)
