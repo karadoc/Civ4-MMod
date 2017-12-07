@@ -4016,7 +4016,8 @@ class CvMainInterface:
 				g_iNumCenterBonus = iCenterCount
 				g_iNumRightBonus = iRightCount
 				
-				iMaintenance = pHeadSelectedCity.getMaintenanceTimes100()
+				#iMaintenance = pHeadSelectedCity.getMaintenanceTimes100()
+				iMaintenance = pHeadSelectedCity.getMaintenanceTimes100() * (100+gc.getPlayer(pHeadSelectedCity.getOwner()).getInflationRate()) / 100 # K-Mod
 
 				szBuffer = localText.getText("INTERFACE_CITY_MAINTENANCE", ())
 				
@@ -5133,7 +5134,7 @@ class CvMainInterface:
 															scores.setWorstEnemy()
 # BUG - Worst Enemy - end
 # BUG - WHEOOH - start
-												if (ScoreOpt.isShowWHEOOH() and False): # disabled by K-Mod
+												if (ScoreOpt.isShowWHEOOH()):
 													if (PlayerUtil.isWHEOOH(ePlayer, PlayerUtil.getActivePlayerID())):
 														szTempBuffer = u"%c" %(CyGame().getSymbolID(FontSymbols.OCCUPATION_CHAR))
 														szBuffer = szBuffer + szTempBuffer

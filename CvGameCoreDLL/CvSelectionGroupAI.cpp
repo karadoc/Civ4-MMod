@@ -265,27 +265,35 @@ bool CvSelectionGroupAI::AI_update()
 		{
 			bool bFollow = false;
 
-			// if we not group attacking, then check for follow action
-			if (!AI_isGroupAttack())
+			// if we not group attacking, then check for 'follow' action
+			if (!AI_isGroupAttack() && readyToMove(true))
 			{
-				CLLNode<IDInfo>* pEntityNode = headUnitNode();
-				// K-Mod note: I've rearranged a few things below, and added 'bFirst'.
-				bool bFirst = true;
+				// K-Mod. What we do here might split the group. So to avoid problems, lets make a list of our units.
+				std::vector<IDInfo> originalGroup;
 
-				while ((pEntityNode != NULL) && readyToMove(true))
+				for (CLLNode<IDInfo>* pUnitNode = headUnitNode(); pUnitNode != NULL; pUnitNode = nextUnitNode(pUnitNode))
 				{
-					CvUnit* pLoopUnit = ::getUnit(pEntityNode->m_data);
-					pEntityNode = nextUnitNode(pEntityNode);
+					originalGroup.push_back(pUnitNode->m_data);
+				}
+				FAssert(originalGroup.size() == getNumUnits());
 
-					if (bFirst)
-						path_finder.Reset();
+				bool bFirst = true;
+				path_finder.Reset();
 
-					if (pLoopUnit->canMove())
+				//while ((pEntityNode != NULL) && readyToMove(true))
+				for (std::vector<IDInfo>::iterator it = originalGroup.begin(); it != originalGroup.end(); ++it)
+				{
+					CvUnit* pLoopUnit = ::getUnit(*it);
+
+					if (pLoopUnit && pLoopUnit->getGroupID() == getID() && pLoopUnit->canMove())
 					{
 						if (pLoopUnit->AI_follow(bFirst))
 						{
 							bFollow = true;
 							bFirst = true; // let the next unit start fresh.
+							path_finder.Reset();
+							if (!readyToMove(true))
+								break;
 						}
 						else
 							bFirst = false;
@@ -564,7 +572,7 @@ int CvSelectionGroupAI::AI_sumStrength(const CvPlot* pAttackedPlot, DomainTypes 
 	pUnitNode = headUnitNode();
 
 	int iBaseCollateral = bCountCollateral
-		? estimateCollateralWeight(pAttackedPlot, pAttackedPlot->getTeam() == getTeam() ? NO_TEAM : pAttackedPlot->getTeam())
+		? estimateCollateralWeight(pAttackedPlot, getTeam())
 		: 0;
 
 	while (pUnitNode != NULL)

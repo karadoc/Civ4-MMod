@@ -16402,6 +16402,10 @@
 					<UnitCombatType>UNITCOMBAT_GUN</UnitCombatType>
 					<iUnitCombatMod>50</iUnitCombatMod>
 				</UnitCombatMod>
+				<UnitCombatMod>
+					<UnitCombatType>UNITCOMBAT_MOUNTED</UnitCombatType>
+					<iUnitCombatMod>10</iUnitCombatMod>
+				</UnitCombatMod>
 			</UnitCombatMods>
 			<UnitCombatCollateralImmunes>
 				<UnitCombatCollateralImmune>
@@ -17160,7 +17164,7 @@
 			<iBombardRate>0</iBombardRate>
 			<SpecialCargo>NONE</SpecialCargo>
 			<DomainCargo>DOMAIN_LAND</DomainCargo>
-			<iCargo>2</iCargo>
+			<iCargo>3</iCargo>
 			<iConscription>0</iConscription>
 			<iCultureGarrison>0</iCultureGarrison>
 			<iExtraCost>0</iExtraCost>
@@ -17778,7 +17782,7 @@
 			<iBombardRate>0</iBombardRate>
 			<SpecialCargo>NONE</SpecialCargo>
 			<DomainCargo>DOMAIN_LAND</DomainCargo>
-			<iCargo>2</iCargo>
+			<iCargo>3</iCargo>
 			<iConscription>0</iConscription>
 			<iCultureGarrison>0</iCultureGarrison>
 			<iExtraCost>0</iExtraCost>
@@ -17959,7 +17963,7 @@
 			<iBombardRate>0</iBombardRate>
 			<SpecialCargo>NONE</SpecialCargo>
 			<DomainCargo>DOMAIN_LAND</DomainCargo>
-			<iCargo>3</iCargo>
+			<iCargo>4</iCargo>
 			<iConscription>0</iConscription>
 			<iCultureGarrison>0</iCultureGarrison>
 			<iExtraCost>0</iExtraCost>
@@ -18144,7 +18148,7 @@
 			<iBombardRate>0</iBombardRate>
 			<SpecialCargo>NONE</SpecialCargo>
 			<DomainCargo>DOMAIN_LAND</DomainCargo>
-			<iCargo>4</iCargo>
+			<iCargo>5</iCargo>
 			<iConscription>0</iConscription>
 			<iCultureGarrison>0</iCultureGarrison>
 			<iExtraCost>0</iExtraCost>
@@ -19097,7 +19101,7 @@
 			<iBombardRate>0</iBombardRate>
 			<SpecialCargo>NONE</SpecialCargo>
 			<DomainCargo>DOMAIN_LAND</DomainCargo>
-			<iCargo>4</iCargo>
+			<iCargo>5</iCargo>
 			<iConscription>0</iConscription>
 			<iCultureGarrison>0</iCultureGarrison>
 			<iExtraCost>0</iExtraCost>
@@ -20004,7 +20008,11 @@
 			<TerrainAttacks>
 				<TerrainAttack>
 					<TerrainType>TERRAIN_OCEAN</TerrainType>
-					<iTerrainAttack>10</iTerrainAttack>
+					<iTerrainAttack>25</iTerrainAttack>
+				</TerrainAttack>
+				<TerrainAttack>
+					<TerrainType>TERRAIN_COAST</TerrainType>
+					<iTerrainAttack>25</iTerrainAttack>
 				</TerrainAttack>
 			</TerrainAttacks>
 			<TerrainDefenses/>
@@ -20193,7 +20201,11 @@
 			<TerrainAttacks>
 				<TerrainAttack>
 					<TerrainType>TERRAIN_OCEAN</TerrainType>
-					<iTerrainAttack>10</iTerrainAttack>
+					<iTerrainAttack>25</iTerrainAttack>
+				</TerrainAttack>
+				<TerrainAttack>
+					<TerrainType>TERRAIN_COAST</TerrainType>
+					<iTerrainAttack>25</iTerrainAttack>
 				</TerrainAttack>
 			</TerrainAttacks>
 			<TerrainDefenses/>

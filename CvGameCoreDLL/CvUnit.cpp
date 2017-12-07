@@ -700,11 +700,11 @@ void CvUnit::doTurn()
 		{
 			if (GET_TEAM(getTeam()).isOpenBorders(eTeam))
 			{
-				testSpyIntercepted(plot()->getOwnerINLINE(), GC.getDefineINT("ESPIONAGE_SPY_NO_INTRUDE_INTERCEPT_MOD"));
+				testSpyIntercepted(plot()->getOwnerINLINE(), false, GC.getDefineINT("ESPIONAGE_SPY_NO_INTRUDE_INTERCEPT_MOD"));
 			}
 			else
 			{
-				testSpyIntercepted(plot()->getOwnerINLINE(), GC.getDefineINT("ESPIONAGE_SPY_INTERCEPT_MOD"));
+				testSpyIntercepted(plot()->getOwnerINLINE(), false, GC.getDefineINT("ESPIONAGE_SPY_INTERCEPT_MOD"));
 			}
 		}
 	}
@@ -1005,7 +1005,9 @@ void CvUnit::updateAirCombat(bool bQuick)
 	{
 		if (!isFighting())
 		{
-			if (plot()->isFighting() || pPlot->isFighting())
+			//if (plot()->isFighting() || pPlot->isFighting())
+			// K-Mod. I don't think it matters if the plot we're on is fighting already - but the interceptor needs to be available to fight!
+			if (pPlot->isFighting() || pInterceptor->isFighting())
 			{
 				return;
 			}
@@ -2593,13 +2595,20 @@ bool CvUnit::canMoveInto(const CvPlot* pPlot, bool bAttack, bool bDeclareWar, bo
 
 	if (isNoCapture())
 	{
-		if (!bAttack)
+		/* if (!bAttack)
 		{
 			if (pPlot->isEnemyCity(*this))
 			{
 				return false;
 			}
+		} */
+		// K-Mod. Don't let noCapture units attack defenceless cities. (eg. cities with a worker in them)
+		if (pPlot->isEnemyCity(*this))
+		{
+			if (!bAttack || !pPlot->isVisibleEnemyDefender(this))
+				return false;
 		}
+		// K-Mod end
 	}
 
 /************************************************************************************************/
@@ -5971,7 +5980,7 @@ bool CvUnit::canSpreadCorporation(const CvPlot* pPlot, CorporationTypes eCorpora
 
 int CvUnit::spreadCorporationCost(CorporationTypes eCorporation, CvCity* pCity) const
 {
-	int iCost = std::max(0, GC.getCorporationInfo(eCorporation).getSpreadCost() * (100 + GET_PLAYER(getOwnerINLINE()).calculateInflationRate()));
+	int iCost = std::max(0, GC.getCorporationInfo(eCorporation).getSpreadCost() * (100 + GET_PLAYER(getOwnerINLINE()).getInflationRate()));
 	iCost /= 100;
 
 	if (NULL != pCity)
@@ -6714,7 +6723,7 @@ bool CvUnit::espionage(EspionageMissionTypes eMission, int iData)
 	}
 	else
 	{
-		if (testSpyIntercepted(eTargetPlayer, GC.getEspionageMissionInfo(eMission).getDifficultyMod()))
+		if (testSpyIntercepted(eTargetPlayer, true, GC.getEspionageMissionInfo(eMission).getDifficultyMod()))
 		{
 			return false;
 		}
@@ -6726,7 +6735,7 @@ bool CvUnit::espionage(EspionageMissionTypes eMission, int iData)
 				NotifyEntity(MISSION_ESPIONAGE);
 			}
 
-			if (!testSpyIntercepted(eTargetPlayer, GC.getDefineINT("ESPIONAGE_SPY_MISSION_ESCAPE_MOD")))
+			if (!testSpyIntercepted(eTargetPlayer, true, GC.getDefineINT("ESPIONAGE_SPY_MISSION_ESCAPE_MOD")))
 			{
 				setFortifyTurns(0);
 				setMadeAttack(true);
@@ -6752,7 +6761,7 @@ bool CvUnit::espionage(EspionageMissionTypes eMission, int iData)
 	return false;
 }
 
-bool CvUnit::testSpyIntercepted(PlayerTypes eTargetPlayer, int iModifier)
+bool CvUnit::testSpyIntercepted(PlayerTypes eTargetPlayer, bool bMission, int iModifier)
 {
 	CvPlayer& kTargetPlayer = GET_PLAYER(eTargetPlayer);
 
@@ -6761,7 +6770,7 @@ bool CvUnit::testSpyIntercepted(PlayerTypes eTargetPlayer, int iModifier)
 		return false;
 	}
 
-	if (GC.getGameINLINE().getSorenRandNum(10000, "Spy Interception") >= getSpyInterceptPercent(kTargetPlayer.getTeam()) * (100 + iModifier))
+	if (GC.getGameINLINE().getSorenRandNum(10000, "Spy Interception") >= getSpyInterceptPercent(kTargetPlayer.getTeam(), bMission) * (100 + iModifier))
 	{
 		return false;
 	}
@@ -6820,7 +6829,7 @@ bool CvUnit::testSpyIntercepted(PlayerTypes eTargetPlayer, int iModifier)
 	return true;
 }
 
-int CvUnit::getSpyInterceptPercent(TeamTypes eTargetTeam) const
+int CvUnit::getSpyInterceptPercent(TeamTypes eTargetTeam, bool bMission) const
 {
 	FAssert(isSpy());
 	FAssert(getTeam() != eTargetTeam);
@@ -6853,9 +6862,11 @@ int CvUnit::getSpyInterceptPercent(TeamTypes eTargetTeam) const
 		iSuccess += GC.getDefineINT("ESPIONAGE_INTERCEPT_COUNTERESPIONAGE_MISSION");
 	}
 
-	if (0 == getFortifyTurns() || plot()->plotCount(PUF_isSpy, -1, -1, NO_PLAYER, getTeam()) > 1)
+	// K-Mod. I've added the following condition for the recent mission bonus, to make spies less likely to be caught while exploring during peace time.
+	if (bMission || atWar(getTeam(), eTargetTeam) || GET_TEAM(eTargetTeam).getCounterespionageModAgainstTeam(getTeam()) > 0 || plot()->isEspionageCounterSpy(eTargetTeam)) // K-Mod
 	{
-		iSuccess += GC.getDefineINT("ESPIONAGE_INTERCEPT_RECENT_MISSION");
+		if (0 == getFortifyTurns() || plot()->plotCount(PUF_isSpy, -1, -1, NO_PLAYER, getTeam()) > 1)
+			iSuccess += GC.getDefineINT("ESPIONAGE_INTERCEPT_RECENT_MISSION");
 	}
 
 	return std::min(100, std::max(0, iSuccess));
@@ -7434,7 +7445,7 @@ CvCity* CvUnit::getUpgradeCity(UnitTypes eUnit, bool bSearch, int* iSearchValue)
 {
 	if (eUnit == NO_UNIT)
 	{
-		return false;
+		return NULL;
 	}
 	
 	CvPlayerAI& kPlayer = GET_PLAYER(getOwnerINLINE());
@@ -7442,17 +7453,17 @@ CvCity* CvUnit::getUpgradeCity(UnitTypes eUnit, bool bSearch, int* iSearchValue)
 
 	if (GC.getCivilizationInfo(kPlayer.getCivilizationType()).getCivilizationUnits(kUnitInfo.getUnitClassType()) != eUnit)
 	{
-		return false;
+		return NULL;
 	}
 
 	if (!upgradeAvailable(getUnitType(), ((UnitClassTypes)(kUnitInfo.getUnitClassType()))))
 	{
-		return false;
+		return NULL;
 	}
 
 	if (kUnitInfo.getCargoSpace() < getCargo())
 	{
-		return false;
+		return NULL;
 	}
 
 	if (getCargo() > 0) // K-Mod. (no point looping through everything if there is no cargo anyway.)
@@ -7469,7 +7480,7 @@ CvCity* CvUnit::getUpgradeCity(UnitTypes eUnit, bool bSearch, int* iSearchValue)
 				{
 					if (kUnitInfo.getSpecialCargo() != pLoopUnit->getSpecialUnitType())
 					{
-						return false;
+						return NULL;
 					}
 				}
 
@@ -7477,7 +7488,7 @@ CvCity* CvUnit::getUpgradeCity(UnitTypes eUnit, bool bSearch, int* iSearchValue)
 				{
 					if (kUnitInfo.getDomainCargo() != pLoopUnit->getDomainType())
 					{
-						return false;
+						return NULL;
 					}
 				}
 			}
@@ -12854,8 +12865,8 @@ int CvUnit::planBattle(CvBattleDefinition& kBattle, const std::vector<int>& comb
 			if (!bNextRound && (iDefenderUnitsKilled > 0 || iAttackerUnitsKilled > 0))
 			{
 				if (i+1 == combat_log.size() ||
-					iDefenderUnitsKilled >= iAttackerUnits - iAttackerUnitsKilled && combat_log[i] > 0 ||
-					iAttackerUnitsKilled >= iDefenderUnits - iDefenderUnitsKilled && combat_log[i] < 0)
+					(iDefenderUnitsKilled >= iAttackerUnits - iAttackerUnitsKilled && combat_log[i] > 0) ||
+					(iAttackerUnitsKilled >= iDefenderUnits - iDefenderUnitsKilled && combat_log[i] < 0))
 				{
 					bNextRound = true;
 				}

@@ -225,6 +225,7 @@ public:
 	void found(int iX, int iY);																																			// Exposed to Python			
 
 	DllExport bool canTrain(UnitTypes eUnit, bool bContinue = false, bool bTestVisible = false, bool bIgnoreCost = false) const;										// Exposed to Python
+	bool haveResourcesToTrain(UnitTypes eUnit) const; // K-Mod. (used in conjuction with canTrain, for AI related decisions.)
 	bool canConstruct(BuildingTypes eBuilding, bool bContinue = false, bool bTestVisible = false, bool bIgnoreCost = false, bool bIgnoreTech = false) const; // Exposed to Python, K-Mod added bIgnoreTech
 	bool canCreate(ProjectTypes eProject, bool bContinue = false, bool bTestVisible = false) const;							// Exposed to Python
 	bool canMaintain(ProcessTypes eProcess, bool bContinue = false) const;																			// Exposed to Python
@@ -267,7 +268,9 @@ public:
 	int calculateUnitSupply(int& iPaidUnits, int& iBaseSupplyCost) const;																	// Exposed to Python
 	int calculateUnitSupply() const;																																			// Exposed to Python
 	int calculatePreInflatedCosts() const;																																// Exposed to Python
-	int calculateInflationRate() const;																																		// Exposed to Python
+	//int calculateInflationRate() const;	// (was exposed to python. Use getInflationRate instead.)
+	void updateInflationRate(); // K-Mod
+	int getInflationRate() const { return m_iInflationRate; } // K-Mod, exposed to Python.
 	int calculateInflatedCosts() const;																																		// Exposed to Python
 
 	//int calculateBaseNetGold() const; // disabled by K-Mod
@@ -1223,6 +1226,7 @@ protected:
 	int m_iCombatExperience;
 	int m_iPopRushHurryCount;
 	int m_iInflationModifier;
+	int m_iInflationRate; // K-Mod
 
 	uint m_uiStartTime;  // XXX save these?
 

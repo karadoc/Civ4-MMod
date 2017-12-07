@@ -97,7 +97,7 @@ class CvTechChooser:
 # BUG - GP Tech Prefs - end
 
 		self.PIXEL_INCREMENT = 7
-		self.BOX_INCREMENT_WIDTH = 27 # Used to be 33 #Should be a multiple of 3...
+		self.BOX_INCREMENT_WIDTH = 30 # Used to be 33 #Should be a multiple of 3...
 		self.BOX_INCREMENT_HEIGHT = 9 #Should be a multiple of 3...
 		self.BOX_INCREMENT_Y_SPACING = 6 #Should be a multiple of 3...
 		self.BOX_INCREMENT_X_SPACING = 9 #Should be a multiple of 3...
@@ -240,12 +240,12 @@ class CvTechChooser:
 
 		screen = self.getScreen()
 
-		self.BOX_INCREMENT_WIDTH = 27 # Used to be 33 #Should be a multiple of 3...
+		self.BOX_INCREMENT_WIDTH = 30 # Used to be 33 #Should be a multiple of 3...
 		self.DrawTechChooser(screen, self.TabPanels[0], True, True, True, True, True, True)
 
 		self.BOX_INCREMENT_WIDTH = 12 # Used to be 33 #Should be a multiple of 3...
 		self.DrawTechChooser(screen, self.TabPanels[1], True, False, True, False, False, True)
-		self.BOX_INCREMENT_WIDTH = 27 # Used to be 33 #Should be a multiple of 3...
+		self.BOX_INCREMENT_WIDTH = 30 # Used to be 33 #Should be a multiple of 3...
 
 	def ShowTab(self):
 #		BugUtil.debug("cvTechChooser: ShowTab")
@@ -702,6 +702,30 @@ class CvTechChooser:
 		j = 0
 		k = 0
 
+		# K-Mod. Commerce modifiers
+		for j in range(CommerceTypes.NUM_COMMERCE_TYPES):
+			if (gc.getTechInfo(i).getCommerceModifier(j) > 0):
+				szCommerceModifierButton = self.getNextWidgetName("CommerceModifierButton")
+				screen.addDDSGFCAt( szCommerceModifierButton, szTechRecord, gc.getCommerceInfo(j).getButton(), iX + fX, iY + Y_ROW, TEXTURE_SIZE, TEXTURE_SIZE, WidgetTypes.WIDGET_HELP_GLOBAL_COMMERCE_MODIFIER, i, j, False )
+				fX += X_INCREMENT
+
+		j = 0
+		k = 0
+
+		# K-Mod. Extra specialist commerce
+		for j in range(CommerceTypes.NUM_COMMERCE_TYPES):
+			if (gc.getTechInfo(i).getSpecialistExtraCommerce(j) > 0):
+				if (gc.getDefineINT("DEFAULT_SPECIALIST") != SpecialistTypes.NO_SPECIALIST):
+					szSpecialistCommerceButtonButton = self.getNextWidgetName("SpecialistCommerceButton")
+					screen.addDDSGFCAt( szSpecialistCommerceButtonButton, szTechRecord, gc.getSpecialistInfo(gc.getDefineINT("DEFAULT_SPECIALIST")).getButton(), iX + fX, iY + Y_ROW, TEXTURE_SIZE, TEXTURE_SIZE, WidgetTypes.WIDGET_HELP_EXTRA_SPECIALIST_COMMERCE, i, j, False )
+					fX += X_INCREMENT
+				break
+
+		j = 0
+		k = 0
+
+		# K-Mod end.
+
 		# Adjustments
 		for j in range( CommerceTypes.NUM_COMMERCE_TYPES ):
 			if (gc.getTechInfo(i).isCommerceFlexible(j) and not (gc.getTeam(gc.getPlayer(self.iCivSelected).getTeam()).isCommerceFlexible(j))):
@@ -826,7 +850,7 @@ class CvTechChooser:
 		if (self.sTechTabID == self.sTechSelectTab):
 			bTechName = True
 			sPanel = self.TabPanels[0]
-			self.BOX_INCREMENT_WIDTH = 27 # Used to be 33 #Should be a multiple of 3...
+			self.BOX_INCREMENT_WIDTH = 30 # Used to be 33 #Should be a multiple of 3...
 		else:
 			bTechName = False
 			sPanel = self.TabPanels[1]

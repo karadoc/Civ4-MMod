@@ -2798,10 +2798,12 @@ int CvPlot::movementCost(const CvUnit* pUnit, const CvPlot* pFromPlot) const
 	// K-Mod. Why let the AI cheat this?
 	if (!isRevealed(pUnit->getTeam(), false))
 	{
-		if (!pFromPlot->isRevealed(pUnit->getTeam(), false))
+		/*if (!pFromPlot->isRevealed(pUnit->getTeam(), false))
 			return pUnit->maxMoves();
 		else
 			return GC.getMOVE_DENOMINATOR() + 1;
+		*/ // (further weight adjustments are now done in the pathfinder's moveCost function.)
+		return GC.getMOVE_DENOMINATOR();
 	}
 	// K-Mod end
 
@@ -6219,7 +6221,8 @@ int CvPlot::calculateImprovementYieldChange(ImprovementTypes eImprovement, Yield
 
 	iYield = GC.getImprovementInfo(eImprovement).getYieldChange(eYield);
 
-	if (isRiverSide())
+	//if (isRiverSide())
+	if (isRiver()) // K-Mod
 	{
 		iYield += GC.getImprovementInfo(eImprovement).getRiverSideYieldChange(eYield);
 	}
@@ -8789,7 +8792,7 @@ void CvPlot::doCulture()
 */
 								/* original bts code
 								pCity->changeOccupationTimer(GC.getDefineINT("BASE_REVOLT_OCCUPATION_TURNS") + ((iCityStrength * GC.getDefineINT("REVOLT_OCCUPATION_TURNS_PERCENT")) / 100));*/
-								pCity->changeOccupationTimer(GC.getDefineINT("BASE_REVOLT_OCCUPATION_TURNS") + 2*(pCity->getNumRevolts(eCulturalOwner)-1));
+								pCity->changeOccupationTimer(GC.getDefineINT("BASE_REVOLT_OCCUPATION_TURNS") + std::min(3, pCity->getNumRevolts(eCulturalOwner)-1));
 /*
 ** K-Mod end
 */
@@ -9672,11 +9675,10 @@ int CvPlot::getYieldWithBuild(BuildTypes eBuild, YieldTypes eYield, bool bWithUp
 		{
 			//in the case that improvements upgrade, use 2 upgrade levels higher for the
 			//yield calculations.
-			ImprovementTypes eUpgradeImprovement = (ImprovementTypes)GC.getImprovementInfo(eImprovement).getImprovementUpgrade();
+			/* ImprovementTypes eUpgradeImprovement = (ImprovementTypes)GC.getImprovementInfo(eImprovement).getImprovementUpgrade();
 			if (eUpgradeImprovement != NO_IMPROVEMENT)
 			{
 				//unless it's commerce on a low food tile, in which case only use 1 level higher
-				// K-Mod, stuff that. Just use 2 levels.
 				//if ((eYield != YIELD_COMMERCE) || (getYield(YIELD_FOOD) >= GC.getFOOD_CONSUMPTION_PER_POPULATION()))
 				{
 					ImprovementTypes eUpgradeImprovement2 = (ImprovementTypes)GC.getImprovementInfo(eUpgradeImprovement).getImprovementUpgrade();
@@ -9690,7 +9692,12 @@ int CvPlot::getYieldWithBuild(BuildTypes eBuild, YieldTypes eYield, bool bWithUp
 			if ((eUpgradeImprovement != NO_IMPROVEMENT) && (eUpgradeImprovement != eImprovement))
 			{
 				eImprovement = eUpgradeImprovement;
-			}
+			} */ // original code
+
+			// K-Mod. Stuff that. Just use the final improvement.
+			ImprovementTypes eFinalImprovement = finalImprovementUpgrade(eImprovement);
+			if (eFinalImprovement != NO_IMPROVEMENT)
+				eImprovement = eFinalImprovement;
 		}
 		
 		iYield += calculateImprovementYieldChange(eImprovement, eYield, getOwnerINLINE(), false);
